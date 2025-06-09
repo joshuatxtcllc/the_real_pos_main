@@ -2,7 +2,7 @@
 run = "npx tsx server/index.ts"
 
 [deployment]
-build = ["echo 'Skipping build - using direct TypeScript execution'"]
+build = ["node", "build.mjs"]
 run = ["npx", "tsx", "server/index.ts"]
 
 [env]
