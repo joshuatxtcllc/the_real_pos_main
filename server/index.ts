@@ -14,12 +14,20 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const app = express();
-const PORT = parseInt(process.env.PORT || '8080', 10);
+const PORT = parseInt(process.env.PORT || process.env.REPL_PORT || '5000', 10);
 
-// Initialize Discord bot and unified notification service
-const discordBot = new DiscordBot();
-const notificationService = new UnifiedNotificationService(discordBot);
-discordBot.start();
+// Initialize Discord bot and unified notification service with error handling
+let discordBot: DiscordBot | null = null;
+let notificationService: UnifiedNotificationService | null = null;
+
+try {
+  discordBot = new DiscordBot();
+  notificationService = new UnifiedNotificationService(discordBot);
+  discordBot.start();
+} catch (error) {
+  log(`Warning: Discord bot initialization failed: ${error}`, "warning");
+  console.warn('Discord bot failed to initialize, continuing without it');
+}
 
 // Make notification service available to routes
 app.locals.notificationService = notificationService;
@@ -93,29 +101,54 @@ app.use((req, res, next) => {
   // Function to start server with deployment-ready configuration
   const startServer = () => {
     try {
-      // Use consistent PORT configuration
+      // Use consistent PORT configuration with fallback handling
       const serverInstance = server.listen(PORT, "0.0.0.0", () => {
         log(`serving on port ${PORT}`);
-        console.log(`Server running on port ${PORT}`);
+        console.log(`✓ Server running on port ${PORT}`);
+        console.log(`✓ Environment: ${process.env.NODE_ENV || 'development'}`);
       });
 
       serverInstance.on('error', (error: any) => {
-        log(`Server startup error: ${error.message}`, "error");
-        console.error('Server error:', error);
-        
-        // Exit gracefully on startup errors for deployment
-        setTimeout(() => {
-          process.exit(1);
-        }, 1000);
+        if (error.code === 'EADDRINUSE') {
+          log(`Port ${PORT} is already in use, trying ${PORT + 1}`, "warning");
+          const fallbackPort = PORT + 1;
+          const fallbackServer = server.listen(fallbackPort, "0.0.0.0", () => {
+            log(`serving on fallback port ${fallbackPort}`);
+            console.log(`✓ Server running on fallback port ${fallbackPort}`);
+          });
+          return fallbackServer;
+        } else {
+          log(`Server startup error: ${error.message}`, "error");
+          console.error('Server error:', error);
+          
+          // Exit gracefully on startup errors for deployment
+          setTimeout(() => {
+            process.exit(1);
+          }, 1000);
+        }
       });
 
       // Graceful shutdown handlers
       const gracefulShutdown = (signal: string) => {
         log(`${signal} received, shutting down gracefully`, "info");
-        serverInstance.close(() => {
-          log("Server closed", "info");
-          process.exit(0);
+        console.log(`Shutting down server...`);
+        
+        serverInstance.close((error) => {
+          if (error) {
+            console.error('Error during shutdown:', error);
+            process.exit(1);
+          } else {
+            log("Server closed", "info");
+            console.log('Server closed gracefully');
+            process.exit(0);
+          }
         });
+        
+        // Force exit after 10 seconds
+        setTimeout(() => {
+          console.log('Force exit after timeout');
+          process.exit(1);
+        }, 10000);
       };
 
       process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
