@@ -36,15 +36,8 @@ export default function OrderProgressPage() {
     orderId: orderId ? parseInt(orderId) : undefined
   });
 
-  useEffect(() => {
-    if (orderError) {
-      toast({
-        title: 'Error',
-        description: 'Failed to load order details. Please try again.',
-        variant: 'destructive',
-      });
-    }
-  }, [orderError, toast]);
+  // Remove the useEffect that causes multiple error toasts
+  // The error handling is now done in the render logic below
 
   if (isLoadingOrder) {
     return (
@@ -59,27 +52,35 @@ export default function OrderProgressPage() {
     );
   }
 
-  if (!order) {
+  if (orderError || (!isLoadingOrder && !order)) {
     return (
       <div className="container mx-auto py-10 space-y-6">
         <Card>
           <CardHeader>
             <CardTitle>Order Not Found</CardTitle>
             <CardDescription>
-              We couldn't find the order you're looking for.
+              Order #{orderId} could not be found in the system.
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col items-center justify-center py-10">
             <AlertCircle className="h-16 w-16 text-muted-foreground mb-4" />
             <p className="text-center mb-6">
-              The order you're looking for doesn't exist or you don't have permission to view it.
+              The order you're looking for doesn't exist. Please check the order number and try again.
             </p>
-            <Button asChild>
-              <Link href="/">
-                <ArrowLeft className="mr-2 h-4 w-4" />
-                Return Home
-              </Link>
-            </Button>
+            <div className="flex gap-3">
+              <Button asChild variant="outline">
+                <Link href="/orders">
+                  <ShoppingBag className="mr-2 h-4 w-4" />
+                  View All Orders
+                </Link>
+              </Button>
+              <Button asChild>
+                <Link href="/">
+                  <ArrowLeft className="mr-2 h-4 w-4" />
+                  Return Home
+                </Link>
+              </Button>
+            </div>
           </CardContent>
         </Card>
       </div>
