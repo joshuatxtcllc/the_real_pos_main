@@ -71,6 +71,12 @@ function OrderCard({
     collect: (monitor) => ({
       isDragging: monitor.isDragging(),
     }),
+    end: (item, monitor) => {
+      const dropResult = monitor.getDropResult();
+      if (item && dropResult) {
+        // Optional: Add any post-drop logic here
+      }
+    },
   });
 
   // Apply drag ref to the component
@@ -79,7 +85,13 @@ function OrderCard({
   return (
     <Card 
       ref={ref} 
-      className={`mb-4 shadow-sm relative cursor-move ${isDragging ? 'opacity-50' : ''}`}
+      className={`mb-4 shadow-md relative cursor-grab active:cursor-grabbing transition-all duration-200 hover:shadow-lg ${
+        isDragging ? 'opacity-60 rotate-3 scale-105 z-50' : 'hover:scale-[1.02]'
+      }`}
+      style={{
+        transform: isDragging ? 'rotate(3deg) scale(1.05)' : undefined,
+        zIndex: isDragging ? 1000 : 'auto',
+      }}
     >
       <div className="absolute top-2 right-2 text-muted-foreground">
         <GripVertical className="h-4 w-4" />
@@ -265,7 +277,7 @@ function KanbanColumn({
       return false;
     },
     collect: (monitor) => ({
-      isOver: monitor.isOver(),
+      isOver: monitor.isOver({ shallow: true }),
       canDrop: monitor.canDrop(),
     }),
   });
@@ -276,13 +288,13 @@ function KanbanColumn({
   // Determine the column highlight styling based on drag state
   const getColumnStyle = () => {
     if (isOver && canDrop) {
-      return 'bg-primary/10 border-primary border-2';
+      return 'bg-primary/20 border-primary shadow-lg';
     } else if (canDrop) {
-      return 'bg-muted/30 border-primary/30 border-2';
+      return 'bg-primary/5 border-primary/50';
     } else if (isOver) {
-      return 'bg-destructive/10 border-destructive border-2';
+      return 'bg-destructive/10 border-destructive';
     }
-    return 'bg-muted/30';
+    return 'bg-muted/20 border-muted';
   };
 
   return (
@@ -295,7 +307,15 @@ function KanbanColumn({
       </div>
       <div 
         ref={ref}
-        className={`p-3 min-h-[calc(100vh-180px)] rounded-b-lg ${getColumnStyle()} transition-colors duration-150`}
+        className={`p-6 min-h-[calc(100vh-160px)] rounded-b-lg ${getColumnStyle()} transition-all duration-200 border-2 border-dashed ${
+          isOver && canDrop ? 'border-primary scale-[1.02]' : 
+          canDrop ? 'border-primary/30' : 
+          'border-transparent'
+        }`}
+        style={{ 
+          minHeight: 'calc(100vh - 160px)',
+          padding: isOver && canDrop ? '8px' : '24px'
+        }}
       >
         {isLoading ? (
           <div className="flex items-center justify-center h-20">

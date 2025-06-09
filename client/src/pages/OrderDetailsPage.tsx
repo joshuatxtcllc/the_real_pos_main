@@ -8,6 +8,8 @@ import { OrderEditDialog } from '@/components/OrderEditDialog';
 import { OrderStatusHistory } from '@/components/OrderStatusHistory';
 import OrderFiles from '@/components/OrderFiles';
 import { useToast } from "@/hooks/use-toast";
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { apiRequest } from '@/lib/queryClient';
 import { 
   Card, 
   CardContent, 
@@ -18,6 +20,13 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { AlertCircle, ArrowLeft, Clock, Edit, ShoppingBag } from 'lucide-react';
 import { getQrCodeByEntity } from '@/services/qrCodeService'; // Added import
 import ArtworkLocationTracker from '@/components/ArtworkLocationTracker';
@@ -26,6 +35,7 @@ import ArtworkLocationTracker from '@/components/ArtworkLocationTracker';
 export default function OrderDetailsPage() {
   const { orderId } = useParams<{ orderId: string }>();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [qrCodeData, setQrCodeData] = useState<string | null>(null); // Added state for QR code data
 
@@ -37,6 +47,28 @@ export default function OrderDetailsPage() {
     isLoadingOrderNotifications,
   } = useProduction({
     orderId: orderId ? parseInt(orderId) : undefined
+  });
+
+  // Update order status mutation
+  const updateOrderStatusMutation = useMutation({
+    mutationFn: async ({ id, status }: { id: number; status: string }) => {
+      return apiRequest('PATCH', `/api/orders/${id}`, { status });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/orders'] });
+      queryClient.invalidateQueries({ queryKey: [`/api/production/orders/${orderId}`] });
+      toast({
+        title: "Status Updated",
+        description: "Order status has been updated successfully",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Update Failed",
+        description: error.message || "Failed to update order status",
+        variant: "destructive",
+      });
+    },
   });
 
   useEffect(() => {
@@ -51,6 +83,12 @@ export default function OrderDetailsPage() {
 
   const handleEditDialogOpenChange = (open: boolean) => {
     setIsEditDialogOpen(open);
+  };
+
+  const handleStatusChange = (newStatus: string) => {
+    if (order) {
+      updateOrderStatusMutation.mutate({ id: order.id, status: newStatus });
+    }
   };
 
   useEffect(() => {
@@ -185,14 +223,31 @@ export default function OrderDetailsPage() {
               </div>
               <div className="col-span-2">
                 <h4 className="text-sm font-medium mb-1">Status</h4>
-                <div className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
-                  ${order.status === 'pending' ? 'bg-yellow-100 text-yellow-800' : 
-                    order.status === 'in_progress' ? 'bg-blue-100 text-blue-800' : 
-                    order.status === 'completed' ? 'bg-green-100 text-green-800' : 
-                    order.status === 'cancelled' ? 'bg-red-100 text-red-800' : 
-                    'bg-gray-100 text-gray-800'}`}
-                >
-                  {order.status?.charAt(0).toUpperCase() + order.status?.slice(1).replace('_', ' ')}
+                <div className="flex items-center gap-2">
+                  <div className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                    ${order.status === 'pending' ? 'bg-yellow-100 text-yellow-800' : 
+                      order.status === 'in_progress' ? 'bg-blue-100 text-blue-800' : 
+                      order.status === 'completed' ? 'bg-green-100 text-green-800' : 
+                      order.status === 'cancelled' ? 'bg-red-100 text-red-800' : 
+                      'bg-gray-100 text-gray-800'}`}
+                  >
+                    {order.status?.charAt(0).toUpperCase() + order.status?.slice(1).replace('_', ' ')}
+                  </div>
+                  <Select
+                    value={order.status || 'pending'}
+                    onValueChange={handleStatusChange}
+                    disabled={updateOrderStatusMutation.isPending}
+                  >
+                    <SelectTrigger className="w-[140px]">
+                      <SelectValue placeholder="Change status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="pending">Pending</SelectItem>
+                      <SelectItem value="in_progress">In Progress</SelectItem>
+                      <SelectItem value="completed">Completed</SelectItem>
+                      <SelectItem value="cancelled">Cancelled</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
               {qrCodeData && (

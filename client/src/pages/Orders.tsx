@@ -388,11 +388,9 @@ const Orders = () => {
                             <Button 
                               variant="default" 
                               size="sm"
-                              asChild
+                              onClick={() => setLocation(`/orders/${order.id}`)}
                             >
-                              <Link href={`/orders/${order.id}`}>
-                                <Edit className="h-4 w-4 mr-1" /> Details
-                              </Link>
+                              <Edit className="h-4 w-4 mr-1" /> Details
                             </Button>
                           </div>
                         </div>
