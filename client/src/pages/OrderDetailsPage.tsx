@@ -28,8 +28,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { AlertCircle, ArrowLeft, Clock, Edit, ShoppingBag } from 'lucide-react';
-import { getQrCodeByEntity } from '@/services/qrCodeService'; // Added import
+import { getQrCodeByEntity } from '@/services/qrCodeService';
 import ArtworkLocationTracker from '@/components/ArtworkLocationTracker';
+import QRCode from 'react-qr-code';
 
 
 export default function OrderDetailsPage() {
@@ -92,25 +93,18 @@ export default function OrderDetailsPage() {
   };
 
   useEffect(() => {
-    const loadOrderAndQrCode = async () => {
-      if (orderId) {
+    const loadQrCode = async () => {
+      if (orderId && order) {
         try {
-          const orderData = await getOrderById(parseInt(orderId));
-          setOrder(orderData);
           const qrCode = await getQrCodeByEntity('order', orderId);
-          setQrCodeData(qrCode?.code || null); //Handle potential null response
+          setQrCodeData(qrCode?.code || null);
         } catch (error) {
-          console.error('Error loading order or QR code:', error);
-          toast({
-            title: 'Error',
-            description: 'Failed to load order details or QR code.',
-            variant: 'destructive',
-          });
+          console.error('Error loading QR code:', error);
         }
       }
     };
-    loadOrderAndQrCode();
-  }, [orderId]);
+    loadQrCode();
+  }, [orderId, order]);
 
 
   if (isLoadingOrder) {
@@ -190,39 +184,39 @@ export default function OrderDetailsPage() {
           <CardContent className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <h4 className="text-sm font-medium mb-1">Frame</h4>
-                <p className="text-sm">{order.frameName || order.frameId || 'None'}</p>
+                <h4 className="text-sm font-medium mb-1 text-foreground">Frame</h4>
+                <p className="text-sm text-muted-foreground">{order.frameName || order.frameId || 'None'}</p>
               </div>
               <div>
-                <h4 className="text-sm font-medium mb-1">Material</h4>
-                <p className="text-sm">{order.frameMaterial || 'Standard'}</p>
+                <h4 className="text-sm font-medium mb-1 text-foreground">Material</h4>
+                <p className="text-sm text-muted-foreground">{order.frameMaterial || 'Standard'}</p>
               </div>
               <div>
-                <h4 className="text-sm font-medium mb-1">Mat</h4>
-                <p className="text-sm">{order.matColorName || order.matColorId || 'None'}</p>
+                <h4 className="text-sm font-medium mb-1 text-foreground">Mat</h4>
+                <p className="text-sm text-muted-foreground">{order.matColorName || order.matColorId || 'None'}</p>
               </div>
               <div>
-                <h4 className="text-sm font-medium mb-1">Glass</h4>
-                <p className="text-sm">{order.glassOptionName || order.glassOptionId || 'None'}</p>
+                <h4 className="text-sm font-medium mb-1 text-foreground">Glass</h4>
+                <p className="text-sm text-muted-foreground">{order.glassOptionName || order.glassOptionId || 'None'}</p>
               </div>
               <div>
-                <h4 className="text-sm font-medium mb-1">Image Size</h4>
-                <p className="text-sm">{order.artworkWidth}" × {order.artworkHeight}"</p>
+                <h4 className="text-sm font-medium mb-1 text-foreground">Image Size</h4>
+                <p className="text-sm text-muted-foreground">{order.artworkWidth}" × {order.artworkHeight}"</p>
               </div>
               <div>
-                <h4 className="text-sm font-medium mb-1">Mat Width</h4>
-                <p className="text-sm">{order.matWidth}" all around</p>
+                <h4 className="text-sm font-medium mb-1 text-foreground">Mat Width</h4>
+                <p className="text-sm text-muted-foreground">{order.matWidth}" all around</p>
               </div>
               <div className="col-span-2">
-                <h4 className="text-sm font-medium mb-1">Description</h4>
-                <p className="text-sm">{order.artworkDescription || 'No description'}</p>
+                <h4 className="text-sm font-medium mb-1 text-foreground">Description</h4>
+                <p className="text-sm text-muted-foreground">{order.artworkDescription || 'No description'}</p>
               </div>
               <div className="col-span-2">
-                <h4 className="text-sm font-medium mb-1">Art Type</h4>
-                <p className="text-sm">{order.artworkType || 'Not specified'}</p>
+                <h4 className="text-sm font-medium mb-1 text-foreground">Art Type</h4>
+                <p className="text-sm text-muted-foreground">{order.artworkType || 'Not specified'}</p>
               </div>
               <div className="col-span-2">
-                <h4 className="text-sm font-medium mb-1">Status</h4>
+                <h4 className="text-sm font-medium mb-1 text-foreground">Status</h4>
                 <div className="flex items-center gap-2">
                   <div className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
                     ${order.status === 'pending' ? 'bg-yellow-100 text-yellow-800' : 
@@ -252,8 +246,10 @@ export default function OrderDetailsPage() {
               </div>
               {qrCodeData && (
                 <div className="col-span-2">
-                  <h4 className="text-sm font-medium mb-1">QR Code</h4>
-                  <img src={`data:image/svg+xml;base64,${qrCodeData}`} alt="QR Code" /> {/* Assumes base64 encoded SVG */}
+                  <h4 className="text-sm font-medium mb-1 text-foreground">QR Code</h4>
+                  <div className="bg-white p-2 rounded inline-block">
+                    <QRCode value={qrCodeData} size={128} level="H" />
+                  </div>
                 </div>
               )}
             </div>
@@ -262,16 +258,16 @@ export default function OrderDetailsPage() {
 
             <div className="space-y-1">
               <div className="flex justify-between items-center">
-                <p className="text-sm">Subtotal</p>
-                <p className="text-sm font-medium">${parseFloat(order.subtotal || '0').toFixed(2)}</p>
+                <p className="text-sm text-muted-foreground">Subtotal</p>
+                <p className="text-sm font-medium text-foreground">${parseFloat(order.subtotal || '0').toFixed(2)}</p>
               </div>
               <div className="flex justify-between items-center">
-                <p className="text-sm">Tax</p>
-                <p className="text-sm font-medium">${parseFloat(order.tax || '0').toFixed(2)}</p>
+                <p className="text-sm text-muted-foreground">Tax</p>
+                <p className="text-sm font-medium text-foreground">${parseFloat(order.tax || '0').toFixed(2)}</p>
               </div>
               <div className="flex justify-between items-center font-medium mt-2">
-                <p>Total</p>
-                <p>${parseFloat(order.total || '0').toFixed(2)}</p>
+                <p className="text-foreground">Total</p>
+                <p className="text-foreground">${parseFloat(order.total || '0').toFixed(2)}</p>
               </div>
             </div>
           </CardContent>
