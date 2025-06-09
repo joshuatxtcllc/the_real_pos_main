@@ -92,6 +92,19 @@ export function applySecurityMiddleware(app: any) {
     if (req.path.startsWith('/api/login') || 
         req.path.startsWith('/api/register') ||
         req.path.startsWith('/api/webhook') ||
+        req.path.startsWith('/api/orders') ||
+        req.path.startsWith('/api/order-groups') ||
+        req.path.startsWith('/api/customers') ||
+        req.path.startsWith('/api/frames') ||
+        req.path.startsWith('/api/mat-colors') ||
+        req.path.startsWith('/api/glass-options') ||
+        req.path.startsWith('/api/auth/status') ||
+        req.path.startsWith('/api/health') ||
+        req.path.startsWith('/api/kanban/status') ||
+        req.path.startsWith('/api/vendor-catalog') ||
+        req.path.startsWith('/api/larson-catalog') ||
+        req.path.startsWith('/api/discord/bot-info') ||
+        req.path.startsWith('/api/notifications') ||
         req.path === '/api/csrf-token') {
       return next();
     }
