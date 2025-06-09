@@ -1,57 +1,49 @@
 #!/usr/bin/env node
 
-/**
- * Simplified deployment build script
- * Handles ES module compatibility for Replit deployment
- */
-
 import { execSync } from 'child_process';
+import { fileURLToPath } from 'url';
+import { dirname, resolve } from 'path';
 import fs from 'fs';
-import path from 'path';
 
-console.log('Starting deployment build...');
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+console.log('🚀 Starting deployment build...');
 
 try {
-  // Build frontend only (skip problematic backend bundling)
-  console.log('Building frontend...');
-  execSync('npx vite build', { stdio: 'inherit' });
+  // Build frontend with Vite
+  console.log('📦 Building frontend...');
+  execSync('npx vite build --config vite.deploy.config.ts', { stdio: 'inherit' });
   
-  // Create deployment package.json with correct module format
-  const deployPackage = {
-    "name": "jays-frames-pos",
-    "version": "1.0.0",
-    "type": "module",
-    "main": "server/index.ts",
-    "scripts": {
-      "start": "tsx server/index.ts"
-    },
-    "engines": {
-      "node": ">=18.0.0"
-    }
-  };
+  // Build backend with ESM support
+  console.log('🔧 Building backend...');
+  execSync('node esbuild.config.mjs', { stdio: 'inherit' });
   
-  // Ensure dist directory exists
-  if (!fs.existsSync('dist')) {
-    fs.mkdirSync('dist', { recursive: true });
-  }
+  // Create a production start script that properly handles ES modules
+  const startScript = `#!/usr/bin/env node
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+process.env.NODE_ENV = 'production';
+
+// Import and start the server
+import('./index.mjs').catch(error => {
+  console.error('Failed to start server:', error);
+  process.exit(1);
+});
+`;
+
+  fs.writeFileSync(resolve(__dirname, 'dist/start.mjs'), startScript);
+  fs.chmodSync(resolve(__dirname, 'dist/start.mjs'), '755');
   
-  // Write deployment package.json
-  fs.writeFileSync('dist/package.json', JSON.stringify(deployPackage, null, 2));
-  
-  // Copy server files to dist
-  execSync('cp -r server dist/', { stdio: 'inherit' });
-  execSync('cp -r shared dist/', { stdio: 'inherit' });
-  
-  // Copy essential config files
-  if (fs.existsSync('drizzle.config.ts')) {
-    execSync('cp drizzle.config.ts dist/', { stdio: 'inherit' });
-  }
-  
-  console.log('✓ Frontend built successfully');
-  console.log('✓ Server files copied');
-  console.log('✓ Deployment ready');
+  console.log('✅ Deployment build completed successfully!');
+  console.log('📁 Built files are in the dist/ directory');
+  console.log('🎯 Start production server with: node dist/start.mjs');
   
 } catch (error) {
-  console.error('Deployment build failed:', error.message);
+  console.error('❌ Deployment build failed:', error.message);
   process.exit(1);
 }
