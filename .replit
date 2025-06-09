@@ -8,8 +8,8 @@ channel = "stable-24_05"
 
 [deployment]
 deploymentTarget = "autoscale"
-run = ["sh", "-c", "node start.mjs"]
-build = ["sh", "-c", "node simple-deploy.mjs"]
+run = ["sh", "-c", "tsx server/index.ts"]
+build = ["sh", "-c", "node simple-deploy.mjs && cd dist && npm install"]
 
 [[ports]]
 localPort = 5000
