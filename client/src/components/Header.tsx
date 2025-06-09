@@ -126,7 +126,7 @@ export default function Header({ darkMode, toggleTheme }: HeaderProps) {
       <div className="container mx-auto px-3 lg:px-4 h-14 lg:h-16 flex items-center justify-between">
         {/* Logo */}
         <Link href="/dashboard" className="flex items-center space-x-2 cursor-pointer">
-          <span className="font-bold text-xl text-black dark:text-white">Jay's Frames</span>
+          <span className="font-bold text-xl text-foreground">Jay's Frames</span>
         </Link>
 
         {/* Desktop Navigation */}
@@ -135,7 +135,7 @@ export default function Header({ darkMode, toggleTheme }: HeaderProps) {
             <NavigationMenuList>
               {menuStructure.map((menuItem, idx) => (
                 <NavigationMenuItem key={idx}>
-                  <NavigationMenuTrigger className="text-black dark:text-white font-semibold">
+                  <NavigationMenuTrigger className="text-foreground font-semibold">
                     {menuItem.title}
                   </NavigationMenuTrigger>
                   <NavigationMenuContent>
@@ -186,7 +186,7 @@ export default function Header({ darkMode, toggleTheme }: HeaderProps) {
 
           {/* User info (if authenticated) */}
           {authenticated && user && (
-            <span className="text-sm hidden md:inline-block text-foreground dark:text-white">
+            <span className="text-sm hidden md:inline-block text-foreground">
               {user.name || user.username || 'User'}
             </span>
           )}
@@ -211,7 +211,7 @@ export default function Header({ darkMode, toggleTheme }: HeaderProps) {
             {menuStructure.map((menuItem, idx) => (
               <div key={idx} className="mb-4">
                 <Link href={menuItem.path}>
-                  <div className="font-semibold text-lg mb-2 text-gray-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400 cursor-pointer py-2 border-b border-gray-100 dark:border-gray-700">
+                  <div className="font-semibold text-lg mb-2 text-foreground hover:text-primary cursor-pointer py-2 border-b border-border">
                     {menuItem.title}
                   </div>
                 </Link>
@@ -220,10 +220,10 @@ export default function Header({ darkMode, toggleTheme }: HeaderProps) {
                     <Link key={subIdx} href={subItem.path}>
                       <div
                         className={cn(
-                          "py-2 text-sm font-medium hover:text-blue-600 dark:hover:text-blue-400 transition-colors cursor-pointer rounded-md px-2 hover:bg-gray-50 dark:hover:bg-gray-800",
+                          "py-2 text-sm font-medium hover:text-primary transition-colors cursor-pointer rounded-md px-2 hover:bg-accent",
                           location === subItem.path 
-                            ? "text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20" 
-                            : "text-gray-700 dark:text-gray-300"
+                            ? "text-primary bg-accent" 
+                            : "text-foreground"
                         )}
                       >
                         {subItem.title}
@@ -243,10 +243,10 @@ export default function Header({ darkMode, toggleTheme }: HeaderProps) {
               <Link href="/frame-education">
                 <div 
                   className={cn(
-                    "py-2 px-2 font-medium hover:text-blue-600 dark:hover:text-blue-400 transition-colors cursor-pointer rounded-md hover:bg-gray-50 dark:hover:bg-gray-800",
+                    "py-2 px-2 font-medium hover:text-primary transition-colors cursor-pointer rounded-md hover:bg-accent",
                     location === "/frame-education" 
-                      ? "text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20" 
-                      : "text-gray-700 dark:text-gray-300"
+                      ? "text-primary bg-accent" 
+                      : "text-foreground"
                   )}
                 >
                   Frame Education
@@ -257,16 +257,16 @@ export default function Header({ darkMode, toggleTheme }: HeaderProps) {
                 Notifications
               </Link>
 
-              <div className="py-3 px-2 flex items-center justify-between bg-gray-50 dark:bg-gray-800 rounded-md">
-                <span className="font-medium text-gray-700 dark:text-gray-300">Cart Items:</span>
-                <span className="px-3 py-1 bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded-full text-sm font-semibold">
+              <div className="py-3 px-2 flex items-center justify-between bg-muted rounded-md">
+                <span className="font-medium text-foreground">Cart Items:</span>
+                <span className="px-3 py-1 bg-primary/10 text-primary rounded-full text-sm font-semibold">
                   {cartItems}
                 </span>
               </div>
 
               {authenticated && user && (
-                <div className="py-3 px-2 bg-gray-50 dark:bg-gray-800 rounded-md">
-                  <span className="text-sm text-gray-600 dark:text-gray-400">
+                <div className="py-3 px-2 bg-muted rounded-md">
+                  <span className="text-sm text-muted-foreground">
                     Welcome, {user.name || user.username || 'User'}
                   </span>
                 </div>
