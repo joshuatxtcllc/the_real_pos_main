@@ -4,7 +4,7 @@
   "type": "module",
   "main": "server.mjs",
   "scripts": {
-    "start": "NODE_ENV=production node server.mjs"
+    "start": "node server.mjs"
   },
   "engines": {
     "node": ">=18.0.0"
