@@ -24,6 +24,8 @@ import larsonOrderOptimizerRoutes from './routes/larsonOrderOptimizerRoutes';
 import discordNotificationRoutes from './routes/discordNotificationRoutes';
 import customerNotificationRoutes from './routes/customerNotificationRoutes';
 import testNotificationRoutes from './routes/testNotificationRoutes.js';
+import { Request, Response, NextFunction } from 'express';
+import { log } from './utils';
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Art Location routes
@@ -471,3 +473,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   return httpServer;
 }
+
+app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
+    const status = err.status || err.statusCode || 500;
+    const message = err.message || "Internal Server Error";
+
+    // Ensure we always send JSON for API routes
+    if (_req.path.startsWith('/api')) {
+      res.status(status).json({ error: true, message });
+    } else {
+      res.status(status).json({ message });
+    }
+
+    // Log the error instead of re-throwing it
+    log(`Error: ${message} (${status})`, "error");
+    console.error(err);
+  });

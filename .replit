@@ -24,7 +24,7 @@ localPort = 8080
 externalPort = 8080
 
 [workflows]
-runButton = "Start Full Application"
+runButton = "Development Server"
 
 [[workflows.workflow]]
 name = "Project"
@@ -104,14 +104,10 @@ task = "shell.exec"
 args = "npm run dev"
 
 [[workflows.workflow]]
-name = "Start Full Application"
+name = "Development Server"
 author = 27546771
-mode = "parallel"
+mode = "sequential"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "npm run dev"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "cd client && npm run dev"
