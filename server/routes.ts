@@ -77,101 +77,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json({ authenticated: false, user: null });
   });
 
-  // Discord bot info endpoint
+  // Discord integration disabled for deployment stability
   app.get('/api/discord/bot-info', (req, res) => {
     res.json({
-      botName: 'Jays Frames Ecosystem#5403',
-      status: 'online',
-      availableCommands: [
-        '/order-status - Check order status',
-        '/frame-quote - Get frame quotes',
-        '/production-status - Check production queue',
-        '/inventory-status - Check inventory levels',
-        '/help - Show available commands'
-      ],
-      features: [
-        'Direct message notifications to customers',
-        'Order status updates via Discord DM',
-        'Completion notices when frames are ready',
-        'Estimate updates for timeline changes',
-        'Production alerts for staff'
-      ]
+      status: 'disabled',
+      message: 'Discord integration temporarily disabled for deployment stability'
     });
   });
 
-  // Test Discord notification endpoint
   app.post('/api/discord/test-notification', async (req, res) => {
-    try {
-      const { discordUserId, orderId, type, message } = req.body;
-
-      if (!discordUserId) {
-        return res.status(400).json({ error: 'Discord user ID is required' });
-      }
-
-      const notificationService = req.app.locals.notificationService;
-
-      const testCustomer = {
-        id: 1,
-        email: 'customer@example.com',
-        discordUserId: discordUserId,
-        preferences: {
-          discord: true,
-          email: true,
-          inApp: true,
-          sms: false
-        }
-      };
-
-      let result;
-
-      switch (type) {
-        case 'order_update':
-          result = await notificationService.sendOrderStatusUpdate(
-            testCustomer, 
-            orderId || 123, 
-            'In Production',
-            message || 'Your custom frame is now being crafted by our artisans.'
-          );
-          break;
-
-        case 'completion':
-          result = await notificationService.sendCompletionNotice(
-            testCustomer,
-            orderId || 123,
-            message || 'Ready for pickup at our studio during business hours.'
-          );
-          break;
-
-        case 'estimate':
-          result = await notificationService.sendEstimateUpdate(
-            testCustomer,
-            orderId || 123,
-            7
-          );
-          break;
-
-        default:
-          result = await notificationService.notifyCustomer(testCustomer, {
-            title: 'Test Notification',
-            message: message || 'This is a test notification from Jays Frames.',
-            type: 'custom',
-            urgency: 'normal'
-          });
-      }
-
-      res.json({
-        success: true,
-        message: 'Discord notification sent successfully',
-        details: result
-      });
-
-    } catch (error) {
-      console.error('Error sending Discord notification:', error);
-      res.status(500).json({ 
-        error: 'Failed to send Discord notification',
-        details: error instanceof Error ? error.message : 'Unknown error'
-      });
-    }
+    res.status(503).json({ 
+      error: 'Discord integration temporarily disabled',
+      message: 'Discord notifications are currently unavailable'
+    });
   });
 
   // Customer notification endpoint - uses real customer data
@@ -190,51 +108,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: 'Customer not found' });
       }
 
-      // Update Discord ID if provided
-      if (discordUserId && !customer.discordUserId) {
-        updateCustomerDiscordId(customer.id, discordUserId);
-        customer.discordUserId = discordUserId;
-      }
-
-      const notificationService = req.app.locals.notificationService;
-
-      let result;
       const orderNumber = orderId || Math.floor(Math.random() * 1000) + 100;
 
-      switch (type) {
-        case 'order_update':
-          result = await notificationService.sendOrderStatusUpdate(
-            customer, 
-            orderNumber, 
-            'In Production',
-            message || 'Your custom frame is now being crafted by our artisans.'
-          );
-          break;
-
-        case 'completion':
-          result = await notificationService.sendCompletionNotice(
-            customer,
-            orderNumber,
-            message || 'Ready for pickup at Jays Frames studio during business hours.'
-          );
-          break;
-
-        case 'estimate':
-          result = await notificationService.sendEstimateUpdate(
-            customer,
-            orderNumber,
-            parseInt(message) || 7
-          );
-          break;
-
-        default:
-          result = await notificationService.notifyCustomer(customer, {
-            title: 'Jays Frames Notification',
-            message: message || 'Thank you for choosing Jays Frames for your custom framing needs.',
-            type: 'custom',
-            urgency: 'normal'
-          });
-      }
+      // Simple notification logging (Discord integration disabled)
+      console.log(`Notification request for customer ${customer.name}: ${type} - ${message}`);
 
       res.json({
         success: true,
@@ -242,11 +119,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           name: customer.name,
           phone: customer.phone,
           email: customer.email,
-          hasDiscord: !!customer.discordUserId
+          hasDiscord: false
         },
         orderNumber,
-        notificationResults: result,
-        message: 'Notification sent successfully through enabled channels'
+        message: 'Notification logged (Discord integration disabled for deployment stability)'
       });
 
     } catch (error) {
@@ -467,14 +343,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use('/api/xml-price-sheets', xmlPriceSheetRoutes);
   app.use('/api/larson-optimizer', larsonOrderOptimizerRoutes);
 
-  // Discord notification routes
-  app.use('/api/discord', discordNotificationRoutes);
+  // Notification routes (Discord integration disabled)
+  app.get('/api/discord/status', (req, res) => {
+    res.json({ status: 'disabled', message: 'Discord integration disabled for deployment stability' });
+  });
 
-  // Customer notification routes
-  app.use('/api/notifications', customerNotificationRoutes);
-
-  // Test notification routes
-  app.use('/api/test', testNotificationRoutes);
+  app.get('/api/notifications/status', (req, res) => {
+    res.json({ status: 'basic', channels: ['email'], message: 'Basic notifications only' });
+  });
 
   // Materials API Routes
   app.get('/api/materials/pick-list', getMaterialsPickList);

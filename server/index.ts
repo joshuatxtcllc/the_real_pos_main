@@ -1,5 +1,4 @@
 import express, { type Request, Response, NextFunction } from "express";
-import DiscordBot from './services/discordBot';
 import UnifiedNotificationService from './services/unifiedNotificationService';
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
@@ -16,14 +15,11 @@ const __dirname = dirname(__filename);
 const app = express();
 const PORT = parseInt(process.env.PORT || process.env.REPL_PORT || '5000', 10);
 
-// Initialize Discord bot and unified notification service with error handling
-let discordBot: DiscordBot | null = null;
+// Initialize Discord bot and notification service
 let notificationService: UnifiedNotificationService | null = null;
 
 try {
-  discordBot = new DiscordBot();
-  notificationService = new UnifiedNotificationService(discordBot);
-  discordBot.start();
+  notificationService = new UnifiedNotificationService(null);
 } catch (error) {
   log(`Warning: Discord bot initialization failed: ${error}`, "warning");
   console.warn('Discord bot failed to initialize, continuing without it');
@@ -96,7 +92,7 @@ app.use((req, res, next) => {
     serveStatic(app);
   }
 
-  
+
 
   // Function to start server with deployment-ready configuration
   const startServer = () => {
@@ -120,7 +116,7 @@ app.use((req, res, next) => {
         } else {
           log(`Server startup error: ${error.message}`, "error");
           console.error('Server error:', error);
-          
+
           // Exit gracefully on startup errors for deployment
           setTimeout(() => {
             process.exit(1);
@@ -132,7 +128,7 @@ app.use((req, res, next) => {
       const gracefulShutdown = (signal: string) => {
         log(`${signal} received, shutting down gracefully`, "info");
         console.log(`Shutting down server...`);
-        
+
         serverInstance.close((error) => {
           if (error) {
             console.error('Error during shutdown:', error);
@@ -143,7 +139,7 @@ app.use((req, res, next) => {
             process.exit(0);
           }
         });
-        
+
         // Force exit after 10 seconds
         setTimeout(() => {
           console.log('Force exit after timeout');
