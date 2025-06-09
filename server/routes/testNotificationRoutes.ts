@@ -1,7 +1,7 @@
 
 import express from 'express';
-import UnifiedNotificationService, { CustomerContact } from '../services/unifiedNotificationService.js';
-import DiscordBot from '../services/discordBot.js';
+import UnifiedNotificationService, { CustomerContact } from '../services/unifiedNotificationService';
+import DiscordBot from '../services/discordBot';
 
 const router = express.Router();
 

@@ -1,5 +1,5 @@
 import express from 'express';
-import UnifiedNotificationService, { CustomerContact } from '../services/unifiedNotificationService.js';
+import UnifiedNotificationService, { CustomerContact } from '../services/unifiedNotificationService';
 
 const router = express.Router();
 

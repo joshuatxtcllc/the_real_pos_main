@@ -23,7 +23,7 @@ import xmlPriceSheetRoutes from './routes/xmlPriceSheetRoutes';
 import larsonOrderOptimizerRoutes from './routes/larsonOrderOptimizerRoutes';
 import discordNotificationRoutes from './routes/discordNotificationRoutes';
 import customerNotificationRoutes from './routes/customerNotificationRoutes';
-import testNotificationRoutes from './routes/testNotificationRoutes.js';
+import testNotificationRoutes from './routes/testNotificationRoutes';
 import { Request, Response, NextFunction } from 'express';
 import { log } from './utils/logger';
 

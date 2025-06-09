@@ -1,6 +1,6 @@
-import DiscordBot from './discordBot.js';
-import { notificationController } from '../controllers/notificationController.js';
-import { createCustomerNotification } from './customerNotificationService.js';
+import DiscordBot from './discordBot';
+import { notificationController } from '../controllers/notificationController';
+import { createCustomerNotification } from './customerNotificationService';
 
 interface NotificationChannel {
   email?: boolean;
@@ -143,7 +143,7 @@ class UnifiedNotificationService {
       
       // Use existing notification controller for email
       notificationController.sendNotification({
-        id: Date.now().toString(),
+        id: Date.now(),
         title: notification.title,
         description: notification.message,
         type: notification.urgency === 'high' ? 'error' : 'info',
@@ -172,7 +172,7 @@ class UnifiedNotificationService {
       
       // Use existing notification controller for SMS
       notificationController.sendNotification({
-        id: Date.now().toString(),
+        id: Date.now(),
         title: notification.title,
         description: notification.message,
         type: 'info',
@@ -196,7 +196,7 @@ class UnifiedNotificationService {
   private async sendInAppNotification(customer: CustomerContact, notification: NotificationData): Promise<boolean> {
     try {
       notificationController.sendNotification({
-        id: Date.now().toString(),
+        id: Date.now(),
         title: notification.title,
         description: notification.message,
         type: notification.urgency === 'high' ? 'error' : 'info',

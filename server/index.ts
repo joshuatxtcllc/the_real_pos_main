@@ -1,6 +1,6 @@
 import express, { type Request, Response, NextFunction } from "express";
-import DiscordBot from './services/discordBot.js';
-import UnifiedNotificationService from './services/unifiedNotificationService.js';
+import DiscordBot from './services/discordBot';
+import UnifiedNotificationService from './services/unifiedNotificationService';
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import path from 'path';
