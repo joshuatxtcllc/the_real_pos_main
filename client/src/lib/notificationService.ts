@@ -72,8 +72,13 @@ class NotificationService {
 
       this.initialized = true;
       console.log('Notification service initialized');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to initialize notification service:', error);
+      toast({
+        title: 'Notification Service Error',
+        description: `Failed to initialize: ${error.message || 'Unknown error'}`,
+        variant: 'destructive',
+      });
     }
   }
 
@@ -110,10 +115,15 @@ class NotificationService {
           smsRecipient: options.smsRecipient || ''
         }
       );
-      
+
       return !!result;
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to send notification:', error);
+      toast({
+        title: 'Send Notification Error',
+        description: `Failed to send notification: ${error.message || 'Unknown error'}`,
+        variant: 'destructive',
+      });
       return false;
     }
   }
@@ -149,7 +159,7 @@ class NotificationService {
     if (this.unsubscribe) {
       this.unsubscribe();
     }
-    
+
     if (typeof window !== 'undefined') {
       window.removeEventListener('jf-notification', (() => {}) as EventListener);
     }
