@@ -42,7 +42,9 @@ export function useProduction({
       if (!res.ok) {
         throw new Error('Failed to fetch order');
       }
-      return res.json();
+      const data = await res.json();
+      // Extract order from API response structure
+      return data.order || data;
     },
     enabled: !!orderId,
   });

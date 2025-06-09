@@ -199,12 +199,12 @@ const Orders = () => {
 
     // Find the order group by matching orders with the given order ID
     // We need to get orders that have the orderGroupId matching the group ID
-    const filteredOrders = orders ? (orders as Order[]).filter(order => 
+    const targetOrders = ordersArray.filter((order: Order) => 
       order.id === orderId && order.orderGroupId !== null
-    ) : [];
+    );
 
-    if (filteredOrders.length > 0) {
-      const orderGroupId = filteredOrders[0].orderGroupId;
+    if (targetOrders.length > 0) {
+      const orderGroupId = targetOrders[0].orderGroupId;
       const orderGroupArray = orderGroups as any[];
       return orderGroupArray.find(group => group.id === orderGroupId && group.status === 'pending');
     }
