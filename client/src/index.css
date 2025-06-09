@@ -1,0 +1,242 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    @apply border-zinc-200 dark:border-zinc-700;
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  body {
+    @apply font-sans antialiased bg-background text-foreground;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    transition: background-color 0.3s ease, color 0.3s ease;
+    color: #111827; /* Darker text for better readability */
+    /* Mobile optimizations */
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -khtml-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+  }
+  
+  /* Touch manipulation for better mobile interactions */
+  .touch-manipulation {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+  
+  /* Mobile-friendly input fields */
+  input, select, textarea, button {
+    -webkit-appearance: none;
+    border-radius: 0.375rem;
+  }
+  
+  /* Better button press feedback on mobile */
+  button:active, .touch-manipulation:active {
+    transform: scale(0.98);
+    transition: transform 0.1s ease;
+  }
+  
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+    --primary: 184.6 85.7% 35.5%; /* #00ADB5 - Teal/Cyan */
+    --primary-foreground: 210 40% 98%;
+    --secondary: 237.1 63.3% 45.9%; /* #3A55D9 - Royal Blue */
+    --secondary-foreground: 210 40% 98%;
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 222.2 84% 4.9%;
+    --radius: 0.5rem;
+  }
+
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 184.6 85.7% 35.5%; /* Keep the same primary color in dark mode */
+    --primary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 237.1 63.3% 45.9%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 212.7 26.8% 83.9%;
+  }
+  
+  code {
+    font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+      monospace;
+  }
+}
+
+@layer components {
+  .container {
+    @apply w-full max-w-[1200px] mx-auto px-4;
+  }
+  
+  .btn {
+    @apply cursor-pointer font-medium transition-colors duration-200;
+  }
+  
+  .btn-primary {
+    @apply bg-primary hover:bg-primary/90 text-white py-2 px-4 rounded-md;
+  }
+  
+  .btn-secondary {
+    @apply bg-secondary hover:bg-secondary/90 text-white py-2 px-4 rounded-md;
+  }
+  
+  .btn-outline {
+    @apply border border-border bg-transparent hover:bg-muted py-2 px-4 rounded-md;
+  }
+  
+  .frame-corner-tl { transform: rotate(0deg); }
+  .frame-corner-tr { transform: rotate(90deg); }
+  .frame-corner-br { transform: rotate(180deg); }
+  .frame-corner-bl { transform: rotate(270deg); }
+  
+  .frame-with-corners {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    grid-template-rows: auto 1fr auto;
+    max-width: 800px;
+    margin: 0 auto;
+  }
+  
+  .frame-corner {
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+  }
+  
+  .frame-edge {
+    background-size: cover;
+    background-position: center;
+  }
+  
+  .frame-edge-left, .frame-edge-right {
+    background-repeat: repeat-y;
+    background-size: contain;
+  }
+  
+  .frame-edge-top, .frame-edge-bottom {
+    background-repeat: repeat-x;
+    background-size: contain;
+  }
+  
+  .artwork-with-mat {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    box-shadow: inset 0 0 10px rgba(0,0,0,0.1);
+    background-color: white;
+  }
+  
+  .artwork-image {
+    display: block;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    max-width: 100%;
+    max-height: 400px;
+  }
+  
+  .frame-preview-container {
+    padding: 1rem;
+    border-radius: 0.5rem;
+    background-color: #f8f8f8;
+    margin-bottom: 1.5rem;
+  }
+  
+  .header-underline {
+    position: relative;
+  }
+  
+  .header-underline::after {
+    content: '';
+    position: absolute;
+    bottom: -8px;
+    left: 0;
+    width: 60px;
+    height: 3px;
+    @apply bg-primary rounded-md;
+  }
+  
+  .dark .header-underline::after {
+    box-shadow: 0 0 10px rgba(0, 173, 181, 0.7);
+  }
+  
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 18px;
+    height: 18px;
+    @apply bg-primary rounded-full cursor-pointer;
+  }
+  
+  .dark input[type=range]::-webkit-slider-thumb {
+    box-shadow: 0 0 5px rgba(0, 173, 181, 0.7);
+  }
+  
+  .dark .dark-glow {
+    filter: drop-shadow(0 0 5px rgba(0, 173, 181, 0.5));
+  }
+
+  /* Enhanced text for better visibility */
+  h1, h2, h3, h4, h5, h6 {
+    font-weight: 600;
+    @apply text-foreground;
+  }
+  
+  .dark h1, .dark h2, .dark h3, .dark h4, .dark h5, .dark h6 {
+    color: #fff;
+  }
+  
+  .font-medium {
+    font-weight: 600;
+  }
+  
+  /* Light form text styles for better visibility in dialogs */
+  .light-form-text .form-labels label,
+  .light-form-text .form-labels span,
+  .light-form-text input,
+  .light-form-text textarea,
+  .light-form-text select,
+  .light-form-text button {
+    @apply text-foreground;
+  }
+  
+  .light-form-text [data-radix-select-trigger],
+  .light-form-text [data-state] {
+    @apply text-foreground;
+  }
+  
+  .light-form-text input::placeholder,
+  .light-form-text textarea::placeholder {
+    @apply text-muted-foreground;
+  }
+}
