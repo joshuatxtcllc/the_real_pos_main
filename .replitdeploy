@@ -1,0 +1,20 @@
+# Replit Deployment Configuration
+# This file tells Replit how to deploy your application
+
+# Build command - skip complex bundling, use direct TypeScript execution
+build = "echo 'Using direct TypeScript execution for deployment'"
+
+# Start command - use tsx to run TypeScript directly
+run = "npx tsx server/index.ts"
+
+# Environment
+[env]
+NODE_ENV = "production"
+
+# Deployment settings
+[deployment]
+publicDir = "client/dist"
+serverFile = "server/index.ts"
+
+# Skip build step that causes ES module conflicts
+ignoreBuildErrors = true

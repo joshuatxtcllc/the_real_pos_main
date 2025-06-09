@@ -1,0 +1,26 @@
+[run]
+run = "npx tsx server/index.ts"
+
+[deployment]
+build = ["echo 'Skipping build - using direct TypeScript execution'"]
+run = ["npx", "tsx", "server/index.ts"]
+
+[env]
+NODE_ENV = "production"
+
+[nix]
+channel = "stable-22_11"
+
+[unitTest]
+language = "nodejs"
+
+[gitHubImport]
+requiredFiles = [".replit", "replit.nix"]
+
+[languages]
+
+[languages.typescript]
+pattern = "**/{*.ts,*.js,*.tsx,*.jsx,*.json}"
+
+[languages.typescript.languageServer]
+start = "typescript-language-server --stdio"
