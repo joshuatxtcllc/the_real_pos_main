@@ -1,279 +1,129 @@
-import DiscordBot from './discordBot';
-import { notificationController } from '../controllers/notificationController';
-import { createCustomerNotification } from './customerNotificationService';
+import { EmailService } from './emailService.js';
+import { SmsService } from './smsService.js';
 
-interface NotificationChannel {
-  email?: boolean;
-  sms?: boolean;
-  discord?: boolean;
-  inApp?: boolean;
-}
-
-interface CustomerContact {
+export interface CustomerContact {
   id: number;
-  email?: string;
+  email: string;
   phone?: string;
   discordUserId?: string;
-  preferences?: NotificationChannel;
+  preferences: {
+    email: boolean;
+    sms: boolean;
+    discord: boolean;
+    inApp: boolean;
+  };
 }
 
-interface NotificationData {
+export interface NotificationMessage {
   title: string;
   message: string;
-  orderId?: number;
-  type: 'order_update' | 'completion_notice' | 'estimate_update' | 'custom' | 'production_alert';
+  type: 'order_update' | 'completion' | 'estimate' | 'payment' | 'custom';
   urgency: 'low' | 'normal' | 'high';
+  metadata?: Record<string, any>;
 }
 
 class UnifiedNotificationService {
-  private discordBot: DiscordBot;
+  private emailService: EmailService;
+  private smsService: SmsService;
 
-  constructor(discordBot: DiscordBot) {
-    this.discordBot = discordBot;
+  constructor() {
+    this.emailService = new EmailService();
+    this.smsService = new SmsService();
   }
 
-  /**
-   * Send notification to customer through all enabled channels
-   */
-  async notifyCustomer(customer: CustomerContact, notification: NotificationData): Promise<{
-    discord: boolean;
-    email: boolean;
-    sms: boolean;
-    inApp: boolean;
-  }> {
-    const results = {
-      discord: false,
-      email: false,
-      sms: false,
-      inApp: false
-    };
-
-    const channels = customer.preferences || { email: true, inApp: true };
+  public async notifyCustomer(customer: CustomerContact, notification: NotificationMessage) {
+    const results: any[] = [];
 
     try {
-      // Discord DM
-      if (channels.discord && customer.discordUserId) {
-        results.discord = await this.sendDiscordNotification(
-          customer.discordUserId, 
-          notification
-        );
-      }
-
       // Email notification
-      if (channels.email && customer.email) {
-        results.email = await this.sendEmailNotification(customer, notification);
+      if (customer.preferences.email && customer.email) {
+        try {
+          const emailResult = await this.emailService.sendNotification(
+            customer.email,
+            notification.title,
+            notification.message
+          );
+          results.push({ channel: 'email', success: true, result: emailResult });
+        } catch (error) {
+          results.push({ channel: 'email', success: false, error: error });
+        }
       }
 
       // SMS notification
-      if (channels.sms && customer.phone) {
-        results.sms = await this.sendSmsNotification(customer, notification);
+      if (customer.preferences.sms && customer.phone) {
+        try {
+          const smsResult = await this.smsService.sendNotification(
+            customer.phone,
+            `${notification.title}: ${notification.message}`
+          );
+          results.push({ channel: 'sms', success: true, result: smsResult });
+        } catch (error) {
+          results.push({ channel: 'sms', success: false, error: error });
+        }
       }
 
-      // In-app notification
-      if (channels.inApp) {
-        results.inApp = await this.sendInAppNotification(customer, notification);
+      // In-app notification (just logging for now)
+      if (customer.preferences.inApp) {
+        console.log(`In-app notification for customer ${customer.id}: ${notification.title}`);
+        results.push({ channel: 'inApp', success: true, result: 'logged' });
       }
 
-      // Store notification in database
-      if (notification.orderId) {
-        await createCustomerNotification(
-          customer.id,
-          notification.orderId,
-          notification.type,
-          notification.message
-        );
-      }
+      return {
+        success: true,
+        customer: customer.id,
+        notification: notification.type,
+        results: results,
+        timestamp: new Date().toISOString()
+      };
 
     } catch (error) {
       console.error('Error in unified notification service:', error);
-    }
-
-    return results;
-  }
-
-  /**
-   * Send Discord notification based on type
-   */
-  private async sendDiscordNotification(userId: string, notification: NotificationData): Promise<boolean> {
-    try {
-      switch (notification.type) {
-        case 'order_update':
-          return await this.discordBot.sendOrderStatusDM(
-            userId, 
-            notification.orderId?.toString() || 'Unknown',
-            notification.title,
-            notification.message
-          );
-        
-        case 'completion_notice':
-          return await this.discordBot.sendCompletionNoticeDM(
-            userId,
-            notification.orderId?.toString() || 'Unknown',
-            notification.message
-          );
-        
-        case 'estimate_update':
-          const days = this.extractDaysFromMessage(notification.message);
-          return await this.discordBot.sendEstimateUpdateDM(
-            userId,
-            notification.orderId?.toString() || 'Unknown',
-            days
-          );
-        
-        default:
-          return await this.discordBot.sendCustomNotificationDM(
-            userId,
-            notification.title,
-            notification.message
-          );
-      }
-    } catch (error) {
-      console.error('Discord notification failed:', error);
-      return false;
+      return {
+        success: false,
+        customer: customer.id,
+        notification: notification.type,
+        error: error instanceof Error ? error.message : 'Unknown error',
+        results: results,
+        timestamp: new Date().toISOString()
+      };
     }
   }
 
-  /**
-   * Send email notification
-   */
-  private async sendEmailNotification(customer: CustomerContact, notification: NotificationData): Promise<boolean> {
-    try {
-      // This would integrate with your email service (SendGrid, etc.)
-      console.log(`[Email] Sending to ${customer.email}: ${notification.title}`);
-      
-      // Use existing notification controller for email
-      notificationController.sendNotification({
-        id: Date.now(),
-        title: notification.title,
-        description: notification.message,
-        source: 'customer-notification',
-        sourceId: `customer-${customer.id}`,
-        type: notification.urgency === 'high' ? 'error' : 'info',
-        actionable: notification.type === 'completion_notice',
-        link: notification.orderId ? `/orders/${notification.orderId}` : undefined,
-        smsEnabled: false,
-        smsRecipient: customer.phone
-      });
-
-      return true;
-    } catch (error) {
-      console.error('Email notification failed:', error);
-      return false;
-    }
-  }
-
-  /**
-   * Send SMS notification
-   */
-  private async sendSmsNotification(customer: CustomerContact, notification: NotificationData): Promise<boolean> {
-    try {
-      // This would integrate with Twilio
-      console.log(`[SMS] Sending to ${customer.phone}: ${notification.title}`);
-      
-      // Use existing notification controller for SMS
-      notificationController.sendNotification({
-        id: Date.now(),
-        title: notification.title,
-        description: notification.message,
-        source: 'customer-sms',
-        sourceId: `customer-${customer.id}`,
-        type: 'info',
-        actionable: false,
-        smsEnabled: true,
-        smsRecipient: customer.phone
-      });
-
-      return true;
-    } catch (error) {
-      console.error('SMS notification failed:', error);
-      return false;
-    }
-  }
-
-  /**
-   * Send in-app notification
-   */
-  private async sendInAppNotification(customer: CustomerContact, notification: NotificationData): Promise<boolean> {
-    try {
-      notificationController.sendNotification({
-        id: Date.now(),
-        title: notification.title,
-        description: notification.message,
-        source: 'customer-app',
-        sourceId: `customer-${customer.id}`,
-        type: notification.urgency === 'high' ? 'error' : 'info',
-        actionable: notification.type === 'completion_notice',
-        link: notification.orderId ? `/orders/${notification.orderId}` : undefined,
-        smsEnabled: false
-      }, [`customer-app-${customer.id}`]);
-
-      return true;
-    } catch (error) {
-      console.error('In-app notification failed:', error);
-      return false;
-    }
-  }
-
-  /**
-   * Extract days from estimate message
-   */
-  private extractDaysFromMessage(message: string): number {
-    const match = message.match(/(\d+)\s*days?/i);
-    return match ? parseInt(match[1]) : 7; // Default to 7 days
-  }
-
-  /**
-   * Send order status update to customer
-   */
-  async sendOrderStatusUpdate(
-    customer: CustomerContact, 
-    orderId: number, 
-    status: string, 
-    details?: string
-  ): Promise<void> {
-    await this.notifyCustomer(customer, {
-      title: `Order #${orderId} Status Update`,
-      message: `Your order status has been updated to: ${status}${details ? `. ${details}` : ''}`,
-      orderId,
+  public async sendOrderStatusUpdate(customer: CustomerContact, orderId: number, status: string, details?: string) {
+    const notification: NotificationMessage = {
+      title: 'Order Status Update',
+      message: `Your order #${orderId} status has been updated to: ${status}${details ? `\n\n${details}` : ''}`,
       type: 'order_update',
-      urgency: 'normal'
-    });
+      urgency: 'normal',
+      metadata: { orderId, status }
+    };
+
+    return await this.notifyCustomer(customer, notification);
   }
 
-  /**
-   * Send completion notice to customer
-   */
-  async sendCompletionNotice(
-    customer: CustomerContact, 
-    orderId: number, 
-    pickupInfo?: string
-  ): Promise<void> {
-    await this.notifyCustomer(customer, {
-      title: `Order #${orderId} Complete!`,
-      message: `Your custom frame is ready for pickup!${pickupInfo ? ` ${pickupInfo}` : ''}`,
-      orderId,
-      type: 'completion_notice',
-      urgency: 'high'
-    });
+  public async sendCompletionNotice(customer: CustomerContact, orderId: number, pickupInfo?: string) {
+    const notification: NotificationMessage = {
+      title: 'Your Frame is Ready!',
+      message: `Great news! Your order #${orderId} is complete and ready for pickup.${pickupInfo ? `\n\nPickup Details:\n${pickupInfo}` : ''}`,
+      type: 'completion',
+      urgency: 'high',
+      metadata: { orderId }
+    };
+
+    return await this.notifyCustomer(customer, notification);
   }
 
-  /**
-   * Send estimate update to customer
-   */
-  async sendEstimateUpdate(
-    customer: CustomerContact, 
-    orderId: number, 
-    estimatedDays: number
-  ): Promise<void> {
-    await this.notifyCustomer(customer, {
-      title: `Order #${orderId} Timeline Update`,
-      message: `Your order is now estimated to complete in ${estimatedDays} days.`,
-      orderId,
-      type: 'estimate_update',
-      urgency: 'normal'
-    });
+  public async sendEstimateUpdate(customer: CustomerContact, orderId: number, estimatedDays: number) {
+    const notification: NotificationMessage = {
+      title: 'Timeline Update',
+      message: `Your order #${orderId} estimated completion has been updated to ${estimatedDays} days.`,
+      type: 'estimate',
+      urgency: 'normal',
+      metadata: { orderId, estimatedDays }
+    };
+
+    return await this.notifyCustomer(customer, notification);
   }
 }
 
 export default UnifiedNotificationService;
-export type { CustomerContact, NotificationData, NotificationChannel };
