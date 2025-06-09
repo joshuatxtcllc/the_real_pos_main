@@ -1,34 +1,19 @@
 #!/usr/bin/env node
 
 import { build } from 'esbuild';
-import { execSync } from 'child_process';
 import fs from 'fs';
-import path from 'path';
 
-console.log('🚀 Building for production with ES modules support...');
+console.log('Applying ES modules deployment fixes...');
 
 try {
-  // Clean dist directory
-  if (fs.existsSync('dist')) {
-    fs.rmSync('dist', { recursive: true, force: true });
-  }
-  fs.mkdirSync('dist', { recursive: true });
-
-  // Build frontend
-  console.log('📦 Building frontend...');
-  execSync('npx vite build', { 
-    stdio: 'inherit',
-    timeout: 120000 // 2 minute timeout
-  });
-
   // Build server with proper ES module configuration
-  console.log('🔧 Building server...');
+  console.log('Building server with ESM support...');
   await build({
     entryPoints: ['server/index.ts'],
     bundle: true,
     platform: 'node',
     target: 'node18',
-    format: 'esm', // Fixed: Use ES modules format
+    format: 'esm', // Fixed: Changed from 'cjs' to 'esm'
     outfile: 'dist/server.mjs', // Fixed: Use .mjs extension
     packages: 'external',
     minify: false,
@@ -37,7 +22,7 @@ try {
       'process.env.NODE_ENV': '"production"'
     },
     banner: {
-      js: `// ES Module polyfills for Node.js compatibility
+      js: `// ES Module compatibility shims
 import { createRequire } from 'module';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
@@ -65,12 +50,11 @@ const __dirname = dirname(__filename);
 
   fs.writeFileSync('dist/package.json', JSON.stringify(productionPkg, null, 2));
 
-  console.log('✅ Production build completed successfully!');
-  console.log('📁 Server built as: dist/server.mjs');
-  console.log('📁 Frontend built in: dist/public/');
-  console.log('🚀 Ready for deployment with: cd dist && node server.mjs');
+  console.log('✅ ES modules deployment fixes applied successfully!');
+  console.log('Server built as: dist/server.mjs');
+  console.log('Deploy with: cd dist && node server.mjs');
   
 } catch (error) {
-  console.error('❌ Build failed:', error.message);
+  console.error('Fix failed:', error.message);
   process.exit(1);
 }
