@@ -168,14 +168,15 @@ export default function Header({ darkMode, toggleTheme }: HeaderProps) {
             size="icon" 
             onClick={toggleTheme} 
             aria-label="Toggle theme"
+            className="text-foreground hover:text-foreground"
           >
-            {darkMode ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+            {darkMode ? <Sun className="h-5 w-5 text-foreground" /> : <Moon className="h-5 w-5 text-foreground" />}
           </Button>
 
           {/* Cart icon and counter */}
-          <Button variant="ghost" size="icon" onClick={() => window.location.href = "/checkout/cart"}>
+          <Button variant="ghost" size="icon" onClick={() => window.location.href = "/checkout/cart"} className="text-foreground hover:text-foreground">
             <div className="relative">
-              <ShoppingCart className="h-5 w-5" />
+              <ShoppingCart className="h-5 w-5 text-foreground" />
               {cartItems > 0 && (
                 <Badge className="absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center p-0 text-[0.7rem]">
                   {cartItems}
@@ -193,13 +194,13 @@ export default function Header({ darkMode, toggleTheme }: HeaderProps) {
 
           {/* Mobile menu button */}
           <Button 
-            className="md:hidden" 
+            className="md:hidden text-foreground hover:text-foreground" 
             variant="ghost" 
             size="icon" 
             onClick={toggleMobileMenu}
             aria-label="Toggle menu"
           >
-            {isMobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+            {isMobileMenuOpen ? <X className="h-5 w-5 text-foreground" /> : <Menu className="h-5 w-5 text-foreground" />}
           </Button>
         </div>
       </div>
