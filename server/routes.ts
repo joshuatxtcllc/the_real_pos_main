@@ -413,12 +413,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Admin routes for API key generation
   app.use('/api/admin', hubAdminRoutes);
 
+  // Main application routes (must come before integration routes to avoid conflicts)
+  app.use('/api', ordersRoutes);
+  app.use('/api', customersRoutes);
+  
+  // Integration API routes (mounted with specific prefix to avoid conflicts)
+  app.use('/api/integration', integrationApiRoutes);
+  
   // Webhook routes
   // import webhookRoutes from './routes/webhookRoutes';
   // app.use('/api/webhooks', webhookRoutes);
-  app.use('/api', integrationApiRoutes);
-  app.use('/api', ordersRoutes);
-  app.use('/api', customersRoutes);
   app.use('/api/xml-price-sheets', xmlPriceSheetRoutes);
   app.use('/api/larson-optimizer', larsonOrderOptimizerRoutes);
 
