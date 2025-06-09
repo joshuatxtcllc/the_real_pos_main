@@ -413,6 +413,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Admin routes for API key generation
   app.use('/api/admin', hubAdminRoutes);
 
+  // Admin integration endpoints
+  app.post('/api/admin/generate-api-key', async (req, res) => {
+    try {
+      const { generateApiKey } = await import('./controllers/integrationController');
+      await generateApiKey(req, res);
+    } catch (error: any) {
+      console.error('Error in generate-api-key route:', error);
+      res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
+  app.get('/api/admin/integration-status', async (req, res) => {
+    try {
+      const { getIntegrationStatus } = await import('./controllers/integrationController');
+      await getIntegrationStatus(req, res);
+    } catch (error: any) {
+      console.error('Error in integration-status route:', error);
+      res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
+  app.get('/api/admin/integration-docs', async (req, res) => {
+    try {
+      const { getIntegrationDocs } = await import('./controllers/integrationController');
+      await getIntegrationDocs(req, res);
+    } catch (error: any) {
+      console.error('Error in integration-docs route:', error);
+      res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
+  // Webhook endpoints
+  app.get('/api/webhooks', async (req, res) => {
+    try {
+      res.json({ success: true, webhooks: [] });
+    } catch (error: any) {
+      console.error('Error in webhooks route:', error);
+      res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
   // Main application routes (must come before integration routes to avoid conflicts)
   app.use('/api', ordersRoutes);
   app.use('/api', customersRoutes);
