@@ -25,7 +25,7 @@ import discordNotificationRoutes from './routes/discordNotificationRoutes';
 import customerNotificationRoutes from './routes/customerNotificationRoutes';
 import testNotificationRoutes from './routes/testNotificationRoutes.js';
 import { Request, Response, NextFunction } from 'express';
-import { log } from './utils';
+import { log } from './utils/logger';
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Art Location routes
