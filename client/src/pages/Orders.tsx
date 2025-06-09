@@ -217,8 +217,9 @@ const Orders = () => {
     setLocation(`/checkout/${orderGroupId}`);
   };
 
-  // Filter orders based on search term and status
-  const filteredOrders = orders ? (orders as Order[]).filter((order) => {
+  // Extract orders array from API response and filter based on search term and status
+  const ordersArray = orders?.orders || orders || [];
+  const filteredOrders = Array.isArray(ordersArray) ? ordersArray.filter((order: Order) => {
     const matchesSearch = 
       getCustomerName(order.customerId).toLowerCase().includes(searchTerm.toLowerCase()) ||
       order.id.toString().includes(searchTerm);
