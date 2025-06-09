@@ -199,25 +199,27 @@ export async function generateApiKey(req: Request, res: Response) {
     // Set content type header to ensure JSON response
     res.setHeader('Content-Type', 'application/json');
     
-    // Use a fixed API key for now
-    const apiKey = 'jf_houston_heights_framing_2025_master_api_key_secure_access';
+    // Generate a unique API key for this request
+    const timestamp = Date.now();
+    const randomString = Math.random().toString(36).substring(2, 15);
+    const apiKey = `jf_api_${timestamp}_${randomString}`;
 
     const keyInfo = {
       key: apiKey,
-      name: 'Houston Heights Framing API Integration',
+      name: 'Jay\'s Frames API Integration',
       permissions: ['orders:read', 'orders:write', 'integration:webhook', 'pricing:read', 'catalog:read'],
       createdAt: new Date().toISOString(),
       lastUsed: null
     };
 
-    console.log('API Key provided:', apiKey);
+    console.log('New API Key generated:', apiKey);
 
     const response = {
       success: true,
       ...keyInfo,
       message: 'API key generated successfully. Store this securely.',
       endpoints: {
-        baseUrl: process.env.REPL_URL || 'https://your-repl-url.replit.dev',
+        baseUrl: process.env.REPL_URL || `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co`,
         orders: '/api/integration/orders',
         webhook: '/api/integration/webhook',
         status: '/api/integration/status',
@@ -230,6 +232,8 @@ export async function generateApiKey(req: Request, res: Response) {
         value: `Bearer ${apiKey}`
       }
     };
+
+    return res.status(200).json(response);
 
     res.status(200).json(response);
   } catch (error: any) {

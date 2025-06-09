@@ -1,4 +1,3 @@
-
 import { Request, Response } from 'express';
 import crypto from 'crypto';
 import { storage } from '../storage';
@@ -10,39 +9,29 @@ export async function generateHubApiKey(req: Request, res: Response) {
   try {
     // Set content type header to ensure JSON response
     res.setHeader('Content-Type', 'application/json');
-    
-    // Generate a secure API key
-    const apiKey = 'hub_' + crypto.randomBytes(32).toString('hex');
-    
-    // In a production environment, you would store this in a secure way
-    // For now, we'll return it and log it
-    console.log('Generated Hub API Key:', apiKey);
-    
+
+    // Generate a unique API key
+    const timestamp = Date.now();
+    const randomString = Math.random().toString(36).substring(2, 15);
+    const apiKey = `hub_${timestamp}_${randomString}`;
+
+    console.log('Hub API Key generated:', apiKey);
+
     const response = {
       success: true,
-      apiKey: apiKey,
-      message: 'API key generated successfully. Store this securely.',
-      endpoints: {
-        baseUrl: process.env.REPL_URL || 'https://your-repl-url.replit.dev',
-        orders: '/api/hub/orders',
-        materials: '/api/hub/materials',
-        webhook: '/api/hub/webhook',
-        status: '/api/hub/status'
-      },
-      authentication: {
-        method: 'Bearer Token',
-        header: 'Authorization',
-        value: `Bearer ${apiKey}`
-      }
+      apiKey,
+      createdAt: new Date().toISOString(),
+      permissions: ['hub:read', 'hub:write', 'orders:sync'],
+      message: 'Hub API key generated successfully'
     };
-    
-    res.status(200).json(response);
+
+    return res.status(200).json(response);
   } catch (error: any) {
-    console.error('Error generating hub API key:', error);
+    console.error('Error generating Hub API key:', error);
     res.setHeader('Content-Type', 'application/json');
-    res.status(500).json({ 
-      success: false, 
-      error: error.message || 'Failed to generate API key' 
+    return res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to generate API key'
     });
   }
 }
@@ -53,7 +42,7 @@ export async function generateHubApiKey(req: Request, res: Response) {
 export async function getHubConnectionInfo(req: Request, res: Response) {
   try {
     const baseUrl = process.env.REPL_URL || 'https://your-repl-url.replit.dev';
-    
+
     res.json({
       success: true,
       connectionInfo: {
