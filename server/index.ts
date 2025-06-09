@@ -1,175 +1,138 @@
-import express, { type Request, Response, NextFunction } from "express";
-import UnifiedNotificationService from './services/unifiedNotificationService';
-import { registerRoutes } from "./routes";
-import { setupVite, serveStatic, log } from "./vite";
+import express from 'express';
+import cors from 'cors';
 import path from 'path';
-import fs from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
-import cors from "cors";
+import dotenv from 'dotenv';
+import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
 
-// ES module compatibility - add __dirname and __filename polyfills
+// Load environment variables
+dotenv.config();
+
+// ES module compatibility
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const app = express();
-const PORT = parseInt(process.env.PORT || process.env.REPL_PORT || '5000', 10);
+const PORT = process.env.PORT || 5000;
 
-// Initialize Discord bot and notification service
-let notificationService: UnifiedNotificationService | null = null;
+// Security middleware
+app.use(helmet({
+  contentSecurityPolicy: false,
+  crossOriginEmbedderPolicy: false
+}));
 
-try {
-  notificationService = new UnifiedNotificationService(null);
-} catch (error) {
-  log(`Warning: Discord bot initialization failed: ${error}`, "warning");
-  console.warn('Discord bot failed to initialize, continuing without it');
-}
+// Rate limiting
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 1000, // limit each IP to 1000 requests per windowMs
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+app.use(limiter);
 
-// Make notification service available to routes
-app.locals.notificationService = notificationService;
-
-// CORS setup for API requests
+// CORS configuration
 app.use(cors({
-  origin: process.env.NODE_ENV === 'production' ? true : ['http://localhost:5173', 'http://localhost:5000'],
+  origin: process.env.NODE_ENV === 'production' 
+    ? [process.env.FRONTEND_URL || 'https://your-app.replit.app']
+    : ['http://localhost:3000', 'http://localhost:5173', 'http://0.0.0.0:5000'],
   credentials: true
 }));
 
-// JSON parsing middleware
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// Static files
-app.use((req, res, next) => {
-  const start = Date.now();
-  const path = req.path;
-  let capturedJsonResponse: Record<string, any> | undefined = undefined;
+// Serve static files in production
+if (process.env.NODE_ENV === 'production') {
+  const publicPath = path.join(__dirname, 'public');
+  app.use(express.static(publicPath));
+}
 
-  const originalResJson = res.json;
-  res.json = function (bodyJson, ...args) {
-    capturedJsonResponse = bodyJson;
-    return originalResJson.apply(res, [bodyJson, ...args]);
-  };
-
-  res.on("finish", () => {
-    const duration = Date.now() - start;
-    if (path.startsWith("/api")) {
-      let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
-      if (capturedJsonResponse) {
-        logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
-      }
-
-      if (logLine.length > 80) {
-        logLine = logLine.slice(0, 79) + "…";
-      }
-
-      log(logLine);
-    }
+// Health check endpoint
+app.get('/health', (req, res) => {
+  res.json({ 
+    status: 'healthy', 
+    timestamp: new Date().toISOString(),
+    env: process.env.NODE_ENV 
   });
-
-  next();
 });
 
-(async () => {
-  const server = await registerRoutes(app);
-
-  app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
-    const status = err.status || err.statusCode || 500;
-    const message = err.message || "Internal Server Error";
-
-    res.status(status).json({ message });
-
-    // Log the error instead of re-throwing it
-    log(`Error: ${message} (${status})`, "error");
-    console.error(err);
-  });
-
-  // importantly only setup vite in development and after
-  // setting up all the other routes so the catch-all route
-  // doesn't interfere with the other routes
-  if (app.get("env") === "development") {
-    await setupVite(app, server);
-  } else {
-    serveStatic(app);
-  }
-
-
-
-  // Function to start server with deployment-ready configuration
-  const startServer = () => {
-    try {
-      // Use consistent PORT configuration with fallback handling
-      const serverInstance = server.listen(PORT, "0.0.0.0", () => {
-        log(`serving on port ${PORT}`);
-        console.log(`✓ Server running on port ${PORT}`);
-        console.log(`✓ Environment: ${process.env.NODE_ENV || 'development'}`);
-      });
-
-      serverInstance.on('error', (error: any) => {
-        if (error.code === 'EADDRINUSE') {
-          log(`Port ${PORT} is already in use, trying ${PORT + 1}`, "warning");
-          const fallbackPort = PORT + 1;
-          const fallbackServer = server.listen(fallbackPort, "0.0.0.0", () => {
-            log(`serving on fallback port ${fallbackPort}`);
-            console.log(`✓ Server running on fallback port ${fallbackPort}`);
-          });
-          return fallbackServer;
-        } else {
-          log(`Server startup error: ${error.message}`, "error");
-          console.error('Server error:', error);
-
-          // Exit gracefully on startup errors for deployment
-          setTimeout(() => {
-            process.exit(1);
-          }, 1000);
-        }
-      });
-
-      // Graceful shutdown handlers
-      const gracefulShutdown = (signal: string) => {
-        log(`${signal} received, shutting down gracefully`, "info");
-        console.log(`Shutting down server...`);
-
-        serverInstance.close((error) => {
-          if (error) {
-            console.error('Error during shutdown:', error);
-            process.exit(1);
-          } else {
-            log("Server closed", "info");
-            console.log('Server closed gracefully');
-            process.exit(0);
-          }
-        });
-
-        // Force exit after 10 seconds
-        setTimeout(() => {
-          console.log('Force exit after timeout');
-          process.exit(1);
-        }, 10000);
-      };
-
-      process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
-      process.on('SIGINT', () => gracefulShutdown('SIGINT'));
-
-      return serverInstance;
-    } catch (error) {
-      log(`Critical server startup failure: ${error}`, "error");
-      console.error('Critical error:', error);
-      process.exit(1);
-    }
-  };
-
-  // Create uploads directory if it doesn't exist
-  const uploadsDir = path.join(process.cwd(), 'uploads');
+// API routes
+app.use('/api', async (req, res, next) => {
   try {
-    if (!fs.existsSync(uploadsDir)) {
-      fs.mkdirSync(uploadsDir, { recursive: true });
-    }
+    const routes = await import('./routes.js');
+    routes.default(req, res, next);
   } catch (error) {
-    log(`Warning: Could not create uploads directory: ${error}`, "warning");
+    console.error('Routes import error:', error);
+    res.status(500).json({ error: 'Internal server error' });
   }
+});
 
-  // Static file serving for uploads
-  app.use('/uploads', express.static(uploadsDir));
+// Catch-all handler for SPA in production
+if (process.env.NODE_ENV === 'production') {
+  app.get('*', (req, res) => {
+    const indexPath = path.join(__dirname, 'public', 'index.html');
+    if (require('fs').existsSync(indexPath)) {
+      res.sendFile(indexPath);
+    } else {
+      res.status(404).json({ error: 'Application not found' });
+    }
+  });
+}
 
-  startServer();
-})();
+// Error handling middleware
+app.use((error: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+  console.error('Server error:', error);
+  res.status(500).json({ 
+    error: process.env.NODE_ENV === 'production' 
+      ? 'Internal server error' 
+      : error.message 
+  });
+});
+
+// Initialize server
+async function startServer() {
+  try {
+    // Initialize database connection
+    console.log('Server: Initializing database connection...');
+
+    // Initialize Supabase client
+    try {
+      const { createClient } = await import('@supabase/supabase-js');
+      const supabaseUrl = process.env.SUPABASE_URL;
+      const supabaseKey = process.env.SUPABASE_ANON_KEY;
+
+      if (supabaseUrl && supabaseKey) {
+        const supabase = createClient(supabaseUrl, supabaseKey);
+        console.log('Server: Successfully initialized Supabase client');
+      }
+    } catch (error) {
+      console.warn('Server: Supabase initialization failed:', error.message);
+    }
+
+    // Start Discord bot if configured
+    if (process.env.DISCORD_BOT_TOKEN) {
+      try {
+        const { initializeDiscordBot } = await import('./services/discordBot.js');
+        await initializeDiscordBot();
+      } catch (error) {
+        console.warn('Discord bot initialization failed:', error.message);
+      }
+    }
+
+    app.listen(PORT, '0.0.0.0', () => {
+      console.log(`✓ Server running on port ${PORT}`);
+      console.log(`✓ Environment: ${process.env.NODE_ENV || 'development'}`);
+      if (process.env.NODE_ENV === 'production') {
+        console.log('✓ Production build ready');
+      }
+    });
+
+  } catch (error) {
+    console.error('❌ Server startup failed:', error);
+    process.exit(1);
+  }
+}
+
+startServer();

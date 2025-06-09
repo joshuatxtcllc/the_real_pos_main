@@ -27,6 +27,50 @@ import testNotificationRoutes from './routes/testNotificationRoutes';
 import { Request, Response, NextFunction } from 'express';
 import { log } from './utils/logger';
 
+import express from 'express';
+
+const router = express.Router();
+
+// Import route modules with error handling
+async function loadRoutes() {
+  const routes = [
+    { path: '/orders', module: './routes/ordersRoutes.js' },
+    { path: '/customers', module: './routes/customersRoutes.js' },
+    { path: '/inventory', module: './routes/inventoryRoutes.js' },
+    { path: '/frames', module: './controllers/frameController.js' },
+    { path: '/matboards', module: './controllers/matboardController.js' },
+    { path: '/vendor-catalog', module: './routes/vendorApiRoutes.js' },
+    { path: '/auth', module: './middleware/auth.js' },
+    { path: '/kanban', module: './services/externalKanbanService.js' }
+  ];
+
+  for (const route of routes) {
+    try {
+      const module = await import(route.module);
+      if (module.default) {
+        router.use(route.path, module.default);
+      } else if (module.router) {
+        router.use(route.path, module.router);
+      }
+    } catch (error) {
+      console.warn(`Failed to load route ${route.path}:`, error.message);
+      // Create fallback route
+      router.use(route.path, (req, res) => {
+        res.status(503).json({ 
+          error: 'Service temporarily unavailable',
+          path: route.path 
+        });
+      });
+    }
+  }
+}
+
+// Load routes
+loadRoutes().catch(console.error);
+
+// Default export
+// export default router;
+
 export async function registerRoutes(app: Express): Promise<Server> {
   // Art Location routes
   app.post('/api/art-locations', artLocationController.sendArtLocationData);
@@ -331,8 +375,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Main application routes (must come before integration routes to avoid conflicts)
-  app.use('/api', ordersRoutes);
-  app.use('/api', customersRoutes);
+  // app.use('/api', ordersRoutes);
+  // app.use('/api', customersRoutes);
+  app.use('/api', router);
   
   // Integration API routes (mounted with specific prefix to avoid conflicts)
   app.use('/api/integration', integrationApiRoutes);
