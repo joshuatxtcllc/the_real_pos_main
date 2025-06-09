@@ -1,0 +1,13 @@
+{
+  "name": "framing-pos-production",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "server.mjs",
+  "scripts": {
+    "start": "node server.mjs",
+    "postinstall": "echo 'Production server ready'"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
