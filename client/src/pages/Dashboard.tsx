@@ -73,7 +73,12 @@ const Dashboard = () => {
 
   // Filter orders by time range
   const getFilteredOrders = () => {
-    if (!orders) return [];
+    // Handle API response structure - orders might be wrapped in response object
+    const ordersList = Array.isArray(orders) ? orders : 
+                      (orders?.orders && Array.isArray(orders.orders)) ? orders.orders : 
+                      [];
+    
+    if (!ordersList.length) return [];
     
     const now = new Date();
     let filterDate = new Date();
@@ -95,7 +100,7 @@ const Dashboard = () => {
         filterDate.setDate(now.getDate() - 30);
     }
     
-    return orders.filter((order: Order) => {
+    return ordersList.filter((order: Order) => {
       const orderDate = new Date(order.createdAt || '');
       return orderDate >= filterDate;
     });

@@ -19,6 +19,7 @@ import { getMaterialsPickList, getMaterialsBySupplier, getMaterialsForOrder, upd
 import integrationApiRoutes from './routes/integrationApiRoutes';
 import ordersRoutes from './routes/ordersRoutes';
 import customersRoutes from './routes/customersRoutes';
+import inventoryRoutes from './routes/inventoryRoutes';
 import xmlPriceSheetRoutes from './routes/xmlPriceSheetRoutes';
 import larsonOrderOptimizerRoutes from './routes/larsonOrderOptimizerRoutes';
 import customerNotificationRoutes from './routes/customerNotificationRoutes';
@@ -331,6 +332,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Main application routes (must come before integration routes to avoid conflicts)
   app.use('/api', ordersRoutes);
   app.use('/api', customersRoutes);
+  app.use('/api', inventoryRoutes);
 
   // Integration API routes (mounted with specific prefix to avoid conflicts)
   app.use('/api/integration', integrationApiRoutes);
