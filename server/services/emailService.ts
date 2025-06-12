@@ -220,6 +220,40 @@ export function generateOrderStatusEmailTemplate(
   `;
 }
 
+/**
+ * Send order status update email to customer
+ * @param customerEmail Customer's email address
+ * @param customerName Customer's name
+ * @param orderId Order ID
+ * @param orderStatus Current order status
+ * @param estimatedCompletion Estimated completion date
+ */
+export async function sendOrderStatusUpdate(
+  customerEmail: string,
+  customerName: string,
+  orderId: number,
+  orderStatus: string,
+  estimatedCompletion?: Date
+): Promise<void> {
+  const fromEmail = process.env.FROM_EMAIL || 'orders@jaysframes.com';
+  const subject = `Order #${orderId} Status Update - ${orderStatus.replace('_', ' ').toUpperCase()}`;
+  
+  const htmlContent = generateOrderStatusEmailTemplate(
+    customerName,
+    orderId,
+    orderStatus,
+    estimatedCompletion
+  );
+
+  await sendEmailWithSendGrid({
+    to: customerEmail,
+    from: fromEmail,
+    subject,
+    html: htmlContent,
+    text: `Hello ${customerName}, your order #${orderId} status has been updated to: ${orderStatus}`
+  });
+}
+
 // Helper function to get the description for each order status
 function getStageDescription(status: string): string {
   switch (status) {

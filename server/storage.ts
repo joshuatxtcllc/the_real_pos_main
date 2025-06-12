@@ -883,7 +883,7 @@ export class DatabaseStorage implements IStorage {
       console.log('DatabaseStorage.createOrder - Inserting order with data:', order);
       const [newOrder] = await db
         .insert(orders)
-        .values(order)
+        .values([order])
         .returning();
       console.log('DatabaseStorage.createOrder - Order created successfully:', newOrder);
 
@@ -1250,7 +1250,7 @@ export class DatabaseStorage implements IStorage {
     try {
       const [newMaterialOrder] = await db
         .insert(materialOrders)
-        .values(cleanData)
+        .values([cleanData])
         .returning();
 
       console.log('Successfully created material order:', newMaterialOrder.id);
@@ -1353,7 +1353,7 @@ export class DatabaseStorage implements IStorage {
 
       const [newItem] = await db
         .insert(inventoryItems)
-        .values(itemToInsert)
+        .values([itemToInsert])
         .returning();
 
       // Create an initial inventory transaction if initialQuantity was provided
@@ -1471,7 +1471,7 @@ export class DatabaseStorage implements IStorage {
     try {
       const [newTransaction] = await db
         .insert(inventoryTransactions)
-        .values(transaction)
+        .values([transaction])
         .returning();
 
       // Update last count date if this is a count transaction
@@ -1838,7 +1838,7 @@ export class DatabaseStorage implements IStorage {
   async createNotification(notification: InsertNotification): Promise<Notification> {
     const [newNotification] = await db
       .insert(notifications)
-      .values(notification)
+      .values([notification])
       .returning();
     return newNotification;
   }

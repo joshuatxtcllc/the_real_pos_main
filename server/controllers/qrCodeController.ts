@@ -250,6 +250,27 @@ export async function deleteQrCode(req: Request, res: Response) {
   }
 }
 
+// Generate QR code for an order
+export async function generateQrCodeForOrder(orderId: string | number): Promise<string> {
+  try {
+    const qrCodeValue = generateQrCode();
+    
+    // Create QR code record in database
+    const [newQrCode] = await db.insert(qrCodes).values({
+      code: qrCodeValue,
+      type: 'order',
+      entityId: orderId.toString(),
+      description: `QR code for order #${orderId}`,
+      isActive: true
+    }).returning();
+
+    return qrCodeValue;
+  } catch (error) {
+    console.error('Error generating QR code for order:', error);
+    throw new Error('Failed to generate QR code for order');
+  }
+}
+
 // Search QR codes by type and entityId
 export async function searchQrCodesByEntity(req: Request, res: Response) {
   try {
