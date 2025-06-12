@@ -17,11 +17,11 @@ router.post('/test-basic', async (req, res) => {
   // Debug info
   console.log('SendGrid API Key exists:', !!process.env.SENDGRID_API_KEY);
   console.log('SendGrid API Key starts with SG.:', process.env.SENDGRID_API_KEY?.startsWith('SG.'));
-  console.log('From email:', process.env.FROM_EMAIL || 'noreply@jaysframes.com');
+  console.log('From email:', process.env.FROM_EMAIL || 'noreply@jaysartandframes.com');
 
   try {
     // Use your verified sender email from SendGrid dashboard
-    const fromEmail = 'noreply@jaysframes.com'; // This should match one of your verified senders
+    const fromEmail = 'noreply@jaysartandframes.com'; // This should match your authenticated domain
     
     await sendEmailWithSendGrid({
       to,
@@ -43,7 +43,7 @@ router.post('/test-basic', async (req, res) => {
       message: error.message,
       hasApiKey: !!process.env.SENDGRID_API_KEY,
       apiKeyFormat: process.env.SENDGRID_API_KEY?.startsWith('SG.') ? 'Valid format' : 'Invalid format',
-      fromEmail: process.env.FROM_EMAIL || 'noreply@jaysframes.com'
+      fromEmail: process.env.FROM_EMAIL || 'noreply@jaysartandframes.com'
     };
 
     res.status(500).json({ 
