@@ -31,11 +31,17 @@ export default function InventoryPage() {
   const [selectedItem, setSelectedItem] = useState<InventoryItem | null>(null);
   const [currentTab, setCurrentTab] = useState("inventory");
   
-  // React Query hooks
-  const { data: inventoryItems = [], isLoading: isLoadingItems } = useInventoryItems();
-  const { data: lowStockItems = [], isLoading: isLoadingLowStock } = useLowStockItems();
-  const { data: suppliers = [], isLoading: isLoadingSuppliers } = useSuppliers();
-  const { data: locations = [], isLoading: isLoadingLocations } = useInventoryLocations();
+  // React Query hooks - handle API response structure
+  const { data: inventoryItemsResponse, isLoading: isLoadingItems } = useInventoryItems();
+  const { data: lowStockItemsResponse, isLoading: isLoadingLowStock } = useLowStockItems();
+  const { data: suppliersResponse, isLoading: isLoadingSuppliers } = useSuppliers();
+  const { data: locationsResponse, isLoading: isLoadingLocations } = useInventoryLocations();
+
+  // Ensure data is arrays
+  const inventoryItems = Array.isArray(inventoryItemsResponse) ? inventoryItemsResponse : [];
+  const lowStockItems = Array.isArray(lowStockItemsResponse) ? lowStockItemsResponse : [];
+  const suppliers = Array.isArray(suppliersResponse) ? suppliersResponse : [];
+  const locations = Array.isArray(locationsResponse) ? locationsResponse : [];
   const createItem = useCreateInventoryItem();
   const updateItem = useUpdateInventoryItem(selectedItem?.id || 0);
   const deleteItem = useDeleteInventoryItem();

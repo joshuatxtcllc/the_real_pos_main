@@ -86,6 +86,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json([]);
   });
 
+  // QR codes endpoint
+  app.get('/api/qr-codes', (req, res) => {
+    res.json([]);
+  });
+
   // Auth status route
   app.get('/api/auth/status', (req, res) => {
     res.json({ authenticated: false, user: null });
