@@ -29,7 +29,7 @@ export async function sendEmailWithSendGrid(params: EmailParams): Promise<void> 
     // Send the email
     await sgMail.send({
       to: params.to,
-      from: params.from,
+      from: params.from || process.env.FROM_EMAIL || 'noreply@jaysframes.com',
       subject: params.subject,
       text: params.text,
       html: params.html,

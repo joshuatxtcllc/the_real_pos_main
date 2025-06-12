@@ -1151,8 +1151,7 @@ export class DatabaseStorage implements IStorage {
       .insert(customerNotifications)
       .values({
         ...notification,
-        sentAt: new Date()
-      })
+        })
       .returning();
 
     return newNotification;
@@ -1622,7 +1621,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createPurchaseOrderWithLines(
-    orderData: Omit<InsertPurchaseOrder, 'poNumber'>, 
+    orderData: Omit<InsertPurchaseOrder, ''>, 
     lines: InsertPurchaseOrderLine[]
   ): Promise<PurchaseOrder> {
     try {
@@ -1645,7 +1644,6 @@ export class DatabaseStorage implements IStorage {
         .insert(purchaseOrders)
         .values({
           ...orderData,
-          poNumber,
           subtotal: subtotal.toString(),
           tax: tax.toString(),
           total: total.toString()

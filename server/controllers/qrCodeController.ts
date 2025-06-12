@@ -15,8 +15,8 @@ export async function getAllQrCodes(req: Request, res: Response) {
   try {
     const allQrCodes = await db.select().from(qrCodes).orderBy(qrCodes.createdAt);
     return res.status(200).json(allQrCodes);
-  } catch (error) {
-    console.error('Error fetching QR codes:', error);
+  } catch (error: any) {
+    console.error('Error fetching QR codes:', error?.message || error);
     return res.status(500).json({ message: 'Error fetching QR codes' });
   }
 }
@@ -32,8 +32,8 @@ export async function getQrCodeById(req: Request, res: Response) {
     }
     
     return res.status(200).json(qrCode[0]);
-  } catch (error) {
-    console.error('Error fetching QR code:', error);
+  } catch (error: any) {
+    console.error('Error fetching QR code:', error?.message || error);
     return res.status(500).json({ message: 'Error fetching QR code' });
   }
 }
@@ -49,8 +49,8 @@ export async function getQrCodeByCode(req: Request, res: Response) {
     }
     
     return res.status(200).json(qrCode[0]);
-  } catch (error) {
-    console.error('Error fetching QR code:', error);
+  } catch (error: any) {
+    console.error('Error fetching QR code:', error?.message || error);
     return res.status(500).json({ message: 'Error fetching QR code' });
   }
 }
@@ -87,8 +87,8 @@ export async function getQrCodesByOrder(req: Request, res: Response) {
     const allQrCodes = [...orderQrCodes, ...locationQrCodes];
     
     return res.status(200).json(allQrCodes);
-  } catch (error) {
-    console.error('Error fetching QR codes for order:', error);
+  } catch (error: any) {
+    console.error('Error fetching QR codes for order:', error?.message || error);
     return res.status(500).json({ message: 'Error fetching QR codes' });
   }
 }
@@ -115,12 +115,12 @@ export async function createQrCode(req: Request, res: Response) {
     
     // Create the QR code
     const [newQrCode] = await db.insert(qrCodes)
-      .values(validatedData)
+      .values([validatedData])
       .returning();
     
     return res.status(201).json(newQrCode);
-  } catch (error) {
-    console.error('Error creating QR code:', error);
+  } catch (error: any) {
+    console.error('Error creating QR code:', error?.message || error);
     if (error.name === 'ZodError') {
       return res.status(400).json({ message: 'Invalid QR code data', errors: error.errors });
     }
@@ -145,7 +145,7 @@ export async function recordQrCodeScan(req: Request, res: Response) {
     
     // Record the scan
     const [scan] = await db.insert(qrCodeScans)
-      .values(validatedData)
+      .values([validatedData])
       .returning();
     
     // Update the QR code's last scanned time and increment scan count
@@ -157,8 +157,8 @@ export async function recordQrCodeScan(req: Request, res: Response) {
       .where(eq(qrCodes.id, validatedData.qrCodeId));
     
     return res.status(201).json(scan);
-  } catch (error) {
-    console.error('Error recording QR code scan:', error);
+  } catch (error: any) {
+    console.error('Error recording QR code scan:', error?.message || error);
     if (error.name === 'ZodError') {
       return res.status(400).json({ message: 'Invalid scan data', errors: error.errors });
     }
@@ -176,8 +176,8 @@ export async function getQrCodeScans(req: Request, res: Response) {
       .orderBy(qrCodeScans.scannedAt);
     
     return res.status(200).json(scans);
-  } catch (error) {
-    console.error('Error fetching QR code scans:', error);
+  } catch (error: any) {
+    console.error('Error fetching QR code scans:', error?.message || error);
     return res.status(500).json({ message: 'Error fetching QR code scans' });
   }
 }
@@ -214,8 +214,8 @@ export async function linkQrCodeToMaterialLocation(req: Request, res: Response) 
       .returning();
     
     return res.status(200).json(updatedLocation);
-  } catch (error) {
-    console.error('Error linking QR code to material location:', error);
+  } catch (error: any) {
+    console.error('Error linking QR code to material location:', error?.message || error);
     return res.status(500).json({ message: 'Error linking QR code to material location' });
   }
 }
@@ -244,8 +244,8 @@ export async function deleteQrCode(req: Request, res: Response) {
       .where(eq(qrCodes.id, parseInt(id)));
     
     return res.status(200).json({ message: 'QR code deleted successfully' });
-  } catch (error) {
-    console.error('Error deleting QR code:', error);
+  } catch (error: any) {
+    console.error('Error deleting QR code:', error?.message || error);
     return res.status(500).json({ message: 'Error deleting QR code' });
   }
 }
@@ -256,17 +256,17 @@ export async function generateQrCodeForOrder(orderId: string | number): Promise<
     const qrCodeValue = generateQrCode();
     
     // Create QR code record in database
-    const [newQrCode] = await db.insert(qrCodes).values({
+    const [newQrCode] = await db.insert(qrCodes).values([{
       code: qrCodeValue,
-      type: 'order',
+      type: 'customer_order',
       entityId: orderId.toString(),
       description: `QR code for order #${orderId}`,
       isActive: true
-    }).returning();
+    }]).returning();
 
     return qrCodeValue;
-  } catch (error) {
-    console.error('Error generating QR code for order:', error);
+  } catch (error: any) {
+    console.error('Error generating QR code for order:', error?.message || error);
     throw new Error('Failed to generate QR code for order');
   }
 }
@@ -295,8 +295,8 @@ export async function searchQrCodesByEntity(req: Request, res: Response) {
     }
     
     return res.status(200).json(qrCode[0]);
-  } catch (error) {
-    console.error('Error searching QR code:', error);
+  } catch (error: any) {
+    console.error('Error searching QR code:', error?.message || error);
     return res.status(500).json({ message: 'Error searching QR code' });
   }
 }
