@@ -71,6 +71,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json([]);
   });
 
+  // Mat colors endpoint
+  app.get('/api/mat-colors', (req, res) => {
+    res.json([]);
+  });
+
+  // Glass options endpoint
+  app.get('/api/glass-options', (req, res) => {
+    res.json([]);
+  });
+
+  // Wholesale orders endpoint
+  app.get('/api/wholesale-orders', (req, res) => {
+    res.json([]);
+  });
+
   // Auth status route
   app.get('/api/auth/status', (req, res) => {
     res.json({ authenticated: false, user: null });
