@@ -117,19 +117,27 @@ function handleError(error: any, context?: string): ErrorDetails {
   };
 }
 
-// Display error toast with appropriate message
-export function displayErrorToast(error: any, context?: string) {
-  const errorDetails = handleError(error, context);
-
-  // Get toast from the hook
+// Display error toast with appropriate message - use this in components only
+export function useDisplayErrorToast() {
   const { toast } = useToast();
+  
+  return (error: any, context?: string) => {
+    const errorDetails = handleError(error, context);
 
-  toast({
-    title: getErrorTitle(errorDetails.type),
-    description: errorDetails.message,
-    variant: "destructive",
-  });
+    toast({
+      title: getErrorTitle(errorDetails.type),
+      description: errorDetails.message,
+      variant: "destructive",
+    });
 
+    return errorDetails;
+  };
+}
+
+// Non-hook version for use outside of React components
+export function logError(error: any, context?: string) {
+  const errorDetails = handleError(error, context);
+  console.error(`Error ${context ? `in ${context}` : ''}:`, errorDetails);
   return errorDetails;
 }
 

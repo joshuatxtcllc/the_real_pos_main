@@ -45,7 +45,8 @@ class NotificationService {
 
     // Check if jfNotifications is available
     if (!window.jfNotifications) {
-      console.warn('Unified notification system not available');
+      console.log('Unified notification system not available - continuing without external notifications');
+      this.initialized = true; // Mark as initialized to avoid repeated attempts
       return;
     }
 

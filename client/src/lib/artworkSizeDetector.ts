@@ -874,10 +874,8 @@ export class ArtworkSizeDetector {
       return 'bottom';
     } else if (normalizedX < 0.33) {
       return 'left';
-    } else if (normalizedX > 0.66) {
-      return 'right';
+    } else if (normalizedX > 0.66) {      return 'right';
     } else {
-```text
       return 'center';
     }
   }
