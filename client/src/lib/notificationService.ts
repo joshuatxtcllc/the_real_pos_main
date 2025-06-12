@@ -43,14 +43,14 @@ class NotificationService {
   init() {
     if (typeof window === 'undefined' || this.initialized) return;
 
-    // Check if jfNotifications is available
-    if (!window.jfNotifications) {
-      console.log('Unified notification system not available - continuing without external notifications');
-      this.initialized = true; // Mark as initialized to avoid repeated attempts
-      return;
-    }
-
     try {
+      // Check if jfNotifications is available
+      if (!window.jfNotifications) {
+        console.log('Unified notification system not available - continuing without external notifications');
+        this.initialized = true; // Mark as initialized to avoid repeated attempts
+        return;
+      }
+
       // Initialize the notification system
       window.jfNotifications.init(this.appId, {
         onConnect: () => {
@@ -74,12 +74,9 @@ class NotificationService {
       this.initialized = true;
       console.log('Notification service initialized');
     } catch (error: any) {
-      console.error('Failed to initialize notification service:', error);
-      toast({
-        title: 'Notification Service Error',
-        description: `Failed to initialize: ${error.message || 'Unknown error'}`,
-        variant: 'destructive',
-      });
+      console.warn('Failed to initialize notification service:', error);
+      this.initialized = true; // Mark as initialized to avoid repeated attempts
+      // Don't show toast error during initialization as it might not be ready yet
     }
   }
 

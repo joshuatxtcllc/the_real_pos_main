@@ -38,19 +38,28 @@ import PricingMonitorPage from './pages/PricingMonitorPage';
 import LarsonOptimizerPage from './pages/LarsonOptimizerPage';
 import { notificationService } from '@/lib/notificationService';
 import NotFound from '@/pages/not-found';
+import { AppHealthCheck } from './components/AppHealthCheck';
 
 function App() {
   const [darkMode, setDarkMode] = useState(false);
 
   // Initialize notification service and handle theme preference
   useEffect(() => {
-    try {
-      // Initialize the notification service
-      notificationService.init();
-      console.log('App initialized successfully');
-    } catch (error) {
-      console.error('Error initializing app:', error);
-    }
+    const initializeApp = async () => {
+      try {
+        console.log('Starting app initialization...');
+        
+        // Initialize the notification service
+        notificationService.init();
+        
+        console.log('App components initialized successfully');
+      } catch (error) {
+        console.error('Error initializing app:', error);
+        // Continue execution even if notification service fails
+      }
+    };
+
+    initializeApp();
 
     // Cleanup on unmount
     return () => {
@@ -96,6 +105,7 @@ function App() {
       <AuthProvider>
         <TooltipProvider>
           <div className={`min-h-screen ${darkMode ? 'dark' : ''}`}>
+            <AppHealthCheck />
             <MobileNavMenu />
             <Header darkMode={darkMode} toggleTheme={toggleTheme} />
             <main className="container pt-16 lg:pt-24 pb-10 px-3 lg:px-4">
