@@ -39,6 +39,11 @@ export async function sendEmailWithSendGrid(params: EmailParams): Promise<void> 
   } catch (error: any) {
     console.error('SendGrid Error:', error);
     
+    // Log detailed error information
+    if (error.response && error.response.body) {
+      console.error('SendGrid Response Body:', JSON.stringify(error.response.body, null, 2));
+    }
+    
     // Rethrow the error to be handled by the caller
     throw new Error(`Failed to send email: ${error.message}`);
   }
