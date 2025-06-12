@@ -1962,27 +1962,7 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async updateMaterialOrder(materialId: string, updateData: any) {
-    try {
-      // In a real implementation, this would update the database
-      // For now, return the updated material data
-      const materials = await this.getMaterialsPickList();
-      const material = materials.find(m => m.id === materialId);
 
-      if (!material) {
-        throw new Error(`Material with ID ${materialId} not found`);
-      }
-
-      return {
-        ...material,
-        ...updateData,
-        updatedAt: new Date().toISOString()
-      };
-    } catch (error) {
-      log(`Error in updateMaterialOrder: ${error}`, 'storage');
-      throw error;
-    }
-  }
 
   async createPurchaseOrder(materialIds: string[]) {
     try {
