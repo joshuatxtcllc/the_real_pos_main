@@ -240,7 +240,7 @@ export async function sendOrderStatusUpdate(
   orderStatus: string,
   estimatedCompletion?: Date
 ): Promise<void> {
-  const fromEmail = process.env.FROM_EMAIL || 'orders@jaysframes.com';
+  const fromEmail = process.env.FROM_EMAIL || 'noreply@jaysframes.com';
   const subject = `Order #${orderId} Status Update - ${orderStatus.replace('_', ' ').toUpperCase()}`;
   
   const htmlContent = generateOrderStatusEmailTemplate(
