@@ -1,12 +1,9 @@
 {
-  "name": "framing-pos-production",
+  "name": "jay-frames-pos",
   "version": "1.0.0",
   "type": "module",
   "main": "server.mjs",
   "scripts": {
     "start": "node server.mjs"
-  },
-  "engines": {
-    "node": ">=18.0.0"
   }
 }
