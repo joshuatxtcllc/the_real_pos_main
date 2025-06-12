@@ -14,6 +14,11 @@ router.post('/test-basic', async (req, res) => {
     });
   }
 
+  // Debug info
+  console.log('SendGrid API Key exists:', !!process.env.SENDGRID_API_KEY);
+  console.log('SendGrid API Key starts with SG.:', process.env.SENDGRID_API_KEY?.startsWith('SG.'));
+  console.log('From email:', process.env.FROM_EMAIL || 'noreply@jaysframes.com');
+
   try {
     await sendEmailWithSendGrid({
       to,
@@ -29,9 +34,19 @@ router.post('/test-basic', async (req, res) => {
     });
   } catch (error) {
     console.error('Test email error:', error);
+    
+    // More detailed error information
+    const errorDetails = {
+      message: error.message,
+      hasApiKey: !!process.env.SENDGRID_API_KEY,
+      apiKeyFormat: process.env.SENDGRID_API_KEY?.startsWith('SG.') ? 'Valid format' : 'Invalid format',
+      fromEmail: process.env.FROM_EMAIL || 'noreply@jaysframes.com'
+    };
+
     res.status(500).json({ 
       error: 'Failed to send test email', 
-      details: error.message 
+      details: error.message,
+      debug: errorDetails
     });
   }
 });
