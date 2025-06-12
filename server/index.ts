@@ -1,5 +1,4 @@
 import express, { type Request, Response, NextFunction } from "express";
-import UnifiedNotificationService from './services/unifiedNotificationService';
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import path from 'path';
@@ -15,8 +14,7 @@ const __dirname = dirname(__filename);
 const app = express();
 const PORT = parseInt(process.env.PORT || process.env.REPL_PORT || '5000', 10);
 
-// Initialize notification service without Discord
-app.locals.notificationService = null;
+// Notification service disabled for deployment stability
 
 // CORS setup for API requests
 app.use(cors({

@@ -27,7 +27,6 @@ import Payment from "./pages/Payment";
 import MatBorderDemo from "./pages/MatBorderDemo"; // Added for mat border demonstration
 import SystemHealthPage from "@/pages/SystemHealthPage";
 import NotificationCenterPage from '@/pages/NotificationCenterPage';
-import NotFound from "@/pages/not-found";
 import { ErrorBoundary } from 'react-error-boundary'; //added imports
 import { QueryErrorResetBoundary } from '@tanstack/react-query';
 import { Button } from "@/components/ui/button";
@@ -41,7 +40,8 @@ import { lazy } from 'react';
 import PricingMonitorPage from './pages/PricingMonitorPage';
 import LarsonOptimizerPage from './pages/LarsonOptimizerPage';
 // Import the notification service
-import { notificationService } from "./lib/notificationService";
+import { notificationService } from '@/lib/notificationService';
+import NotFound from '@/pages/not-found';
 
 // Error fallback component
 function ErrorFallback({ error, resetErrorBoundary }: { error: Error; resetErrorBoundary: () => void }) {

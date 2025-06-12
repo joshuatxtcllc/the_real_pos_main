@@ -1,7 +1,7 @@
 // Unified Notification Service for Jay's Frames
 // This service integrates with the notification system to handle global notifications
 
-import { toast } from "@/hooks/use-toast";
+import { toast } from '@/hooks/use-toast';
 
 // Define notification type
 export interface UnifiedNotification {

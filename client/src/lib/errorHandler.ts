@@ -1,5 +1,4 @@
 import { useToast } from '@/hooks/use-toast';
-import { queryClient } from '@/lib/queryClient';
 
 // Error types to handle specific cases
 export enum ErrorType {
@@ -234,40 +233,4 @@ export function setupGlobalErrorHandling() {
     // Only log it for now
   });
 }
-import { useToast } from "@/hooks/use-toast";
-
-// Generic error handling function
-export const handleError = (error: unknown, customMessage?: string) => {
-  console.error(error);
-  
-  // Extract error message
-  const errorMessage = customMessage || 
-    (error instanceof Error ? error.message : 
-    typeof error === 'string' ? error : 'Unknown error occurred');
-  
-  // Get toast from hook - Note: This function should be used within React components
-  // that have access to the useToast hook
-  const { toast } = useToast();
-  
-  // Show toast notification
-  if (toast) {
-    toast({
-      variant: "destructive",
-      title: "Error",
-      description: errorMessage,
-    });
-  }
-  
-  return errorMessage; // Return for potential further handling
-};
-
-// Function for API error handling
-export const handleApiError = (error: unknown) => {
-  // Handle specific API errors differently if needed
-  return handleError(error, 'API request failed. Please try again.');
-};
-
-// Function for validation errors
-export const handleValidationError = (error: unknown) => {
-  return handleError(error, 'Validation failed. Please check your inputs.');
-};
+// Duplicate functions removed - using the main error handling functions above
