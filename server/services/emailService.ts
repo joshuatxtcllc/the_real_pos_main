@@ -42,6 +42,22 @@ export async function sendEmailWithSendGrid(params: EmailParams): Promise<void> 
     // Log detailed error information
     if (error.response && error.response.body) {
       console.error('SendGrid Response Body:', JSON.stringify(error.response.body, null, 2));
+      
+      // Check for specific SendGrid errors
+      const errorBody = error.response.body;
+      if (errorBody.errors && errorBody.errors.length > 0) {
+        const firstError = errorBody.errors[0];
+        
+        if (firstError.message === 'Maximum credits exceeded') {
+          throw new Error('SendGrid account has exceeded credit limit. Please check your SendGrid billing or upgrade your plan.');
+        }
+        
+        if (firstError.message.includes('Unauthorized')) {
+          throw new Error('SendGrid API key is invalid or expired. Please check your API key configuration.');
+        }
+        
+        throw new Error(`SendGrid Error: ${firstError.message}`);
+      }
     }
     
     // Rethrow the error to be handled by the caller
