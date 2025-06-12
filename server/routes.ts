@@ -91,6 +91,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json([]);
   });
 
+  // HUB material orders endpoint
+  app.get('/api/hub/material-orders', (req, res) => {
+    res.json([]);
+  });
+
   // Auth status route
   app.get('/api/auth/status', (req, res) => {
     res.json({ authenticated: false, user: null });
