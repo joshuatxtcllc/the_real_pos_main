@@ -1,9 +1,13 @@
 {
-  "name": "jay-frames-pos",
+  "name": "rest-express",
   "version": "1.0.0",
   "type": "module",
   "main": "server.mjs",
   "scripts": {
     "start": "node server.mjs"
+  },
+  "dependencies": {
+    "pg": "latest",
+    "dotenv": "^16.4.7"
   }
 }
