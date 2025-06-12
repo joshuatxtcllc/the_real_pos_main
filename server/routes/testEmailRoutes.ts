@@ -20,8 +20,8 @@ router.post('/test-basic', async (req, res) => {
   console.log('From email:', process.env.FROM_EMAIL || 'noreply@jaysframes.com');
 
   try {
-    // IMPORTANT: Change this to your verified sender email from SendGrid dashboard
-    const fromEmail = 'your-verified-email@gmail.com'; // Replace with your actual verified email
+    // Use your verified sender email from SendGrid dashboard
+    const fromEmail = 'noreply@jaysframes.com'; // This should match one of your verified senders
     
     await sendEmailWithSendGrid({
       to,
