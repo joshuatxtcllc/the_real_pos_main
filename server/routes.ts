@@ -9,8 +9,8 @@ import { validateApiKey, KANBAN_API_KEY } from "./middleware/apiAuth";
 // import { vendorCatalogController } from './controllers/vendorCatalogController';
 // import { hubIntegrationRoutes } from './routes/hubIntegrationRoutes';
 // import { crossVendorInventoryRoutes } from './routes/crossVendorInventoryRoutes';
-// import webhookRoutes from './routes/webhookRoutes';
-// import { pricingMonitorRoutes } from './routes/pricingMonitorRoutes';
+import webhookRoutes from './routes/webhookRoutes';
+import { pricingMonitorRoutes } from './routes/pricingMonitorRoutes';
 import artworkLocationRoutes from './routes/artworkLocationRoutes';
 import { registerArtLocationRoutes } from './routes/artLocationRoutes';
 import hubApiRoutes from './routes/hubApiRoutes';
@@ -25,6 +25,7 @@ import larsonOrderOptimizerRoutes from './routes/larsonOrderOptimizerRoutes';
 import customerNotificationRoutes from './routes/customerNotificationRoutes';
 import { Request, Response, NextFunction } from 'express';
 import { log } from './utils/logger';
+import testEmailRoutes from './routes/testEmailRoutes.js';
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Art Location routes
@@ -367,6 +368,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // app.use('/api/webhooks', webhookRoutes);
   app.use('/api/xml-price-sheets', xmlPriceSheetRoutes);
   app.use('/api/larson-optimizer', larsonOrderOptimizerRoutes);
+    // Test email routes
+  app.use('/api/test-email', testEmailRoutes);
+
 
   // Notification routes (Discord integration disabled)
   app.get('/api/discord/status', (req, res) => {
