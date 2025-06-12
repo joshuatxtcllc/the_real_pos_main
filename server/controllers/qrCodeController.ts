@@ -261,7 +261,7 @@ export async function generateQrCodeForOrder(orderId: string | number): Promise<
       type: 'customer_order',
       entityId: orderId.toString(),
       description: `QR code for order #${orderId}`,
-      isActive: true
+      active: true
     }]).returning();
 
     return qrCodeValue;
