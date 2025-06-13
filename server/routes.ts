@@ -52,27 +52,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
 
-  // Dashboard API proxy endpoint
-  app.get('/api/dashboard-proxy/*', async (req, res) => {
+  // Dashboard configuration check
+  app.get('/api/dashboard/config', (req, res) => {
+    const dashboardApiUrl = process.env.DASHBOARD_API_URL;
+    res.json({
+      configured: !!dashboardApiUrl,
+      url: dashboardApiUrl ? `${dashboardApiUrl.substring(0, 20)}...` : null,
+      message: dashboardApiUrl ? 
+        'Dashboard API is configured and ready' : 
+        'Dashboard API URL not configured. Add DASHBOARD_API_URL to your secrets.'
+    });
+  });
+
+  // Dashboard API proxy endpoints
+  app.all('/api/dashboard-proxy/*', async (req, res) => {
     const dashboardApiUrl = process.env.DASHBOARD_API_URL;
 
     if (!dashboardApiUrl) {
       return res.status(503).json({
         success: false,
-        error: 'Dashboard API URL not configured'
+        error: 'Dashboard API URL not configured. Please add DASHBOARD_API_URL to your secrets.'
       });
     }
 
     try {
       const endpoint = req.params[0]; // Get the path after /api/dashboard-proxy/
-      const response = await fetch(`${dashboardApiUrl}/${endpoint}`, {
+      const requestOptions: RequestInit = {
         method: req.method,
         headers: {
           'Content-Type': 'application/json',
           // Forward any authorization headers if needed
           ...(req.headers.authorization && { 'Authorization': req.headers.authorization })
         }
-      });
+      };
+
+      // Add body for POST, PUT, PATCH requests
+      if (['POST', 'PUT', 'PATCH'].includes(req.method) && req.body) {
+        requestOptions.body = JSON.stringify(req.body);
+      }
+
+      const response = await fetch(`${dashboardApiUrl}/${endpoint}`, requestOptions);
+
+      if (!response.ok) {
+        throw new Error(`Dashboard API responded with status: ${response.status}`);
+      }
 
       const data = await response.json();
       res.status(response.status).json(data);
@@ -80,7 +103,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error('Dashboard API proxy error:', error);
       res.status(500).json({
         success: false,
-        error: 'Failed to connect to Dashboard API'
+        error: 'Failed to connect to Dashboard API',
+        details: error instanceof Error ? error.message : 'Unknown error'
       });
     }
   });

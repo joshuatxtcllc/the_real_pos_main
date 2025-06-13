@@ -21,6 +21,7 @@ import {
 import { Order, Frame, MatColor, GlassOption, WholesaleOrder } from '@shared/schema';
 import { IntuitivePerformanceMonitor } from '@/components/IntuitivePerformanceMonitor';
 import { apiRequest } from '@/lib/queryClient';
+import { useToast } from '@/hooks/use-toast';
 
 // Get Dashboard API URL from environment variables
 const DASHBOARD_API_URL = import.meta.env.VITE_DASHBOARD_API_URL || process.env.DASHBOARD_API_URL;
@@ -84,7 +85,7 @@ const Dashboard = () => {
   };
 
   // Fetch recent orders
-  const { data: recentOrders, isLoading: ordersLoading } = useQuery({
+  const { data: orders, isLoading: ordersLoading } = useQuery({
     queryKey: ['/api/orders'],
     queryFn: () => apiRequest('GET', '/api/orders?limit=5'),
   });
@@ -251,7 +252,7 @@ const Dashboard = () => {
   // Fetch external dashboard metrics if API is configured
   const { data: externalDashboardData, isLoading: externalLoading } = useQuery({
     queryKey: ['/api/dashboard-proxy/metrics'],
-    queryFn: () => DASHBOARD_API_URL ? callDashboardAPI('/metrics') : null,
+    queryFn: () => apiRequest('GET', '/api/dashboard-proxy/metrics'),
     enabled: !!DASHBOARD_API_URL,
     retry: false,
   });
@@ -539,6 +540,38 @@ const Dashboard = () => {
           </div>
         </TabsContent>
       </Tabs>
+
+      {/* Dashboard Configuration Status */}
+      <Card>
+        <CardHeader>
+          <CardTitle>External Dashboard Integration</CardTitle>
+          <CardDescription>Connection status to external dashboard API</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {DASHBOARD_API_URL ? (
+            <div className="flex items-center space-x-2">
+              <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+              <span className="text-sm text-green-600">Dashboard API configured and connected</span>
+            </div>
+          ) : (
+            <div className="flex items-center space-x-2">
+              <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
+              <span className="text-sm text-yellow-600">Dashboard API not configured. Add DASHBOARD_API_URL to secrets.</span>
+            </div>
+          )}
+          {externalDashboardData && (
+            <div className="mt-4 p-3 bg-gray-50 rounded-md">
+              <p className="text-sm text-gray-600">External metrics loaded successfully</p>
+              <pre className="text-xs mt-2 text-gray-500">
+                {JSON.stringify(externalDashboardData, null, 2)}
+              </pre>
+            </div>
+          )}
+          {externalLoading && (
+            <div className="mt-2 text-sm text-gray-500">Loading external dashboard data...</div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Intuitive Performance Monitor Overlay */}
       <IntuitivePerformanceMonitor compact={true} updateInterval={5000} />

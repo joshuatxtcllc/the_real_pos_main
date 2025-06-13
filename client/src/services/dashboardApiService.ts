@@ -3,7 +3,10 @@ import { apiRequest } from '@/lib/queryClient';
 
 // Dashboard API service for external integrations
 class DashboardApiService {
-  private static dashboardApiUrl = import.meta.env.VITE_DASHBOARD_API_URL || process.env.DASHBOARD_API_URL;
+  // Check if dashboard API is configured
+  static isDashboardConfigured(): boolean {
+    return !!(import.meta.env.VITE_DASHBOARD_API_URL || process.env.DASHBOARD_API_URL);
+  }
 
   // Get dashboard metrics from external API
   static async getDashboardMetrics() {
@@ -42,6 +45,16 @@ class DashboardApiService {
       return await apiRequest('GET', '/api/dashboard-proxy/config');
     } catch (error) {
       console.error('Failed to fetch dashboard config:', error);
+      throw error;
+    }
+  }
+
+  // Send order update to external dashboard
+  static async updateOrderInDashboard(orderId: string, updateData: any) {
+    try {
+      return await apiRequest('PUT', `/api/dashboard-proxy/orders/${orderId}`, updateData);
+    } catch (error) {
+      console.error('Failed to update order in dashboard:', error);
       throw error;
     }
   }
