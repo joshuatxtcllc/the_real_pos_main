@@ -250,6 +250,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // API Key information endpoint
+  app.get('/api/kanban/api-key', (req, res) => {
+    res.json({
+      success: true,
+      message: 'Use one of these API keys for integration',
+      apiKeys: [
+        {
+          key: 'kanban_admin_key_2025_full_access',
+          name: '3D Designer Integration',
+          permissions: ['orders:create', 'orders:read', 'orders:update', 'pricing:read', 'files:upload']
+        },
+        {
+          key: 'jf_houston_heights_framing_2025_master_api_key_secure_access', 
+          name: 'Houston Heights Framing API Integration',
+          permissions: ['orders:read', 'orders:write', 'integration:webhook', 'pricing:read', 'catalog:read']
+        }
+      ],
+      usage: {
+        header: 'Authorization',
+        format: 'Bearer YOUR_API_KEY'
+      },
+      endpoints: {
+        baseUrl: process.env.REPL_URL || 'https://your-repl-name.replit.app',
+        orders: '/api/kanban/orders',
+        status: '/api/kanban/status'
+      }
+    });
+  });
+
   // Kanban Integration API endpoints for production connection
   const KANBAN_API_KEY = process.env.POS_API_KEY || 'jays_frames_kanban_2025'; // Use secrets for API key
   app.get('/api/kanban/orders', validateApiKey, (req, res) => {
