@@ -33,6 +33,31 @@ export function useOrders() {
     });
   };
 
+  // Create order mutation
+  const createOrderMutation = useMutation({
+    mutationFn: async (orderData: any) => {
+      const res = await apiRequest('POST', '/api/orders', orderData);
+      return res;
+    },
+    onSuccess: (response) => {
+      toast({
+        title: 'Order created successfully! 🎉',
+        description: `Order #${response.order?.id || response.orderId} has been created`,
+      });
+      // Invalidate relevant queries to refresh the data
+      queryClient.invalidateQueries({ queryKey: ['/api/orders'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/production/kanban'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/order-groups'] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: 'Failed to create order',
+        description: error.message,
+        variant: 'destructive',
+      });
+    },
+  });
+
   // Update order mutation (for editing frame specs, etc)
   const updateOrderMutation = useMutation({
     mutationFn: async ({ id, data, recalculatePricing = true }: { 
@@ -45,7 +70,7 @@ export function useOrders() {
         ...data,
         recalculatePricing
       });
-      return res.json();
+      return res;
     },
     onSuccess: () => {
       toast({
@@ -72,6 +97,9 @@ export function useOrders() {
     isLoading: ordersQuery.isLoading,
     error: ordersQuery.error,
     getOrder,
+    createOrder: createOrderMutation.mutate,
+    createOrderAsync: createOrderMutation.mutateAsync,
+    isCreatingOrder: createOrderMutation.isPending,
     updateOrder: updateOrderMutation.mutate,
     isUpdatingOrder: updateOrderMutation.isPending,
   };

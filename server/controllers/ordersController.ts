@@ -128,25 +128,41 @@ export async function createOrder(req: Request, res: Response) {
       });
     }
 
+    // Make artwork image optional for now to allow order creation
     if (!orderData.artworkImage) {
+      console.log('Warning: Order created without artwork image');
+      orderData.artworkImage = 'placeholder-image.jpg'; // Provide a default
+    }
+
+    // Ensure all required numeric fields are present
+    if (!orderData.artworkWidth || !orderData.artworkHeight) {
       return res.status(400).json({ 
         success: false, 
-        error: 'Artwork image is required' 
+        error: 'Artwork dimensions are required' 
       });
     }
 
+    // Ensure mat width is provided
+    if (!orderData.matWidth) {
+      orderData.matWidth = '2'; // Default mat width
+    }
+
+    console.log('Processing order creation...');
     const order = await storage.createOrder(orderData);
+    console.log('Order created successfully:', order);
     
     res.status(201).json({ 
       success: true, 
       order,
-      message: 'Order created successfully' 
+      message: 'Order created successfully',
+      orderId: order.id
     });
   } catch (error: any) {
     console.error('Error creating order:', error);
     res.status(500).json({ 
       success: false, 
-      error: error.message || 'Failed to create order' 
+      error: error.message || 'Failed to create order',
+      details: error.stack
     });
   }
 }

@@ -871,6 +871,16 @@ const PosSystem = () => {
       const orderResponse = await createOrderMutation.mutateAsync(orderData);
       console.log("Order created successfully:", orderResponse);
 
+      // Show success message
+      toast({
+        title: "Order Created Successfully! 🎉",
+        description: `Order #${orderResponse.order?.id || orderResponse.orderId} has been created for ${customerName}`,
+        duration: 5000,
+      });
+
+      // Reset form or redirect as needed
+      // You can add form reset logic here if needed);
+
       // If we have a frame design image, save it separately to avoid TypeScript issues
       if (frameDesignImage) {
         try {
