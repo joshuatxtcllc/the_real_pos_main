@@ -34,17 +34,17 @@ const CardPaymentForm = ({ clientSecret, onSuccess }: { clientSecret: string, on
   const [isProcessing, setIsProcessing] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const { toast } = useToast();
-  
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!stripe || !elements) {
       return;
     }
-    
+
     setIsProcessing(true);
     setErrorMessage(null);
-    
+
     try {
       const { error } = await stripe.confirmPayment({
         elements,
@@ -53,7 +53,7 @@ const CardPaymentForm = ({ clientSecret, onSuccess }: { clientSecret: string, on
         },
         redirect: 'if_required',
       });
-      
+
       if (error) {
         setErrorMessage(error.message || 'Payment failed');
         toast({
@@ -79,7 +79,7 @@ const CardPaymentForm = ({ clientSecret, onSuccess }: { clientSecret: string, on
       setIsProcessing(false);
     }
   };
-  
+
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <PaymentElement options={{ layout: 'tabs' }} />
@@ -107,27 +107,27 @@ const CashPaymentForm = ({ total, onSubmit }: { total: number, onSubmit: (cashRe
   const [cashReceived, setCashReceived] = useState('');
   const [change, setChange] = useState(0);
   const [isProcessing, setIsProcessing] = useState(false);
-  
+
   const handleCashChanged = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setCashReceived(value);
-    
+
     // Calculate change
     const cashAmount = parseFloat(value) || 0;
     setChange(Math.max(0, cashAmount - total));
   };
-  
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setIsProcessing(true);
-    
+
     // Simulate processing delay
     setTimeout(() => {
       onSubmit(parseFloat(cashReceived), change);
       setIsProcessing(false);
     }, 500);
   };
-  
+
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="space-y-2">
@@ -146,7 +146,7 @@ const CashPaymentForm = ({ total, onSubmit }: { total: number, onSubmit: (cashRe
           />
         </div>
       </div>
-      
+
       <div className="p-4 bg-muted rounded-md">
         <div className="flex justify-between">
           <span>Total Due:</span>
@@ -161,7 +161,7 @@ const CashPaymentForm = ({ total, onSubmit }: { total: number, onSubmit: (cashRe
           <span>{formatCurrency(change)}</span>
         </div>
       </div>
-      
+
       <Button 
         type="submit" 
         disabled={isProcessing || parseFloat(cashReceived) < total} 
@@ -184,18 +184,18 @@ const CashPaymentForm = ({ total, onSubmit }: { total: number, onSubmit: (cashRe
 const CheckPaymentForm = ({ total, onSubmit }: { total: number, onSubmit: (checkNumber: string) => void }) => {
   const [checkNumber, setCheckNumber] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
-  
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setIsProcessing(true);
-    
+
     // Simulate processing delay
     setTimeout(() => {
       onSubmit(checkNumber);
       setIsProcessing(false);
     }, 500);
   };
-  
+
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="space-y-2">
@@ -208,14 +208,14 @@ const CheckPaymentForm = ({ total, onSubmit }: { total: number, onSubmit: (check
           required
         />
       </div>
-      
+
       <div className="p-4 bg-muted rounded-md">
         <div className="flex justify-between font-semibold">
           <span>Total Due:</span>
           <span>{formatCurrency(total)}</span>
         </div>
       </div>
-      
+
       <Button 
         type="submit" 
         disabled={isProcessing || !checkNumber} 
@@ -238,14 +238,14 @@ const CheckoutPayment: React.FC<CheckoutPaymentProps> = ({
   orderGroupId,
   onPaymentComplete 
 }) => {
-  const [paymentMethod, setPaymentMethod] = useState<'card' | 'cash' | 'check'>('card');
+  const [paymentMethod, setPaymentMethod] = useState<'card' | 'cash' | 'check' | 'partial' | 'deferred'>('card');
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [paymentComplete, setPaymentComplete] = useState(false);
   const [showInvoice, setShowInvoice] = useState(false);
   const [emailSending, setEmailSending] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  
+
   // Fetch order group
   const { data: orderGroup, isLoading } = useQuery({
     queryKey: [`/api/order-groups/${orderGroupId}`],
@@ -257,7 +257,7 @@ const CheckoutPayment: React.FC<CheckoutPaymentProps> = ({
       return response.json();
     }
   });
-  
+
   // Create payment intent mutation
   const createPaymentIntentMutation = useMutation({
     mutationFn: async () => {
@@ -271,12 +271,12 @@ const CheckoutPayment: React.FC<CheckoutPaymentProps> = ({
           amount: orderGroup.total,
         }),
       });
-      
+
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.message || 'Failed to create payment intent');
       }
-      
+
       return response.json();
     },
     onSuccess: (data) => {
@@ -290,14 +290,14 @@ const CheckoutPayment: React.FC<CheckoutPaymentProps> = ({
       });
     }
   });
-  
+
   // Process payment mutation
   const processPaymentMutation = useMutation({
     mutationFn: async ({ 
       method, 
       details = {} 
     }: { 
-      method: 'card' | 'cash' | 'check', 
+      method: 'card' | 'cash' | 'check' | 'partial' | 'deferred',
       details?: Record<string, any> 
     }) => {
       const response = await fetch(`/api/order-groups/${orderGroupId}/pay`, {
@@ -310,12 +310,12 @@ const CheckoutPayment: React.FC<CheckoutPaymentProps> = ({
           details,
         }),
       });
-      
+
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.message || 'Failed to process payment');
       }
-      
+
       return response.json();
     },
     onSuccess: (data) => {
@@ -323,12 +323,12 @@ const CheckoutPayment: React.FC<CheckoutPaymentProps> = ({
         title: 'Payment Complete',
         description: 'Your payment has been processed successfully',
       });
-      
+
       setPaymentComplete(true);
-      
+
       // Update cache with the updated order group
       queryClient.setQueryData([`/api/order-groups/${orderGroupId}`], data);
-      
+
       // Call the callback if provided
       if (onPaymentComplete) {
         onPaymentComplete(data);
@@ -342,32 +342,32 @@ const CheckoutPayment: React.FC<CheckoutPaymentProps> = ({
       });
     }
   });
-  
+
   // Initialize payment intent when payment method is selected
   useEffect(() => {
     if (paymentMethod === 'card' && orderGroup && !clientSecret && !paymentComplete) {
       createPaymentIntentMutation.mutate();
     }
   }, [paymentMethod, orderGroup, clientSecret, paymentComplete]);
-  
+
   const handleCardPaymentSuccess = () => {
     processPaymentMutation.mutate({ method: 'card' });
   };
-  
+
   const handleCashPayment = (cashReceived: number, change: number) => {
     processPaymentMutation.mutate({ 
       method: 'cash', 
       details: { cashReceived, change } 
     });
   };
-  
+
   const handleCheckPayment = (checkNumber: string) => {
     processPaymentMutation.mutate({ 
       method: 'check', 
       details: { checkNumber } 
     });
   };
-  
+
   // Add functionality to email the invoice
   const handleEmailInvoice = async () => {
     if (!orderGroup || !orderGroup.customerId) {
@@ -378,10 +378,10 @@ const CheckoutPayment: React.FC<CheckoutPaymentProps> = ({
       });
       return;
     }
-    
+
     try {
       setEmailSending(true);
-      
+
       const response = await fetch(`/api/invoices/${orderGroupId}/send`, {
         method: 'POST',
         headers: {
@@ -389,9 +389,9 @@ const CheckoutPayment: React.FC<CheckoutPaymentProps> = ({
         },
         body: JSON.stringify({})  // The email will default to customer's email
       });
-      
+
       const data = await response.json();
-      
+
       if (data.success) {
         toast({
           title: 'Email Sent',
@@ -415,7 +415,7 @@ const CheckoutPayment: React.FC<CheckoutPaymentProps> = ({
       setEmailSending(false);
     }
   };
-  
+
   if (isLoading) {
     return (
       <Card className="w-full max-w-md mx-auto">
@@ -429,7 +429,7 @@ const CheckoutPayment: React.FC<CheckoutPaymentProps> = ({
       </Card>
     );
   }
-  
+
   if (!orderGroup) {
     return (
       <Card className="w-full max-w-md mx-auto">
@@ -443,7 +443,7 @@ const CheckoutPayment: React.FC<CheckoutPaymentProps> = ({
       </Card>
     );
   }
-  
+
   // If payment is complete, show success and invoice options
   if (paymentComplete) {
     return (
@@ -517,7 +517,7 @@ const CheckoutPayment: React.FC<CheckoutPaymentProps> = ({
             </div>
           </CardFooter>
         </Card>
-        
+
         {showInvoice && (
           <InvoiceViewer 
             orderGroupId={orderGroupId} 
@@ -527,7 +527,7 @@ const CheckoutPayment: React.FC<CheckoutPaymentProps> = ({
       </>
     );
   }
-  
+
   return (
     <Card className="w-full max-w-md mx-auto">
       <CardHeader>
@@ -537,57 +537,58 @@ const CheckoutPayment: React.FC<CheckoutPaymentProps> = ({
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        <RadioGroup 
-          value={paymentMethod} 
-          onValueChange={(value) => setPaymentMethod(value as 'card' | 'cash' | 'check')}
-          className="grid grid-cols-3 gap-4"
-        >
-          <div>
-            <RadioGroupItem 
-              value="card" 
-              id="card" 
-              className="peer sr-only" 
-            />
-            <Label 
-              htmlFor="card" 
-              className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
-            >
-              <CreditCard className="mb-3 h-6 w-6" />
-              <span className="text-sm font-medium">Card</span>
-            </Label>
-          </div>
-          
-          <div>
-            <RadioGroupItem 
-              value="cash" 
-              id="cash" 
-              className="peer sr-only" 
-            />
-            <Label 
-              htmlFor="cash" 
-              className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
-            >
-              <Banknote className="mb-3 h-6 w-6" />
-              <span className="text-sm font-medium">Cash</span>
-            </Label>
-          </div>
-          
-          <div>
-            <RadioGroupItem 
-              value="check" 
-              id="check" 
-              className="peer sr-only" 
-            />
-            <Label 
-              htmlFor="check" 
-              className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
-            >
-              <FileCheck className="mb-3 h-6 w-6" />
-              <span className="text-sm font-medium">Check</span>
-            </Label>
-          </div>
-        </RadioGroup>
         
+        <div className="space-y-4">
+              <h3 className="text-lg font-semibold">Choose Payment Method</h3>
+              <div className="grid grid-cols-5 gap-3">
+                <button
+                  onClick={() => setPaymentMethod('card')}
+                  className={`p-3 border rounded-lg text-center text-sm ${
+                    paymentMethod === 'card' ? 'border-blue-500 bg-blue-50' : 'border-gray-300'
+                  }`}
+                >
+                  <div className="text-xl mb-1">💳</div>
+                  <div>Credit Card</div>
+                </button>
+                <button
+                  onClick={() => setPaymentMethod('cash')}
+                  className={`p-3 border rounded-lg text-center text-sm ${
+                    paymentMethod === 'cash' ? 'border-blue-500 bg-blue-50' : 'border-gray-300'
+                  }`}
+                >
+                  <div className="text-xl mb-1">💵</div>
+                  <div>Cash</div>
+                </button>
+                <button
+                  onClick={() => setPaymentMethod('check')}
+                  className={`p-3 border rounded-lg text-center text-sm ${
+                    paymentMethod === 'check' ? 'border-blue-500 bg-blue-50' : 'border-gray-300'
+                  }`}
+                >
+                  <div className="text-xl mb-1">🏦</div>
+                  <div>Check</div>
+                </button>
+                <button
+                  onClick={() => setPaymentMethod('partial')}
+                  className={`p-3 border rounded-lg text-center text-sm ${
+                    paymentMethod === 'partial' ? 'border-blue-500 bg-blue-50' : 'border-gray-300'
+                  }`}
+                >
+                  <div className="text-xl mb-1">📊</div>
+                  <div>Partial Payment</div>
+                </button>
+                <button
+                  onClick={() => setPaymentMethod('deferred')}
+                  className={`p-3 border rounded-lg text-center text-sm ${
+                    paymentMethod === 'deferred' ? 'border-blue-500 bg-blue-50' : 'border-gray-300'
+                  }`}
+                >
+                  <div className="text-xl mb-1">⏰</div>
+                  <div>Pay Later</div>
+                </button>
+              </div>
+            </div>
+
         <div className="pt-4 border-t">
           {paymentMethod === 'card' && (
             <>
@@ -596,7 +597,7 @@ const CheckoutPayment: React.FC<CheckoutPaymentProps> = ({
                   <p>Stripe payment is not configured. Please set VITE_STRIPE_PUBLIC_KEY.</p>
                 </div>
               )}
-              
+
               {stripePromise && clientSecret ? (
                 <Elements 
                   stripe={stripePromise} 
@@ -614,14 +615,14 @@ const CheckoutPayment: React.FC<CheckoutPaymentProps> = ({
               )}
             </>
           )}
-          
+
           {paymentMethod === 'cash' && (
             <CashPaymentForm 
               total={Number(orderGroup.total)} 
               onSubmit={handleCashPayment} 
             />
           )}
-          
+
           {paymentMethod === 'check' && (
             <CheckPaymentForm 
               total={Number(orderGroup.total)} 

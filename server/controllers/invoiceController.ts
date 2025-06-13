@@ -170,6 +170,111 @@ export async function markInvoiceAsSent(req: Request, res: Response) {
   }
 }
 
+export async function recordPartialPayment(req: Request, res: Response) {
+  try {
+    const { orderGroupId } = req.params;
+    const { amount, paymentMethod, notes } = req.body;
+    
+    if (!orderGroupId || isNaN(parseInt(orderGroupId))) {
+      return res.status(400).json({ message: 'Invalid order group ID' });
+    }
+    
+    if (!amount || isNaN(parseFloat(amount)) || parseFloat(amount) <= 0) {
+      return res.status(400).json({ message: 'Invalid payment amount' });
+    }
+    
+    const groupId = parseInt(orderGroupId);
+    const paymentAmount = parseFloat(amount);
+    
+    // Get current order group
+    const orderGroup = await storage.getOrderGroup(groupId);
+    if (!orderGroup) {
+      return res.status(404).json({ message: 'Order group not found' });
+    }
+    
+    const totalAmount = parseFloat(orderGroup.total);
+    const currentPaid = parseFloat(orderGroup.amountPaid || '0');
+    const newTotalPaid = currentPaid + paymentAmount;
+    const balanceDue = totalAmount - newTotalPaid;
+    
+    // Determine payment status
+    let paymentStatus = 'partial';
+    if (newTotalPaid >= totalAmount) {
+      paymentStatus = 'paid';
+    } else if (newTotalPaid === 0) {
+      paymentStatus = 'pending';
+    }
+    
+    // Update order group
+    await storage.updateOrderGroup(groupId, {
+      amountPaid: newTotalPaid.toString(),
+      balanceDue: Math.max(0, balanceDue).toString(),
+      paymentStatus,
+      paymentMethod: paymentMethod || orderGroup.paymentMethod,
+      paymentDate: paymentStatus === 'paid' ? new Date() : orderGroup.paymentDate,
+      notes: notes ? `${orderGroup.notes || ''}\nPayment recorded: $${paymentAmount} via ${paymentMethod}` : orderGroup.notes
+    });
+    
+    return res.status(200).json({ 
+      success: true,
+      amountPaid: newTotalPaid,
+      balanceDue: Math.max(0, balanceDue),
+      paymentStatus
+    });
+  } catch (error) {
+    console.error('Error recording partial payment:', error);
+    return res.status(500).json({ success: false, message: 'Failed to record payment' });
+  }
+}
+
+export async function setPaymentTerms(req: Request, res: Response) {
+  try {
+    const { orderGroupId } = req.params;
+    const { paymentTerms, depositAmount, deferPayment } = req.body;
+    
+    if (!orderGroupId || isNaN(parseInt(orderGroupId))) {
+      return res.status(400).json({ message: 'Invalid order group ID' });
+    }
+    
+    const groupId = parseInt(orderGroupId);
+    
+    // Get current order group
+    const orderGroup = await storage.getOrderGroup(groupId);
+    if (!orderGroup) {
+      return res.status(404).json({ message: 'Order group not found' });
+    }
+    
+    const updateData: any = {};
+    
+    if (deferPayment) {
+      // Defer payment until completion
+      updateData.paymentStatus = 'deferred';
+      updateData.finalPaymentDue = true;
+      updateData.balanceDue = orderGroup.total;
+    } else if (depositAmount) {
+      // Set up partial payment with deposit
+      const deposit = parseFloat(depositAmount);
+      const total = parseFloat(orderGroup.total);
+      
+      updateData.depositAmount = deposit.toString();
+      updateData.amountPaid = '0';
+      updateData.balanceDue = (total - deposit).toString();
+      updateData.paymentStatus = 'partial';
+    }
+    
+    if (paymentTerms) {
+      updateData.notes = `${orderGroup.notes || ''}\nPayment Terms: ${paymentTerms}`;
+    }
+    
+    await storage.updateOrderGroup(groupId, updateData);
+    
+    return res.status(200).json({ success: true });
+  } catch (error) {
+    console.error('Error setting payment terms:', error);
+    return res.status(500).json({ success: false, message: 'Failed to set payment terms' });
+  }
+}
+
 // Helper function to generate a simple HTML invoice (this would be more sophisticated in production)
 function generateInvoiceHTML(orderGroup: any, orders: any[], customer: any): string {
   // Format currency
@@ -328,6 +433,31 @@ function generateInvoiceHTML(orderGroup: any, orders: any[], customer: any): str
               <td style="padding-top: 5px;"><strong>Total:</strong></td>
               <td class="text-right" style="padding-top: 5px; font-weight: bold;">${formatCurrency(orderGroup.total)}</td>
             </tr>
+            ${orderGroup.amountPaid && parseFloat(orderGroup.amountPaid) > 0 ? `
+            <tr>
+              <td><strong>Amount Paid:</strong></td>
+              <td class="text-right" style="color: green;">${formatCurrency(orderGroup.amountPaid)}</td>
+            </tr>
+            ` : ''}
+            ${orderGroup.balanceDue && parseFloat(orderGroup.balanceDue) > 0 ? `
+            <tr style="border-top: 1px solid #ddd;">
+              <td style="padding-top: 5px;"><strong>Balance Due:</strong></td>
+              <td class="text-right" style="padding-top: 5px; font-weight: bold; color: red;">${formatCurrency(orderGroup.balanceDue)}</td>
+            </tr>
+            ` : ''}
+            ${orderGroup.depositAmount ? `
+            <tr>
+              <td><strong>Deposit Required:</strong></td>
+              <td class="text-right">${formatCurrency(orderGroup.depositAmount)}</td>
+            </tr>
+            ` : ''}
+            ${orderGroup.paymentStatus === 'deferred' ? `
+            <tr>
+              <td colspan="2" style="text-align: center; font-weight: bold; color: orange; padding: 10px;">
+                Payment Due Upon Completion
+              </td>
+            </tr>
+            ` : ''}
             ${orderGroup.paymentMethod === 'cash' && orderGroup.cashAmount ? `
             <tr>
               <td><strong>Cash Received:</strong></td>

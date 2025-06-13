@@ -730,3 +730,31 @@ export const insertNotificationSchema = createInsertSchema(notifications).omit({
 });
 export type InsertNotification = z.infer<typeof insertNotificationSchema>;
 export type Notification = typeof notifications.$inferSelect;
+
+export interface OrderGroup {
+  id: number;
+  customerId: number;
+  status: string;
+  subtotal: string;
+  tax: string;
+  discountAmount?: string;
+  discountType?: 'percentage' | 'fixed';
+  total: string;
+  paymentMethod?: string;
+  stripePaymentIntentId?: string;
+  stripePaymentStatus?: string;
+  checkNumber?: string;
+  cashAmount?: string;
+  taxExempt: boolean;
+  invoiceEmailSent?: boolean;
+  invoiceEmailDate?: Date;
+  paymentDate?: Date;
+  paymentStatus?: 'pending' | 'partial' | 'paid' | 'deferred';
+  amountPaid?: string;
+  balanceDue?: string;
+  depositAmount?: string;
+  finalPaymentDue?: boolean;
+  notes?: string;
+  createdAt: Date;
+  
+}
