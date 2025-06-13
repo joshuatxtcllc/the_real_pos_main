@@ -5,7 +5,7 @@ import { apiRequest } from '@/lib/queryClient';
 class DashboardApiService {
   // Check if dashboard API is configured
   static isDashboardConfigured(): boolean {
-    return !!(import.meta.env.VITE_DASHBOARD_API_URL || process.env.DASHBOARD_API_URL);
+    return !!(import.meta.env.VITE_DASHBOARD_API_URL);
   }
 
   // Get dashboard metrics from external API
@@ -42,7 +42,7 @@ class DashboardApiService {
   // Get dashboard configuration
   static async getDashboardConfig() {
     try {
-      return await apiRequest('GET', '/api/dashboard-proxy/config');
+      return await apiRequest('GET', '/api/dashboard/config');
     } catch (error) {
       console.error('Failed to fetch dashboard config:', error);
       throw error;
