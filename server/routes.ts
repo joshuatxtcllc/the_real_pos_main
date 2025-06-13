@@ -57,10 +57,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const dashboardApiUrl = process.env.DASHBOARD_API_URL;
     res.json({
       configured: !!dashboardApiUrl,
-      url: dashboardApiUrl ? `${dashboardApiUrl.substring(0, 20)}...` : null,
+      url: dashboardApiUrl ? `${dashboardApiUrl.substring(0, 30)}...` : null,
+      fullUrl: dashboardApiUrl,
       message: dashboardApiUrl ? 
         'Dashboard API is configured and ready' : 
-        'Dashboard API URL not configured. Add DASHBOARD_API_URL to your secrets.'
+        'Dashboard API URL not configured. Add DASHBOARD_API_URL to your secrets.',
+      endpoints: dashboardApiUrl ? {
+        metrics: `${dashboardApiUrl}/api/metrics`,
+        orders: `${dashboardApiUrl}/api/orders`,
+        status: `${dashboardApiUrl}/api/status`
+      } : null
     });
   });
 
