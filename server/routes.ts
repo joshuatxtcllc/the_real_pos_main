@@ -52,7 +52,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
 
-  // Dashboard configuration check
+  // Dashboard API configuration endpoint
   app.get('/api/dashboard/config', (req, res) => {
     const dashboardApiUrl = process.env.DASHBOARD_API_URL;
     res.json({
@@ -68,6 +68,70 @@ export async function registerRoutes(app: Express): Promise<Server> {
         status: `${dashboardApiUrl}/api/status`
       } : null
     });
+  });
+
+  // Dashboard proxy endpoints to handle CORS and authentication
+  app.get('/api/dashboard-proxy/health', async (req, res) => {
+    const dashboardApiUrl = process.env.DASHBOARD_API_URL;
+    if (!dashboardApiUrl) {
+      return res.status(400).json({ error: 'Dashboard API URL not configured' });
+    }
+
+    try {
+      const response = await fetch(`${dashboardApiUrl}/api/health`);
+      const data = await response.json();
+      res.json(data);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get('/api/dashboard-proxy/metrics', async (req, res) => {
+    const dashboardApiUrl = process.env.DASHBOARD_API_URL;
+    if (!dashboardApiUrl) {
+      return res.status(400).json({ error: 'Dashboard API URL not configured' });
+    }
+
+    try {
+      const response = await fetch(`${dashboardApiUrl}/api/metrics`);
+      const data = await response.json();
+      res.json(data);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get('/api/dashboard-proxy/status', async (req, res) => {
+    const dashboardApiUrl = process.env.DASHBOARD_API_URL;
+    if (!dashboardApiUrl) {
+      return res.status(400).json({ error: 'Dashboard API URL not configured' });
+    }
+
+    try {
+      const response = await fetch(`${dashboardApiUrl}/api/status`);
+      const data = await response.json();
+      res.json(data);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post('/api/dashboard-proxy/test', async (req, res) => {
+    const dashboardApiUrl = process.env.DASHBOARD_API_URL;
+    if (!dashboardApiUrl) {
+      return res.status(400).json({ error: 'Dashboard API URL not configured' });
+    }
+
+    try {
+      const response = await fetch(`${dashboardApiUrl}/api/health`);
+      if (response.ok) {
+        res.json({ success: true, message: 'Dashboard connection successful' });
+      } else {
+        res.status(500).json({ error: 'Dashboard connection failed' });
+      }
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
   });
 
   // Dashboard API proxy endpoints

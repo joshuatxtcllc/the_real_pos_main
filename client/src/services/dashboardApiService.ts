@@ -3,20 +3,19 @@ import { apiRequest } from '@/lib/queryClient';
 
 // Dashboard API service for external integrations
 class DashboardApiService {
-  // Get dashboard API URL from environment variables
-  private static getDashboardApiUrl(): string | null {
-    return import.meta.env.VITE_DASHBOARD_API_URL || null;
+  // Check if dashboard API is configured by checking server config
+  static async isDashboardConfigured(): Promise<boolean> {
+    try {
+      const config = await apiRequest('GET', '/api/dashboard/config');
+      return config.configured || false;
+    } catch (error) {
+      return false;
+    }
   }
 
-  // Check if dashboard API is configured
-  static isDashboardConfigured(): boolean {
-    return !!this.getDashboardApiUrl();
-  }
-
-  // Get dashboard metrics from external API
+  // Get dashboard metrics from external API via proxy
   static async getDashboardMetrics() {
     try {
-      // Use proxy endpoint to avoid CORS issues
       return await apiRequest('GET', '/api/dashboard-proxy/metrics');
     } catch (error) {
       console.error('Failed to fetch dashboard metrics:', error);
@@ -24,7 +23,7 @@ class DashboardApiService {
     }
   }
 
-  // Get dashboard status from external API
+  // Get dashboard status from external API via proxy
   static async getDashboardStatus() {
     try {
       return await apiRequest('GET', '/api/dashboard-proxy/status');
@@ -34,7 +33,7 @@ class DashboardApiService {
     }
   }
 
-  // Send order data to external dashboard
+  // Send order data to external dashboard via proxy
   static async sendOrderToDashboard(orderData: any) {
     try {
       return await apiRequest('POST', '/api/dashboard-proxy/orders', orderData);
@@ -44,7 +43,7 @@ class DashboardApiService {
     }
   }
 
-  // Get dashboard configuration
+  // Get dashboard configuration from server
   static async getDashboardConfig() {
     try {
       return await apiRequest('GET', '/api/dashboard/config');
@@ -54,7 +53,7 @@ class DashboardApiService {
     }
   }
 
-  // Send order update to external dashboard
+  // Send order update to external dashboard via proxy
   static async updateOrderInDashboard(orderId: string, updateData: any) {
     try {
       return await apiRequest('PUT', `/api/dashboard-proxy/orders/${orderId}`, updateData);
@@ -64,12 +63,22 @@ class DashboardApiService {
     }
   }
 
-  // Get external dashboard health status
+  // Get external dashboard health status via proxy
   static async getExternalHealth() {
     try {
       return await apiRequest('GET', '/api/dashboard-proxy/health');
     } catch (error) {
       console.error('Failed to check external dashboard health:', error);
+      throw error;
+    }
+  }
+
+  // Test connection to dashboard
+  static async testConnection() {
+    try {
+      return await apiRequest('POST', '/api/dashboard-proxy/test');
+    } catch (error) {
+      console.error('Failed to test dashboard connection:', error);
       throw error;
     }
   }
