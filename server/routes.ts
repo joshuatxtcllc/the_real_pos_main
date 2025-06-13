@@ -281,7 +281,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Kanban Integration API endpoints for production connection
   const KANBAN_API_KEY = process.env.POS_API_KEY || 'jays_frames_kanban_2025'; // Use secrets for API key
-  app.get('/api/kanban/orders', validateApiKey, (req, res) => {
+  app.get('/api/kanban/orders', apiKeyAuth, (req, res) => {
     // Returns all orders with production status for Kanban board
     res.json({
       success: true,
@@ -291,7 +291,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
 
-  app.post('/api/kanban/orders/:orderId/status', validateApiKey, (req, res) => {
+  app.post('/api/kanban/orders/:orderId/status', apiKeyAuth, (req, res) => {
     const { orderId } = req.params;
     const { status, stage, notes } = req.body;
 
