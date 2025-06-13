@@ -1,0 +1,50 @@
+
+import { apiRequest } from '@/lib/queryClient';
+
+// Dashboard API service for external integrations
+class DashboardApiService {
+  private static dashboardApiUrl = import.meta.env.VITE_DASHBOARD_API_URL || process.env.DASHBOARD_API_URL;
+
+  // Get dashboard metrics from external API
+  static async getDashboardMetrics() {
+    try {
+      // Use proxy endpoint to avoid CORS issues
+      return await apiRequest('GET', '/api/dashboard-proxy/metrics');
+    } catch (error) {
+      console.error('Failed to fetch dashboard metrics:', error);
+      throw error;
+    }
+  }
+
+  // Get dashboard status from external API
+  static async getDashboardStatus() {
+    try {
+      return await apiRequest('GET', '/api/dashboard-proxy/status');
+    } catch (error) {
+      console.error('Failed to fetch dashboard status:', error);
+      throw error;
+    }
+  }
+
+  // Send order data to external dashboard
+  static async sendOrderToDashboard(orderData: any) {
+    try {
+      return await apiRequest('POST', '/api/dashboard-proxy/orders', orderData);
+    } catch (error) {
+      console.error('Failed to send order to dashboard:', error);
+      throw error;
+    }
+  }
+
+  // Get dashboard configuration
+  static async getDashboardConfig() {
+    try {
+      return await apiRequest('GET', '/api/dashboard-proxy/config');
+    } catch (error) {
+      console.error('Failed to fetch dashboard config:', error);
+      throw error;
+    }
+  }
+}
+
+export { DashboardApiService };

@@ -44,7 +44,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // app.use('/api/pricing-monitor', pricingMonitorRoutes);
 
   // Health check endpoint
-  app.get('/api/health', healthController.getSystemHealth);
+  app.get('/api/health', (req, res) => {
+    res.json({ 
+      status: 'ok', 
+      timestamp: new Date().toISOString(),
+      environment: process.env.NODE_ENV || 'development'
+    });
+  });
+
+  // Dashboard API proxy endpoint
+  app.get('/api/dashboard-proxy/*', async (req, res) => {
+    const dashboardApiUrl = process.env.DASHBOARD_API_URL;
+
+    if (!dashboardApiUrl) {
+      return res.status(503).json({
+        success: false,
+        error: 'Dashboard API URL not configured'
+      });
+    }
+
+    try {
+      const endpoint = req.params[0]; // Get the path after /api/dashboard-proxy/
+      const response = await fetch(`${dashboardApiUrl}/${endpoint}`, {
+        method: req.method,
+        headers: {
+          'Content-Type': 'application/json',
+          // Forward any authorization headers if needed
+          ...(req.headers.authorization && { 'Authorization': req.headers.authorization })
+        }
+      });
+
+      const data = await response.json();
+      res.status(response.status).json(data);
+    } catch (error) {
+      console.error('Dashboard API proxy error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to connect to Dashboard API'
+      });
+    }
+  });
 
   // Vendor catalog routes (basic endpoints to prevent errors)
   app.get('/api/vendor-catalog/all', (req, res) => {

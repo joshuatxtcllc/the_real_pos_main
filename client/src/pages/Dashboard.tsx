@@ -20,6 +20,10 @@ import {
 } from 'recharts';
 import { Order, Frame, MatColor, GlassOption, WholesaleOrder } from '@shared/schema';
 import { IntuitivePerformanceMonitor } from '@/components/IntuitivePerformanceMonitor';
+import { apiRequest } from '@/lib/queryClient';
+
+// Get Dashboard API URL from environment variables
+const DASHBOARD_API_URL = import.meta.env.VITE_DASHBOARD_API_URL || process.env.DASHBOARD_API_URL;
 
 // Dashboard overview stats
 interface StatCardProps {
@@ -45,10 +49,44 @@ const StatCard = ({ title, value, description, icon }: StatCardProps) => (
 const Dashboard = () => {
   const [timeRange, setTimeRange] = useState('30days');
   const [selectedTab, setSelectedTab] = useState('overview');
+  const { toast } = useToast();
 
-  // Fetch orders
-  const { data: orders, isLoading: ordersLoading } = useQuery({
+  // Function to call external Dashboard API
+  const callDashboardAPI = async (endpoint: string) => {
+    if (!DASHBOARD_API_URL) {
+      console.warn('Dashboard API URL not configured');
+      return null;
+    }
+
+    try {
+      const response = await fetch(`${DASHBOARD_API_URL}${endpoint}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          // Add authentication if needed
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`Dashboard API error: ${response.status}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Dashboard API call failed:', error);
+      toast({
+        title: 'Dashboard API Error',
+        description: 'Failed to connect to external dashboard',
+        variant: 'destructive',
+      });
+      return null;
+    }
+  };
+
+  // Fetch recent orders
+  const { data: recentOrders, isLoading: ordersLoading } = useQuery({
     queryKey: ['/api/orders'],
+    queryFn: () => apiRequest('GET', '/api/orders?limit=5'),
   });
 
   // Fetch frames for reference
@@ -77,12 +115,12 @@ const Dashboard = () => {
     const ordersList = Array.isArray(orders) ? orders : 
                       (orders?.orders && Array.isArray(orders.orders)) ? orders.orders : 
                       [];
-    
+
     if (!ordersList.length) return [];
-    
+
     const now = new Date();
     let filterDate = new Date();
-    
+
     switch (timeRange) {
       case '7days':
         filterDate.setDate(now.getDate() - 7);
@@ -99,7 +137,7 @@ const Dashboard = () => {
       default:
         filterDate.setDate(now.getDate() - 30);
     }
-    
+
     return ordersList.filter((order: Order) => {
       const orderDate = new Date(order.createdAt || '');
       return orderDate >= filterDate;
@@ -113,13 +151,13 @@ const Dashboard = () => {
   const totalOrders = filteredOrders.length;
   const averageOrderValue = totalOrders > 0 ? totalSales / totalOrders : 0;
   const pendingOrders = filteredOrders.filter((order: Order) => order.status === 'pending').length;
-  
+
   // Prepare data for charts
   const prepareOrdersByDateData = () => {
     if (!filteredOrders.length) return [];
-    
+
     const ordersByDate: { [key: string]: { date: string; orders: number; sales: number } } = {};
-    
+
     filteredOrders.forEach((order: Order) => {
       const date = new Date(order.createdAt || '').toLocaleDateString();
       if (!ordersByDate[date]) {
@@ -128,15 +166,15 @@ const Dashboard = () => {
       ordersByDate[date].orders += 1;
       ordersByDate[date].sales += Number(order.total);
     });
-    
+
     return Object.values(ordersByDate).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
   };
-  
+
   const preparePopularFramesData = () => {
     if (!filteredOrders.length || !frames) return [];
-    
+
     const framesCount: { [key: string]: number } = {};
-    
+
     filteredOrders.forEach((order: Order) => {
       if (order.frameId) {
         if (!framesCount[order.frameId]) {
@@ -145,7 +183,7 @@ const Dashboard = () => {
         framesCount[order.frameId] += 1;
       }
     });
-    
+
     return Object.entries(framesCount).map(([frameId, count]) => {
       const frame = frames.find((f: Frame) => f.id === frameId);
       return {
@@ -154,12 +192,12 @@ const Dashboard = () => {
       };
     }).sort((a, b) => b.value - a.value).slice(0, 5);
   };
-  
+
   const prepareMatColorData = () => {
     if (!filteredOrders.length || !matColors) return [];
-    
+
     const matColorCount: { [key: string]: number } = {};
-    
+
     filteredOrders.forEach((order: Order) => {
       if (order.matColorId) {
         if (!matColorCount[order.matColorId]) {
@@ -168,7 +206,7 @@ const Dashboard = () => {
         matColorCount[order.matColorId] += 1;
       }
     });
-    
+
     return Object.entries(matColorCount).map(([matColorId, count]) => {
       const matColor = matColors.find((m: MatColor) => m.id === matColorId);
       return {
@@ -178,12 +216,12 @@ const Dashboard = () => {
       };
     });
   };
-  
+
   const prepareGlassOptionsData = () => {
     if (!filteredOrders.length || !glassOptions) return [];
-    
+
     const glassOptionCount: { [key: string]: number } = {};
-    
+
     filteredOrders.forEach((order: Order) => {
       if (order.glassOptionId) {
         if (!glassOptionCount[order.glassOptionId]) {
@@ -192,7 +230,7 @@ const Dashboard = () => {
         glassOptionCount[order.glassOptionId] += 1;
       }
     });
-    
+
     return Object.entries(glassOptionCount).map(([glassOptionId, count]) => {
       const glassOption = glassOptions.find((g: GlassOption) => g.id === glassOptionId);
       return {
@@ -201,15 +239,23 @@ const Dashboard = () => {
       };
     });
   };
-  
+
   const ordersByDateData = prepareOrdersByDateData();
   const popularFramesData = preparePopularFramesData();
   const matColorData = prepareMatColorData();
   const glassOptionsData = prepareGlassOptionsData();
-  
+
   // Colors for charts
   const COLORS = ['#00ADB5', '#E31E6A', '#21C685', '#FFC107', '#F44336'];
-  
+
+  // Fetch external dashboard metrics if API is configured
+  const { data: externalDashboardData, isLoading: externalLoading } = useQuery({
+    queryKey: ['/api/dashboard-proxy/metrics'],
+    queryFn: () => DASHBOARD_API_URL ? callDashboardAPI('/metrics') : null,
+    enabled: !!DASHBOARD_API_URL,
+    retry: false,
+  });
+
   if (ordersLoading) {
     return (
       <div className="flex justify-center items-center min-h-[500px]">
@@ -297,7 +343,7 @@ const Dashboard = () => {
           <TabsTrigger value="orders">Orders</TabsTrigger>
           <TabsTrigger value="materials">Materials</TabsTrigger>
         </TabsList>
-        
+
         <TabsContent value="overview" className="space-y-4">
           <Card>
             <CardHeader>
@@ -342,7 +388,7 @@ const Dashboard = () => {
             </CardContent>
           </Card>
         </TabsContent>
-        
+
         <TabsContent value="orders" className="space-y-4">
           <div className="grid gap-4 md:grid-cols-2">
             <Card>
@@ -371,7 +417,7 @@ const Dashboard = () => {
                 )}
               </CardContent>
             </Card>
-            
+
             <Card>
               <CardHeader>
                 <CardTitle>Mat Colors</CardTitle>
@@ -408,7 +454,7 @@ const Dashboard = () => {
             </Card>
           </div>
         </TabsContent>
-        
+
         <TabsContent value="materials" className="space-y-4">
           <div className="grid gap-4 md:grid-cols-2">
             <Card>
@@ -445,7 +491,7 @@ const Dashboard = () => {
                 )}
               </CardContent>
             </Card>
-            
+
             {/* Inventory/Stock Card for Wholesale */}
             <Card>
               <CardHeader>
@@ -461,7 +507,7 @@ const Dashboard = () => {
                           const manufacturerIndex = acc.findIndex(
                             (item) => item.name === order.manufacturer
                           );
-                          
+
                           if (manufacturerIndex === -1) {
                             acc.push({
                               name: order.manufacturer,
@@ -470,7 +516,7 @@ const Dashboard = () => {
                           } else {
                             acc[manufacturerIndex].value += 1;
                           }
-                          
+
                           return acc;
                         }, [])
                       }
