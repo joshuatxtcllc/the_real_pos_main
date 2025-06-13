@@ -30,16 +30,29 @@ class ExternalKanbanService {
   constructor() {
     this.baseUrl = process.env.EXTERNAL_KANBAN_URL || '';
     this.apiKey = process.env.EXTERNAL_KANBAN_API_KEY || '';
+    
+    // Debug logging
+    console.log('External Kanban Service initialized:', {
+      hasUrl: !!this.baseUrl,
+      hasApiKey: !!this.apiKey,
+      baseUrl: this.baseUrl ? `${this.baseUrl.substring(0, 30)}...` : 'Not configured'
+    });
   }
 
   async fetchOrders(): Promise<ExternalKanbanResponse> {
     if (!this.baseUrl || !this.apiKey) {
+      console.log('Kanban configuration missing:', {
+        hasUrl: !!this.baseUrl,
+        hasApiKey: !!this.apiKey
+      });
       return {
         success: false,
         orders: [],
         error: 'External Kanban URL or API key not configured'
       };
     }
+
+    console.log('Attempting to fetch orders from Kanban:', this.baseUrl);
 
     try {
       const response = await fetch(`${this.baseUrl}/api/orders`, {

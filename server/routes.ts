@@ -352,6 +352,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Test Kanban connection endpoint
+  app.post('/api/kanban/external/test-connection', async (req, res) => {
+    try {
+      const { externalKanbanService } = await import('./services/externalKanbanService');
+      
+      // Check configuration
+      const hasUrl = !!process.env.EXTERNAL_KANBAN_URL;
+      const hasApiKey = !!process.env.EXTERNAL_KANBAN_API_KEY;
+      
+      if (!hasUrl || !hasApiKey) {
+        return res.status(400).json({
+          success: false,
+          error: 'Kanban configuration incomplete',
+          details: {
+            hasUrl,
+            hasApiKey,
+            message: 'Please add EXTERNAL_KANBAN_URL and EXTERNAL_KANBAN_API_KEY to your secrets'
+          }
+        });
+      }
+
+      // Test health check
+      const health = await externalKanbanService.healthCheck();
+      
+      // Test fetching orders
+      const ordersResult = await externalKanbanService.fetchOrders();
+      
+      res.json({
+        success: health.connected,
+        health,
+        ordersTest: {
+          success: ordersResult.success,
+          orderCount: ordersResult.orders.length,
+          error: ordersResult.error
+        },
+        configuration: {
+          baseUrl: process.env.EXTERNAL_KANBAN_URL ? 
+            `${process.env.EXTERNAL_KANBAN_URL.substring(0, 30)}...` : 'Not configured',
+          apiKeyConfigured: !!process.env.EXTERNAL_KANBAN_API_KEY
+        }
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        error: 'Connection test failed',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
   // Update order status in external Kanban
   app.post('/api/kanban/external/orders/:orderId/status', async (req, res) => {
     try {

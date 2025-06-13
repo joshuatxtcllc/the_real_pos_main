@@ -163,10 +163,10 @@ export default function HubIntegrationPage() {
     }
   };
 
-  const configureKanbanConnection = async () => {
+  const handleConfigureKanban = async () => {
     if (!kanbanApiUrl || !kanbanApiKey) {
       toast({
-        title: "Configuration Error",
+        title: "Missing Configuration",
         description: "Please provide both Kanban API URL and API Key",
         variant: "destructive",
       });
@@ -210,6 +210,41 @@ export default function HubIntegrationPage() {
       });
     } finally {
       setIsConfiguringKanban(false);
+    }
+  };
+
+  const testKanbanConnection = async () => {
+    try {
+      const response = await fetch('/api/kanban/external/test-connection', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setKanbanStatus('connected');
+        toast({
+          title: "Kanban Connection Test",
+          description: `Successfully connected! Found ${data.ordersTest.orderCount} orders.`,
+        });
+      } else {
+        setKanbanStatus('error');
+        toast({
+          title: "Connection Test Failed",
+          description: data.error || "Failed to connect to Kanban API",
+          variant: "destructive",
+        });
+      }
+    } catch (error: any) {
+      setKanbanStatus('error');
+      toast({
+        title: "Connection Test Failed",
+        description: error.message || "Failed to test Kanban connection",
+        variant: "destructive",
+      });
     }
   };
 
@@ -490,19 +525,11 @@ export default function HubIntegrationPage() {
             </div>
           </div>
 
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Badge variant={kanbanStatus === 'connected' ? 'default' : kanbanStatus === 'error' ? 'destructive' : 'secondary'}>
-                {kanbanStatus === 'connected' ? 'Connected' : kanbanStatus === 'error' ? 'Error' : 'Not Configured'}
-              </Badge>
-              {kanbanStatus === 'connected' && (
-                <span className="text-sm text-muted-foreground">Orders will be fetched from Kanban app</span>
-              )}
-            </div>
-
+          <div className="flex flex-col gap-2">
             <Button 
-              onClick={configureKanbanConnection}
+              onClick={handleConfigureKanban}
               disabled={isConfiguringKanban || !kanbanApiUrl || !kanbanApiKey}
+              className="w-full"
             >
               {isConfiguringKanban ? (
                 <>
@@ -512,9 +539,17 @@ export default function HubIntegrationPage() {
               ) : (
                 <>
                   <Settings className="h-4 w-4 mr-2" />
-                  Configure Connection
+                  Configure Kanban Connection
                 </>
               )}
+            </Button>
+
+            <Button 
+              onClick={testKanbanConnection}
+              variant="outline"
+              className="w-full"
+            >
+              Test Connection
             </Button>
           </div>
 
