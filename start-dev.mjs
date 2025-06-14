@@ -40,18 +40,21 @@ async function startServers() {
   }
 
   // Start backend server
+  console.log('Starting backend server on port 5000...');
   const backend = spawn('npx', ['tsx', 'server/index.ts'], {
-    stdio: 'inherit',
+    stdio: ['inherit', 'inherit', 'inherit'],
     cwd: __dirname,
     env: { ...process.env, NODE_ENV: 'development' }
   });
 
   // Wait for backend to start before starting frontend
-  await new Promise(resolve => setTimeout(resolve, 3000));
+  console.log('Waiting for backend to initialize...');
+  await new Promise(resolve => setTimeout(resolve, 5000));
 
   // Start frontend server on a different port to avoid conflicts
-  const frontend = spawn('npx', ['vite', 'client', '--port', '5173', '--host', '0.0.0.0'], {
-    stdio: 'inherit',
+  console.log('Starting frontend server on port 5173...');
+  const frontend = spawn('npx', ['vite', 'client', '--port', '5173', '--host', '0.0.0.0', '--force'], {
+    stdio: ['inherit', 'inherit', 'inherit'],
     cwd: __dirname,
     env: { ...process.env, NODE_ENV: 'development' }
   });
