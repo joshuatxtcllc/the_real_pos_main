@@ -23,7 +23,7 @@ localPort = 8080
 externalPort = 8080
 
 [workflows]
-runButton = "Development Server"
+runButton = "Clean Development Start"
 
 [[workflows.workflow]]
 name = "Project"
@@ -106,6 +106,27 @@ args = "npm run dev"
 name = "Development Server"
 author = 27546771
 mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npm run dev"
+
+[[workflows.workflow]]
+name = "Clean Development Start"
+author = 27546771
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pkill -f \"node start-dev.mjs\" || true"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pkill -f \"tsx server/index.ts\" || true"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "sleep 3"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
