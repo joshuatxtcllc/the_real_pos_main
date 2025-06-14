@@ -352,6 +352,74 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Test all external connections endpoint
+  app.get('/api/integrations/test-all', async (req, res) => {
+    try {
+      const results = {
+        dashboard: { connected: false, error: null },
+        kanban: { connected: false, error: null }
+      };
+
+      // Test Dashboard connection
+      const dashboardApiUrl = process.env.DASHBOARD_API_URL;
+      if (dashboardApiUrl) {
+        try {
+          const dashboardResponse = await fetch(`${dashboardApiUrl}/api/health`, {
+            method: 'GET',
+            timeout: 5000
+          });
+          results.dashboard.connected = dashboardResponse.ok;
+          if (!dashboardResponse.ok) {
+            results.dashboard.error = `HTTP ${dashboardResponse.status}`;
+          }
+        } catch (error) {
+          results.dashboard.error = error instanceof Error ? error.message : 'Connection failed';
+        }
+      } else {
+        results.dashboard.error = 'Dashboard API URL not configured';
+      }
+
+      // Test Kanban connection
+      const kanbanApiUrl = process.env.EXTERNAL_KANBAN_URL;
+      const kanbanApiKey = process.env.EXTERNAL_KANBAN_API_KEY;
+      if (kanbanApiUrl && kanbanApiKey) {
+        try {
+          const kanbanResponse = await fetch(`${kanbanApiUrl}/api/health`, {
+            method: 'GET',
+            headers: {
+              'Authorization': `Bearer ${kanbanApiKey}`,
+              'Content-Type': 'application/json'
+            },
+            timeout: 5000
+          });
+          results.kanban.connected = kanbanResponse.ok;
+          if (!kanbanResponse.ok) {
+            results.kanban.error = `HTTP ${kanbanResponse.status}`;
+          }
+        } catch (error) {
+          results.kanban.error = error instanceof Error ? error.message : 'Connection failed';
+        }
+      } else {
+        results.kanban.error = 'Kanban API URL or API Key not configured';
+      }
+
+      res.json({
+        success: true,
+        integrations: results,
+        summary: {
+          total: 2,
+          connected: Object.values(results).filter(r => r.connected).length,
+          failed: Object.values(results).filter(r => !r.connected).length
+        }
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        error: 'Failed to test integrations'
+      });
+    }
+  });
+
   // Test Kanban connection endpoint
   app.post('/api/kanban/external/test-connection', async (req, res) => {
     try {

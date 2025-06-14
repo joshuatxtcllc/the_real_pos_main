@@ -1,4 +1,3 @@
-
 import { apiRequest } from '@/lib/queryClient';
 
 // Dashboard API service for external integrations
@@ -63,7 +62,7 @@ class DashboardApiService {
     }
   }
 
-  // Get external dashboard health status via proxy
+  // Get external dashboard health status
   static async getExternalHealth() {
     try {
       return await apiRequest('GET', '/api/dashboard-proxy/health');
@@ -73,7 +72,7 @@ class DashboardApiService {
     }
   }
 
-  // Test connection to dashboard
+  // Test connection to dashboard API
   static async testConnection() {
     try {
       return await apiRequest('POST', '/api/dashboard-proxy/test');
