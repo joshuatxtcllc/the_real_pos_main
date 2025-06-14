@@ -49,7 +49,7 @@ async function startServers() {
 
   // Wait for backend to start before starting frontend
   console.log('Waiting for backend to initialize...');
-  await new Promise(resolve => setTimeout(resolve, 5000));
+  await new Promise(resolve => setTimeout(resolve, 3000));
 
   // Start frontend server on a different port to avoid conflicts
   console.log('Starting frontend server on port 5173...');

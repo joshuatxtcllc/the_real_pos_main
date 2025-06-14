@@ -126,9 +126,38 @@ export function setupViteProxy(app: express.Application, isDev: boolean = true) 
     // Serve static files from uploads directory
     app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
-    // In development, let Vite handle the frontend
+    // In development, serve a basic HTML page that loads the frontend
     app.get('/', (req, res) => {
-      res.redirect('http://localhost:5173');
+      res.send(`
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <title>Jay's Frames</title>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1">
+          </head>
+          <body>
+            <div id="app">
+              <p>Loading Jay's Frames application...</p>
+              <script>
+                // Try to load from Vite dev server, fallback to current server
+                const viteUrl = 'http://localhost:5173';
+                const currentUrl = window.location.origin;
+                
+                fetch(viteUrl)
+                  .then(() => {
+                    window.location.href = viteUrl;
+                  })
+                  .catch(() => {
+                    // Vite server not available, show message
+                    document.getElementById('app').innerHTML = 
+                      '<p>Frontend development server is starting up. Please wait a moment and refresh.</p>';
+                  });
+              </script>
+            </div>
+          </body>
+        </html>
+      `);
     });
 
     // Handle client-side routing for non-API routes
@@ -136,7 +165,7 @@ export function setupViteProxy(app: express.Application, isDev: boolean = true) 
       if (req.url.startsWith('/api')) {
         next();
       } else {
-        res.redirect(`http://localhost:5173${req.url}`);
+        res.redirect('/');
       }
     });
   } else {
