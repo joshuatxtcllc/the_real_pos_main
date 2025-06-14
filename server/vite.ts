@@ -126,46 +126,33 @@ export function setupViteProxy(app: express.Application, isDev: boolean = true) 
     // Serve static files from uploads directory
     app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
-    // In development, serve a basic HTML page that loads the frontend
+    // In development, proxy to Vite dev server
     app.get('/', (req, res) => {
-      res.send(`
-        <!DOCTYPE html>
-        <html>
-          <head>
-            <title>Jay's Frames</title>
-            <meta charset="utf-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1">
-          </head>
-          <body>
-            <div id="app">
-              <p>Loading Jay's Frames application...</p>
-              <script>
-                // Try to load from Vite dev server, fallback to current server
-                const viteUrl = 'http://localhost:5173';
-                const currentUrl = window.location.origin;
-                
-                fetch(viteUrl)
-                  .then(() => {
-                    window.location.href = viteUrl;
-                  })
-                  .catch(() => {
-                    // Vite server not available, show message
-                    document.getElementById('app').innerHTML = 
-                      '<p>Frontend development server is starting up. Please wait a moment and refresh.</p>';
-                  });
-              </script>
-            </div>
-          </body>
-        </html>
-      `);
+      // Check if this is the webview URL (replit domains)
+      const host = req.get('host');
+      if (host && (host.includes('replit.dev') || host.includes('replit.co') || host.includes('replit.app'))) {
+        // This is the webview - redirect to Vite dev server port
+        const viteUrl = `https://${host.replace(/:\d+/, '')}:5173`;
+        res.redirect(viteUrl);
+      } else {
+        // Local development
+        res.redirect('http://localhost:5173');
+      }
     });
 
     // Handle client-side routing for non-API routes
     app.get('*', (req, res, next) => {
-      if (req.url.startsWith('/api')) {
+      if (req.url.startsWith('/api') || req.url.startsWith('/uploads')) {
         next();
       } else {
-        res.redirect('/');
+        // Redirect all non-API routes to home, which will redirect to Vite
+        const host = req.get('host');
+        if (host && (host.includes('replit.dev') || host.includes('replit.co') || host.includes('replit.app'))) {
+          const viteUrl = `https://${host.replace(/:\d+/, '')}:5173`;
+          res.redirect(viteUrl);
+        } else {
+          res.redirect('http://localhost:5173');
+        }
       }
     });
   } else {
