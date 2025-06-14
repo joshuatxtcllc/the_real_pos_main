@@ -53,10 +53,10 @@ async function startServers() {
 
   // Start frontend server on a different port to avoid conflicts
   console.log('Starting frontend server on port 5173...');
-  const frontend = spawn('npx', ['vite', 'client', '--port', '5173', '--host', '0.0.0.0', '--force'], {
+  const frontend = spawn('npx', ['vite', 'client', '--port', '5173', '--host', '0.0.0.0', '--force', '--clearScreen', 'false'], {
     stdio: ['inherit', 'inherit', 'inherit'],
     cwd: __dirname,
-    env: { ...process.env, NODE_ENV: 'development' }
+    env: { ...process.env, NODE_ENV: 'development', FORCE_COLOR: '1' }
   });
 
   // Handle process termination
