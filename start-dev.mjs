@@ -9,38 +9,56 @@ console.log('🚀 Starting development servers...');
 
 let backend, frontend;
 
-// Start backend server with better error handling
-try {
-  backend = spawn('tsx', ['server/index.ts'], {
-    stdio: 'inherit',
-    env: { 
-      ...process.env, 
-      NODE_ENV: 'development',
-      PORT: '5000'
-    }
-  });
+// Check if port 5000 is already in use before starting
+import { createServer } from 'net';
 
-  backend.on('error', (error) => {
-    console.error('Backend startup error:', error.message);
+function checkPort(port) {
+  return new Promise((resolve) => {
+    const server = createServer();
+    server.listen(port, () => {
+      server.once('close', () => resolve(true));
+      server.close();
+    });
+    server.on('error', () => resolve(false));
+  });
+}
+
+const portAvailable = await checkPort(5000);
+if (!portAvailable) {
+  console.log('✓ Backend already running on port 5000');
+} else {
+  // Start backend server
+  try {
+    backend = spawn('tsx', ['server/index.ts'], {
+      stdio: 'inherit',
+      env: { 
+        ...process.env, 
+        NODE_ENV: 'development',
+        PORT: '5000'
+      }
+    });
+
+    backend.on('error', (error) => {
+      console.error('Backend startup error:', error.message);
+      process.exit(1);
+    });
+
+    backend.on('exit', (code) => {
+      if (code !== 0) {
+        console.error(`Backend exited with code ${code}`);
+      }
+    });
+
+  } catch (error) {
+    console.error('Failed to start backend:', error.message);
     process.exit(1);
-  });
-
-  backend.on('exit', (code) => {
-    if (code !== 0) {
-      console.error(`Backend exited with code ${code}`);
-    }
-  });
-
-} catch (error) {
-  console.error('Failed to start backend:', error.message);
-  process.exit(1);
+  }
 }
 
 // Wait a moment for backend to start, then start frontend
 setTimeout(() => {
   try {
-    frontend = spawn('npm', ['run', 'dev'], {
-      cwd: path.join(__dirname, 'client'),
+    frontend = spawn('npx', ['vite', '--host', '0.0.0.0', '--port', '5173'], {
       stdio: 'inherit',
       env: { 
         ...process.env,
