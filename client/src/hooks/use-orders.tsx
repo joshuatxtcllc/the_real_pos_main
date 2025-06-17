@@ -14,7 +14,10 @@ export function useOrders() {
       if (!res.ok) {
         throw new Error('Failed to fetch orders');
       }
-      return res.json();
+      const data = await res.json();
+      console.log('Orders API response:', data);
+      // Return the orders array directly for consistent handling
+      return data.orders || data || [];
     },
   });
 
@@ -48,6 +51,8 @@ export function useOrders() {
       queryClient.invalidateQueries({ queryKey: ['/api/orders'] });
       queryClient.invalidateQueries({ queryKey: ['/api/production/kanban'] });
       queryClient.invalidateQueries({ queryKey: ['/api/order-groups'] });
+      // Force refetch to ensure orders appear immediately
+      queryClient.refetchQueries({ queryKey: ['/api/orders'] });
     },
     onError: (error: Error) => {
       toast({

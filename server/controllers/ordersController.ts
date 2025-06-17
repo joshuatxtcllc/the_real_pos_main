@@ -74,6 +74,7 @@ export async function getAllOrders(req: Request, res: Response) {
     // Fallback to local storage
     console.log('Falling back to local storage for orders');
     const localOrders = await storage.getAllOrders();
+    console.log('Local orders found:', localOrders.length);
     res.json({ 
       success: true, 
       orders: localOrders,

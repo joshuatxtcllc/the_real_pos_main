@@ -218,7 +218,13 @@ const Orders = () => {
   };
 
   // Extract orders array from API response and filter based on search term and status
-  const ordersArray = orders?.orders || orders || [];
+  const ordersArray = Array.isArray(orders) ? orders : 
+                      (orders?.orders && Array.isArray(orders.orders)) ? orders.orders : 
+                      [];
+  
+  console.log('Orders response:', orders);
+  console.log('Orders array:', ordersArray);
+  
   const filteredOrders = Array.isArray(ordersArray) ? ordersArray.filter((order: Order) => {
     const matchesSearch = 
       getCustomerName(order.customerId).toLowerCase().includes(searchTerm.toLowerCase()) ||

@@ -769,7 +769,7 @@ export class DatabaseStorage implements IStorage {
   // Special service methods
   async getSpecialService(id: string): Promise<SpecialService | undefined> {
     // First try to get from the database
-    const [specialService] = await db.select().from(specialServices).where(eq(specialServices.id, id));
+    const [specialService] = await db.selectfrom(specialServices).where(eq(specialServices.id, id));
 
     // If not found in database, check catalog
     if (!specialService){
@@ -870,7 +870,16 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getAllOrders(): Promise<Order[]> {
-    return await db.select().from(orders);
+    try {
+      console.log('Fetching orders from database...');
+      const dbOrders = await db.select().from(orders);
+
+      console.log(`Found ${dbOrders?.length || 0} orders in database`);
+      return dbOrders || [];
+    } catch (error) {
+      console.error('Error in getAllOrders:', error);
+      throw error;
+    }
   }
 
   async createOrder(order: InsertOrder): Promise<Order> {
@@ -1825,6 +1834,7 @@ export class DatabaseStorage implements IStorage {
   async exportInventoryToCSV(): Promise<string> {
     try {
       // This would normally generate a CSV file from inventory data
+      // For now we'll just return a CSV file from inventory data
       // For now we'll just return a placeholder
       return 'id,sku,name,description,quantity\n';
     } catch (error) {
