@@ -13,7 +13,7 @@ import {
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { CheckCircle2, AlertCircle, Clock, Truck, Scissors, Box, CheckCheck, AlertTriangle, Calendar } from 'lucide-react';
+import { CheckCircle2, AlertCircle, Clock, Truck, Scissors, Box, CheckCheck, AlertTriangle, Calendar, QrCode, Send, MapPin } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 
@@ -70,6 +70,8 @@ export default function OrderProgress({
       case 'frame_cut':
       case 'mat_cut':
         return <Scissors className="h-5 w-5" />;
+      case 'in_production':
+        return <Scissors className="h-5 w-5" />;
       case 'prepped':
         return <CheckCircle2 className="h-5 w-5" />;
       case 'completed':
@@ -112,6 +114,11 @@ export default function OrderProgress({
         return {
           title: 'Mat Cutting',
           description: 'The mat board is being cut to size for your artwork.'
+        };
+      case 'in_production':
+        return {
+          title: 'In Production',
+          description: 'Your frame is currently being assembled and finished.'
         };
       case 'prepped':
         return {
@@ -206,6 +213,121 @@ export default function OrderProgress({
             </span>
           </div>
         )}
+
+        {/* QR Code and Locations Section */}
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Material Location */}
+            <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-md">
+              <MapPin className="h-5 w-5 text-blue-600" />
+              <div>
+                <p className="text-sm font-medium">Materials Location</p>
+                <p className="text-xs text-muted-foreground">
+                  {order.artworkLocation || 'Workshop - Bay A'}
+                </p>
+              </div>
+            </div>
+
+            {/* Artwork Location */}
+            <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-md">
+              <MapPin className="h-5 w-5 text-green-600" />
+              <div>
+                <p className="text-sm font-medium">Artwork Location</p>
+                <p className="text-xs text-muted-foreground">
+                  Shelf #{order.id}-ART
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* QR Code Section */}
+          <div className="flex items-center justify-between p-4 border rounded-md">
+            <div className="flex items-center gap-3">
+              <QrCode className="h-6 w-6 text-muted-foreground" />
+              <div>
+                <p className="text-sm font-medium">Order QR Code</p>
+                <p className="text-xs text-muted-foreground">
+                  Quick access to order #{order.id}
+                </p>
+              </div>
+            </div>
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => {
+                const qrUrl = `${window.location.origin}/order-progress/${order.id}`;
+                // Create QR code data and show it
+                const qrData = {
+                  orderId: order.id,
+                  status: order.productionStatus,
+                  materials: order.artworkLocation || 'Workshop - Bay A',
+                  artwork: `Shelf #${order.id}-ART`,
+                  url: qrUrl
+                };
+                
+                // Open QR code in new window with the data
+                const qrWindow = window.open('', '_blank', 'width=400,height=500');
+                if (qrWindow) {
+                  qrWindow.document.write(`
+                    <html>
+                      <head><title>Order QR Code</title></head>
+                      <body style="padding: 20px; text-align: center; font-family: Arial;">
+                        <h3>Order #${order.id} QR Code</h3>
+                        <div id="qrcode"></div>
+                        <p style="margin-top: 20px; font-size: 12px;">
+                          Materials: ${qrData.materials}<br>
+                          Artwork: ${qrData.artwork}
+                        </p>
+                        <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+                        <script>
+                          QRCode.toCanvas(document.getElementById('qrcode'), '${qrUrl}', {width: 200});
+                        </script>
+                      </body>
+                    </html>
+                  `);
+                }
+              }}
+            >
+              <QrCode className="h-4 w-4 mr-1" />
+              View QR
+            </Button>
+          </div>
+        </div>
+
+        {/* Notification Actions */}
+        <div className="flex gap-2 pt-4 border-t">
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={() => {
+              // Send notification logic
+              fetch(`/api/notifications/send`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  orderId: order.id,
+                  customerId: order.customerId,
+                  type: 'status_update',
+                  message: `Your order #${order.id} status has been updated to: ${statusDetails.title}`
+                })
+              }).then(() => {
+                toast({
+                  title: 'Notification Sent',
+                  description: 'Customer has been notified of the order status update.',
+                });
+              }).catch(() => {
+                toast({
+                  title: 'Notification Failed',
+                  description: 'Failed to send notification. Please try again.',
+                  variant: 'destructive'
+                });
+              });
+            }}
+          >
+            <Send className="h-4 w-4 mr-1" />
+            Send Update
+          </Button>
+        </div>
       </CardContent>
 
       {showHistory && (

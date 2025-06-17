@@ -147,15 +147,15 @@ export default function OrderProgressPage() {
             <div className="space-y-1 border-t pt-4">
               <div className="flex justify-between items-center">
                 <p className="text-sm">Subtotal</p>
-                <p className="text-sm font-medium">${parseFloat(order.subtotal).toFixed(2)}</p>
+                <p className="text-sm font-medium">${parseFloat(order.subtotal || '0').toFixed(2)}</p>
               </div>
               <div className="flex justify-between items-center">
                 <p className="text-sm">Tax</p>
-                <p className="text-sm font-medium">${parseFloat(order.tax).toFixed(2)}</p>
+                <p className="text-sm font-medium">${parseFloat(order.tax || '0').toFixed(2)}</p>
               </div>
               <div className="flex justify-between items-center font-medium mt-2">
                 <p>Total</p>
-                <p>${parseFloat(order.total).toFixed(2)}</p>
+                <p>${parseFloat(order.total || '0').toFixed(2)}</p>
               </div>
             </div>
           </CardContent>
