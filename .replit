@@ -31,7 +31,7 @@ localPort = 8080
 externalPort = 8080
 
 [workflows]
-runButton = "Fresh Development Restart"
+runButton = "Quick Restart"
 
 [[workflows.workflow]]
 name = "Project"
@@ -193,6 +193,23 @@ args = "sleep 3"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "rm -rf client/node_modules/.vite || true"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npm run dev"
+
+[[workflows.workflow]]
+name = "Quick Restart"
+author = 27546771
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pkill -f \"node start-dev.mjs\" || true"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "sleep 2"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
