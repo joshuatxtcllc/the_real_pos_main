@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { Eye, EyeOff, RotateCcw, Move, ZoomIn, ZoomOut } from 'lucide-react';
+import { Eye, EyeOff, RotateCcw, Move, ZoomIn, ZoomOut, ChevronDown, ChevronUp } from 'lucide-react';
 
 interface FrameDesign {
   id: string;
@@ -33,6 +33,7 @@ export function DualPreviewSystem({
   onCompareToggle 
 }: DualPreviewSystemProps) {
   const [compareMode, setCompareMode] = useState(false);
+  const [previewExpanded, setPreviewExpanded] = useState(false);
   const [primaryZoom, setPrimaryZoom] = useState(1);
   const [comparisonZoom, setComparisonZoom] = useState(1);
   const [primaryRotation, setPrimaryRotation] = useState(0);
@@ -177,44 +178,76 @@ export function DualPreviewSystem({
     <div className="space-y-4">
       {/* Header Controls */}
       <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold">Frame Preview</h3>
         <div className="flex items-center space-x-2">
+          <h3 className="text-lg font-semibold">Frame Preview</h3>
           <Button
-            variant={compareMode ? "default" : "outline"}
+            variant="ghost"
             size="sm"
-            onClick={() => setCompareMode(!compareMode)}
+            onClick={() => setPreviewExpanded(!previewExpanded)}
           >
-            {compareMode ? <EyeOff className="h-4 w-4 mr-1" /> : <Eye className="h-4 w-4 mr-1" />}
-            Compare Mode
+            {previewExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
           </Button>
         </div>
-      </div>
-
-      {/* Preview Grid */}
-      <div className={`grid gap-4 ${compareMode ? 'grid-cols-1 lg:grid-cols-2' : 'grid-cols-1'}`}>
-        {/* Primary Preview */}
-        <FramePreview
-          design={primaryDesign}
-          title="Primary Design"
-          zoom={primaryZoom}
-          rotation={primaryRotation}
-          onZoomChange={setPrimaryZoom}
-          onRotationChange={setPrimaryRotation}
-        />
-
-        {/* Comparison Preview */}
-        {compareMode && (
-          <FramePreview
-            design={comparisonDesign}
-            title="Comparison Design"
-            zoom={comparisonZoom}
-            rotation={comparisonRotation}
-            onZoomChange={setComparisonZoom}
-            onRotationChange={setComparisonRotation}
-            isComparison={true}
-          />
+        {previewExpanded && (
+          <div className="flex items-center space-x-2">
+            <Button
+              variant={compareMode ? "default" : "outline"}
+              size="sm"
+              onClick={() => setCompareMode(!compareMode)}
+            >
+              {compareMode ? <EyeOff className="h-4 w-4 mr-1" /> : <Eye className="h-4 w-4 mr-1" />}
+              Compare Mode
+            </Button>
+          </div>
         )}
       </div>
+
+      {/* Preview Grid - Hidden by default, shown when expanded */}
+      {previewExpanded && (
+        <div className={`grid gap-4 ${compareMode ? 'grid-cols-1 lg:grid-cols-2' : 'grid-cols-1'}`}>
+          {/* Primary Preview */}
+          <FramePreview
+            design={primaryDesign}
+            title="Primary Design"
+            zoom={primaryZoom}
+            rotation={primaryRotation}
+            onZoomChange={setPrimaryZoom}
+            onRotationChange={setPrimaryRotation}
+          />
+
+          {/* Comparison Preview */}
+          {compareMode && (
+            <FramePreview
+              design={comparisonDesign}
+              title="Comparison Design"
+              zoom={comparisonZoom}
+              rotation={comparisonRotation}
+              onZoomChange={setComparisonZoom}
+              onRotationChange={setComparisonRotation}
+              isComparison={true}
+            />
+          )}
+        </div>
+      )}
+
+      {/* Collapsed state - show summary info */}
+      {!previewExpanded && primaryDesign && (
+        <Card className="border-gray-200">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div className="space-y-1">
+                <p className="font-medium text-sm">{primaryDesign.frameName}</p>
+                <p className="text-xs text-gray-600">
+                  {primaryDesign.dimensions.width}" × {primaryDesign.dimensions.height}" | {primaryDesign.glassType}
+                </p>
+              </div>
+              <Badge variant="secondary" className="font-medium">
+                ${primaryDesign.totalPrice.toFixed(2)}
+              </Badge>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Comparison Actions */}
       {compareMode && primaryDesign && comparisonDesign && (
