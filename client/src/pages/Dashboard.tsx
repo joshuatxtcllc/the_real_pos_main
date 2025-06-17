@@ -500,7 +500,7 @@ const Dashboard = () => {
                 <CardDescription>Material orders by manufacturer</CardDescription>
               </CardHeader>
               <CardContent className="h-[300px]">
-                {wholesaleOrders && wholesaleOrders.length > 0 ? (
+                {Array.isArray(wholesaleOrders) && wholesaleOrders.length > 0 ? (
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart
                       data={
