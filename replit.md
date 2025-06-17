@@ -128,6 +128,10 @@ The application uses a streamlined deployment process optimized for Replit:
   - Hidden frame preview section behind collapsible icon for cleaner interface
   - Resolved port conflicts and server startup issues with improved development scripts
   - Application running successfully on ports 5000 (backend) and 5173 (frontend)
+  - Fixed order progress page display issues: totals now show correctly, "in_production" status displays properly
+  - Added QR code functionality with material/artwork location tracking using Google Charts API
+  - Implemented customer notification system with "Send Update" button (requires SendGrid credits)
+  - QR codes display material locations (Workshop - Bay A) and artwork locations (Shelf #ID-ART)
 - June 13, 2025: Initial setup
 
 ## User Preferences

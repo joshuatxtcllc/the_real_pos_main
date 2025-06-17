@@ -265,27 +265,51 @@ export default function OrderProgress({
                   url: qrUrl
                 };
                 
-                // Open QR code in new window with the data
-                const qrWindow = window.open('', '_blank', 'width=400,height=500');
-                if (qrWindow) {
-                  qrWindow.document.write(`
-                    <html>
-                      <head><title>Order QR Code</title></head>
-                      <body style="padding: 20px; text-align: center; font-family: Arial;">
-                        <h3>Order #${order.id} QR Code</h3>
-                        <div id="qrcode"></div>
-                        <p style="margin-top: 20px; font-size: 12px;">
-                          Materials: ${qrData.materials}<br>
-                          Artwork: ${qrData.artwork}
-                        </p>
-                        <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
-                        <script>
-                          QRCode.toCanvas(document.getElementById('qrcode'), '${qrUrl}', {width: 200});
-                        </script>
-                      </body>
-                    </html>
-                  `);
-                }
+                // Create and display QR code using Google Charts API
+                const modal = document.createElement('div');
+                modal.style.cssText = `
+                  position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+                  background: rgba(0,0,0,0.8); display: flex; align-items: center;
+                  justify-content: center; z-index: 9999;
+                `;
+                
+                const content = document.createElement('div');
+                content.style.cssText = `
+                  background: white; padding: 30px; border-radius: 10px;
+                  text-align: center; max-width: 400px;
+                `;
+                
+                // Use Google Charts API for QR code generation (no external dependencies)
+                const qrImageUrl = `https://chart.googleapis.com/chart?chs=200x200&cht=qr&chl=${encodeURIComponent(qrUrl)}`;
+                
+                content.innerHTML = `
+                  <h3 style="margin: 0 0 20px 0;">Order #${order.id} QR Code</h3>
+                  <div style="margin: 20px 0; padding: 10px; background: #f5f5f5;">
+                    <img src="${qrImageUrl}" alt="QR Code" style="max-width: 200px; height: auto;" />
+                  </div>
+                  <p style="font-size: 12px; color: #666; margin: 15px 0;">
+                    Materials: ${qrData.materials}<br>
+                    Artwork: ${qrData.artwork}<br>
+                    <strong>URL:</strong> ${qrUrl}
+                  </p>
+                  <button onclick="this.closest('.qr-modal').remove()" style="
+                    padding: 8px 16px; background: #007bff; color: white;
+                    border: none; border-radius: 4px; cursor: pointer; margin-right: 8px;
+                  ">Close</button>
+                  <button onclick="window.print()" style="
+                    padding: 8px 16px; background: #28a745; color: white;
+                    border: none; border-radius: 4px; cursor: pointer;
+                  ">Print</button>
+                `;
+                
+                modal.className = 'qr-modal';
+                modal.appendChild(content);
+                document.body.appendChild(modal);
+                
+                // Close on background click
+                modal.addEventListener('click', (e) => {
+                  if (e.target === modal) modal.remove();
+                });
               }}
             >
               <QrCode className="h-4 w-4 mr-1" />
@@ -299,29 +323,49 @@ export default function OrderProgress({
           <Button 
             variant="outline" 
             size="sm"
-            onClick={() => {
-              // Send notification logic
-              fetch(`/api/notifications/send`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  orderId: order.id,
-                  customerId: order.customerId,
-                  type: 'status_update',
-                  message: `Your order #${order.id} status has been updated to: ${statusDetails.title}`
-                })
-              }).then(() => {
-                toast({
-                  title: 'Notification Sent',
-                  description: 'Customer has been notified of the order status update.',
+            onClick={async () => {
+              try {
+                // First get customer details
+                const customerResponse = await fetch(`/api/customers/${order.customerId}`);
+                const customerData = await customerResponse.json();
+                
+                if (!customerResponse.ok || !customerData.customer) {
+                  throw new Error('Customer not found');
+                }
+                
+                const customer = customerData.customer;
+                
+                // Send notification with customer email/phone
+                const notificationResponse = await fetch(`/api/notifications/send`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    orderId: order.id,
+                    customerEmail: customer.email,
+                    customerPhone: customer.phone,
+                    type: 'status_update',
+                    message: `Your order #${order.id} status has been updated to: ${statusDetails.title}`
+                  })
                 });
-              }).catch(() => {
+                
+                const result = await notificationResponse.json();
+                
+                if (notificationResponse.ok) {
+                  toast({
+                    title: 'Notification Sent',
+                    description: `Customer ${customer.name} has been notified of the order status update.`,
+                  });
+                } else {
+                  throw new Error(result.error || 'Failed to send notification');
+                }
+              } catch (error) {
+                console.error('Notification error:', error);
                 toast({
                   title: 'Notification Failed',
-                  description: 'Failed to send notification. Please try again.',
+                  description: error.message || 'Failed to send notification. Please try again.',
                   variant: 'destructive'
                 });
-              });
+              }
             }}
           >
             <Send className="h-4 w-4 mr-1" />
