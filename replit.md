@@ -132,6 +132,10 @@ The application uses a streamlined deployment process optimized for Replit:
   - Added QR code functionality with material/artwork location tracking using Google Charts API
   - Implemented customer notification system with "Send Update" button (requires SendGrid credits)
   - QR codes display material locations (Workshop - Bay A) and artwork locations (Shelf #ID-ART)
+  - Implemented complete Kanban app integration with real-time order synchronization
+  - New orders automatically sync to Kanban board at https://kanbanmain-JayFrames.replit.app
+  - Order status updates push to Kanban in real-time for production tracking
+  - Added Kanban test interface at /kanban-test for integration verification
 - June 13, 2025: Initial setup
 
 ## User Preferences
