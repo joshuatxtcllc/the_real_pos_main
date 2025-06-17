@@ -49,50 +49,49 @@ export default function FrameVisualizer({
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    // Set properly proportioned canvas size
-    const canvasWidth = 1200;
-    const canvasHeight = 900;
-    canvas.width = canvasWidth;
-    canvas.height = canvasHeight;
-
-    // Clear canvas
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    // Calculate artwork display size for wide canvas
-    const artworkDisplaySize = 600; // Larger base size for wide canvas
-    const aspectRatio = artworkWidth / artworkHeight;
-    
-    let artworkDisplayWidth, artworkDisplayHeight;
-    if (aspectRatio > 1) {
-      artworkDisplayWidth = artworkDisplaySize;
-      artworkDisplayHeight = artworkDisplaySize / aspectRatio;
-    } else {
-      artworkDisplayHeight = artworkDisplaySize;
-      artworkDisplayWidth = artworkDisplaySize * aspectRatio;
-    }
-
-    // Calculate frame and mat border widths (much more visible)
+    // Calculate frame and mat border widths in pixels
     let totalFrameWidth = 0;
     let totalMatWidth = 0;
 
     frames.forEach(frameItem => {
       const frameWidth = parseFloat(frameItem.frame.width) || 1;
-      totalFrameWidth += frameWidth * 8; // Reduced multiplier for better proportions
+      totalFrameWidth += frameWidth * 3; // Scale factor for display
     });
 
     mats.forEach(matItem => {
-      totalMatWidth += matItem.width * 8; // Reduced multiplier for better proportions
+      totalMatWidth += matItem.width * 3; // Scale factor for display
     });
 
     const totalBorderWidth = totalFrameWidth + totalMatWidth;
 
-    // Calculate total composition size
+    // Calculate artwork display dimensions maintaining aspect ratio
+    const aspectRatio = artworkWidth / artworkHeight;
+    const maxArtworkSize = 400; // Maximum size for the artwork area
+    
+    let artworkDisplayWidth, artworkDisplayHeight;
+    if (aspectRatio > 1) {
+      artworkDisplayWidth = maxArtworkSize;
+      artworkDisplayHeight = maxArtworkSize / aspectRatio;
+    } else {
+      artworkDisplayHeight = maxArtworkSize;
+      artworkDisplayWidth = maxArtworkSize * aspectRatio;
+    }
+
+    // Calculate total composition size (artwork + borders)
     const totalWidth = artworkDisplayWidth + (totalBorderWidth * 2);
     const totalHeight = artworkDisplayHeight + (totalBorderWidth * 2);
 
+    // Set canvas size to fit the composition with some padding
+    const padding = 40;
+    canvas.width = totalWidth + (padding * 2);
+    canvas.height = totalHeight + (padding * 2);
+
+    // Clear canvas
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
     // Center the composition on canvas
-    const startX = (canvas.width - totalWidth) / 2;
-    const startY = (canvas.height - totalHeight) / 2;
+    const startX = padding;
+    const startY = padding;
 
     // Current drawing position (start from outside)
     let currentX = startX;
@@ -105,7 +104,7 @@ export default function FrameVisualizer({
     
     if (useMultipleFrames) {
       sortedFrames.forEach(frameItem => {
-        const frameWidth = (parseFloat(frameItem.frame.width) || 1) * 8;
+        const frameWidth = (parseFloat(frameItem.frame.width) || 1) * 3;
         
         // Draw frame rectangle
         ctx.fillStyle = frameItem.frame.color || '#8B4513';
@@ -124,7 +123,7 @@ export default function FrameVisualizer({
       });
     } else if (frames.length > 0) {
       const frame = sortedFrames[sortedFrames.length - 1].frame;
-      const frameWidth = (parseFloat(frame.width) || 1) * 8;
+      const frameWidth = (parseFloat(frame.width) || 1) * 3;
       
       // Draw single frame
       ctx.fillStyle = frame.color || '#8B4513';
@@ -145,7 +144,7 @@ export default function FrameVisualizer({
     
     if (useMultipleMats) {
       sortedMats.forEach(matItem => {
-        const matWidth = matItem.width * 8;
+        const matWidth = matItem.width * 3;
         
         // Draw mat rectangle
         ctx.fillStyle = matItem.matboard.color || '#FFFFFF';
@@ -163,7 +162,7 @@ export default function FrameVisualizer({
       });
     } else if (mats.length > 0) {
       const mat = sortedMats[sortedMats.length - 1];
-      const matWidth = mat.width * 8;
+      const matWidth = mat.width * 3;
       
       // Draw single mat
       ctx.fillStyle = mat.matboard.color || '#FFFFFF';
