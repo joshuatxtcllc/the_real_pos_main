@@ -90,25 +90,28 @@ app.use((req, res, next) => {
         log(`serving on port ${PORT}`);
         console.log(`✓ Server running on port ${PORT}`);
         console.log(`✓ Environment: ${process.env.NODE_ENV || 'development'}`);
+        console.log(`✓ CORS enabled for development`);
       });
 
       serverInstance.on('error', (error: any) => {
         if (error.code === 'EADDRINUSE') {
           log(`Port ${PORT} is already in use, trying ${PORT + 1}`, "warning");
           const fallbackPort = PORT + 1;
-          const fallbackServer = server.listen(fallbackPort, "0.0.0.0", () => {
-            log(`serving on fallback port ${fallbackPort}`);
-            console.log(`✓ Server running on fallback port ${fallbackPort}`);
-          });
-          return fallbackServer;
+          try {
+            const fallbackServer = server.listen(fallbackPort, "0.0.0.0", () => {
+              log(`serving on fallback port ${fallbackPort}`);
+              console.log(`✓ Server running on fallback port ${fallbackPort}`);
+            });
+            return fallbackServer;
+          } catch (fallbackError) {
+            log(`Failed to start on fallback port: ${fallbackError}`, "error");
+            console.error('Fallback server error:', fallbackError);
+            process.exit(1);
+          }
         } else {
           log(`Server startup error: ${error.message}`, "error");
           console.error('Server error:', error);
-
-          // Exit gracefully on startup errors for deployment
-          setTimeout(() => {
-            process.exit(1);
-          }, 1000);
+          process.exit(1);
         }
       });
 
@@ -139,8 +142,8 @@ app.use((req, res, next) => {
       process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 
       return serverInstance;
-    } catch (error) {
-      log(`Critical server startup failure: ${error}`, "error");
+    } catch (error: any) {
+      log(`Critical server startup failure: ${error?.message || error}`, "error");
       console.error('Critical error:', error);
       process.exit(1);
     }

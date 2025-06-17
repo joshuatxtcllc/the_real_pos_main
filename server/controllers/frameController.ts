@@ -28,13 +28,14 @@ export async function getAllFrames(req: Request, res: Response) {
     const enhancedFrames = validFrames.map(frame => addColorToFrame(frame));
 
     res.json(enhancedFrames);
-  } catch (error) {
-    console.error('Error fetching frames:', error);
-    res.status(500).json({
-      error: 'Failed to fetch frames',
-      message: error instanceof Error ? error.message : 'Unknown error'
-    });
-  }
+  } catch (error: any) {
+      console.error('Error fetching frames:', error?.message || error);
+      res.status(500).json({ 
+        error: 'Failed to fetch frames',
+        message: error?.message || 'Unknown error occurred',
+        frames: [] // Return empty array as fallback
+      });
+    }
 }
 
 /**
