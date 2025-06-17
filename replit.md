@@ -119,7 +119,12 @@ The application uses a streamlined deployment process optimized for Replit:
 - WebSocket connections for real-time features require sticky sessions
 
 ## Changelog
-- June 13, 2025. Initial setup
+- June 17, 2025: Fixed critical order creation and storage issues
+  - Resolved database authentication errors by creating new PostgreSQL database
+  - Fixed "request entity too large" errors with automatic image compression
+  - Added image compression utility that reduces uploads over 500KB to prevent server errors
+  - Orders now save properly to database and appear in orders list and kanban board
+- June 13, 2025: Initial setup
 
 ## User Preferences
 
