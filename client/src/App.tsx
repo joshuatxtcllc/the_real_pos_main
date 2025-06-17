@@ -27,6 +27,7 @@ import Payment from "./pages/Payment";
 import MatBorderDemo from "./pages/MatBorderDemo";
 import SystemHealthPage from "@/pages/SystemHealthPage";
 import NotificationCenterPage from '@/pages/NotificationCenterPage';
+import KanbanTestPage from './pages/KanbanTestPage';
 import { TooltipProvider } from "@/components/ui/tooltip";
 import ChatWidget from "./components/ChatWidget";
 import FrameEducationPage from '@/pages/FrameEducationPage';
@@ -140,6 +141,7 @@ function App() {
                 <Route path="/pricing-monitor" component={PricingMonitorPage} />
                 <Route path="/larson-optimizer" component={LarsonOptimizerPage} />
                 <Route path="/notifications" component={NotificationCenterPage} />
+                <Route path="/kanban-test" component={KanbanTestPage} />
                 <Route component={NotFound} />
               </Switch>
             </main>

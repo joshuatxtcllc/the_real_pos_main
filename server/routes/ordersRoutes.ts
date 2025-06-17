@@ -8,7 +8,9 @@ import {
   updateOrderStatus,
   deleteOrder,
   getAllOrderGroups,
-  createOrderGroup
+  createOrderGroup,
+  testKanbanSync,
+  getKanbanStatus
 } from '../controllers/ordersController';
 
 const router = Router();
@@ -20,6 +22,10 @@ router.post('/orders', createOrder);
 router.patch('/orders/:id', updateOrder);
 router.patch('/orders/:id/status', updateOrderStatus);
 router.delete('/orders/:id', deleteOrder);
+
+// Kanban integration routes
+router.post('/orders/:orderId/test-kanban-sync', testKanbanSync);
+router.get('/kanban/status', getKanbanStatus);
 
 // Order group routes
 router.get('/order-groups', getAllOrderGroups);

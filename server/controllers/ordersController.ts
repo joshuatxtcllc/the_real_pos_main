@@ -343,7 +343,7 @@ export async function testKanbanSync(req: Request, res: Response) {
     }
 
     // Get order from local database
-    const order = await storage.getOrderById(parseInt(orderId));
+    const order = await storage.getOrder(parseInt(orderId));
     if (!order) {
       return res.status(404).json({
         success: false,
