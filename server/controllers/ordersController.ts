@@ -6,6 +6,79 @@ import axios from 'axios';
 const KANBAN_API_URL = process.env.KANBAN_API_URL || 'https://kanban-app-url.replit.app';
 const KANBAN_API_KEY = process.env.KANBAN_API_KEY;
 
+// Function to sync new order to Kanban app
+async function syncOrderToKanban(order: any) {
+  try {
+    if (!KANBAN_API_KEY || !KANBAN_API_URL) {
+      console.log('Kanban integration not configured, skipping sync');
+      return;
+    }
+
+    const kanbanOrder = {
+      orderId: order.id,
+      customerName: order.customerName || 'Unknown Customer',
+      artworkTitle: order.artworkDescription,
+      frameSize: `${order.artworkWidth}x${order.artworkHeight}`,
+      status: order.productionStatus || 'order_processed',
+      stage: 'pending',
+      priority: 'standard',
+      dueDate: order.dueDate,
+      createdAt: order.createdAt,
+      estimatedCompletion: order.estimatedCompletionDays ? 
+        new Date(Date.now() + (order.estimatedCompletionDays * 24 * 60 * 60 * 1000)).toISOString() : null,
+      materials: {
+        frameType: order.frameId || 'Unknown',
+        matColor: order.matColorId || 'White',
+        glass: order.glassOptionId || 'Regular'
+      }
+    };
+
+    const response = await axios.post(`${KANBAN_API_URL}/api/orders`, kanbanOrder, {
+      headers: {
+        'Authorization': `Bearer ${KANBAN_API_KEY}`,
+        'Content-Type': 'application/json'
+      },
+      timeout: 5000
+    });
+
+    if (response.data && response.data.success) {
+      console.log(`Order ${order.id} synced to Kanban successfully`);
+    }
+  } catch (error: any) {
+    console.error(`Failed to sync order ${order.id} to Kanban:`, error.message);
+  }
+}
+
+// Function to update order status in Kanban app
+async function updateKanbanOrderStatus(orderId: number, status: string, notes?: string) {
+  try {
+    if (!KANBAN_API_KEY || !KANBAN_API_URL) {
+      console.log('Kanban integration not configured, skipping status update');
+      return;
+    }
+
+    const response = await axios.post(`${KANBAN_API_URL}/api/orders/${orderId}/status`, {
+      status,
+      stage: status,
+      notes: notes || `Status updated to ${status}`,
+      updatedBy: 'Jays Frames POS',
+      timestamp: new Date().toISOString()
+    }, {
+      headers: {
+        'Authorization': `Bearer ${KANBAN_API_KEY}`,
+        'Content-Type': 'application/json'
+      },
+      timeout: 5000
+    });
+
+    if (response.data && response.data.success) {
+      console.log(`Order ${orderId} status updated in Kanban to ${status}`);
+    }
+  } catch (error: any) {
+    console.error(`Failed to update order ${orderId} status in Kanban:`, error.message);
+  }
+}
+
 async function fetchOrdersFromKanban() {
   try {
     if (!KANBAN_API_KEY) {
@@ -152,6 +225,9 @@ export async function createOrder(req: Request, res: Response) {
     const order = await storage.createOrder(orderData);
     console.log('Order created successfully:', order);
     
+    // Sync new order to Kanban app
+    await syncOrderToKanban(order);
+    
     res.status(201).json({ 
       success: true, 
       order,
@@ -175,6 +251,11 @@ export async function updateOrder(req: Request, res: Response) {
     
     const order = await storage.updateOrder(parseInt(id), updateData);
     
+    // If production status changed, sync to Kanban
+    if (updateData.productionStatus) {
+      await updateKanbanOrderStatus(parseInt(id), updateData.productionStatus);
+    }
+    
     res.json({ 
       success: true, 
       order,
@@ -185,6 +266,42 @@ export async function updateOrder(req: Request, res: Response) {
     res.status(500).json({ 
       success: false, 
       error: error.message || 'Failed to update order' 
+    });
+  }
+}
+
+// New endpoint specifically for production status updates
+export async function updateOrderStatus(req: Request, res: Response) {
+  try {
+    const { id } = req.params;
+    const { status, notes } = req.body;
+    
+    if (!status) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Status is required' 
+      });
+    }
+
+    // Update order in local database
+    const order = await storage.updateOrder(parseInt(id), { 
+      productionStatus: status,
+      lastStatusChange: new Date()
+    });
+    
+    // Sync status update to Kanban app
+    await updateKanbanOrderStatus(parseInt(id), status, notes);
+    
+    res.json({ 
+      success: true, 
+      order,
+      message: `Order status updated to ${status}` 
+    });
+  } catch (error: any) {
+    console.error('Error updating order status:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: error.message || 'Failed to update order status' 
     });
   }
 }
@@ -204,6 +321,76 @@ export async function deleteOrder(req: Request, res: Response) {
     res.status(500).json({ 
       success: false, 
       error: error.message || 'Failed to delete order' 
+    });
+  }
+}
+
+// Test endpoint to verify Kanban synchronization
+export async function testKanbanSync(req: Request, res: Response) {
+  try {
+    const { orderId } = req.params;
+    
+    if (!KANBAN_API_KEY || !KANBAN_API_URL) {
+      return res.json({
+        success: false,
+        error: 'Kanban integration not configured',
+        config: {
+          hasApiKey: !!KANBAN_API_KEY,
+          hasApiUrl: !!KANBAN_API_URL,
+          apiUrl: KANBAN_API_URL
+        }
+      });
+    }
+
+    // Get order from local database
+    const order = await storage.getOrderById(parseInt(orderId));
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        error: 'Order not found'
+      });
+    }
+
+    // Test sync to Kanban
+    await syncOrderToKanban(order);
+    
+    res.json({
+      success: true,
+      message: `Order ${orderId} synced to Kanban successfully`,
+      order: {
+        id: order.id,
+        status: order.productionStatus,
+        kanbanUrl: KANBAN_API_URL
+      }
+    });
+  } catch (error: any) {
+    console.error('Error testing Kanban sync:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to test Kanban sync'
+    });
+  }
+}
+
+// Get Kanban configuration status
+export async function getKanbanStatus(req: Request, res: Response) {
+  try {
+    res.json({
+      success: true,
+      status: {
+        configured: !!(KANBAN_API_KEY && KANBAN_API_URL),
+        apiUrl: KANBAN_API_URL,
+        hasApiKey: !!KANBAN_API_KEY,
+        endpoints: {
+          orders: `${KANBAN_API_URL}/api/orders`,
+          statusUpdate: `${KANBAN_API_URL}/api/orders/:id/status`
+        }
+      }
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to get Kanban status'
     });
   }
 }
