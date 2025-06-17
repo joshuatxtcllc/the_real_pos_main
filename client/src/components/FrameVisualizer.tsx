@@ -178,11 +178,17 @@ export default function FrameVisualizer({
       currentHeight -= matWidth * 2;
     }
 
-    // Draw artwork in the center
+    // Calculate the final artwork position and size (after all frames and mats)
+    const artworkX = startX + totalBorderWidth;
+    const artworkY = startY + totalBorderWidth;
+    const artworkFinalWidth = artworkDisplayWidth;
+    const artworkFinalHeight = artworkDisplayHeight;
+
+    // Draw artwork in the exact center opening
     if (artworkImage) {
       const img = new Image();
       img.onload = () => {
-        ctx.drawImage(img, currentX, currentY, currentWidth, currentHeight);
+        ctx.drawImage(img, artworkX, artworkY, artworkFinalWidth, artworkFinalHeight);
         
         if (onFrameImageCaptured) {
           setTimeout(() => {
@@ -204,19 +210,19 @@ export default function FrameVisualizer({
     function drawPlaceholder() {
       if (!ctx) return;
       
-      // Draw placeholder artwork
+      // Draw placeholder artwork in the exact opening
       ctx.fillStyle = '#f8f9fa';
-      ctx.fillRect(currentX, currentY, currentWidth, currentHeight);
+      ctx.fillRect(artworkX, artworkY, artworkFinalWidth, artworkFinalHeight);
       ctx.strokeStyle = '#dee2e6';
       ctx.lineWidth = 2;
-      ctx.strokeRect(currentX, currentY, currentWidth, currentHeight);
+      ctx.strokeRect(artworkX, artworkY, artworkFinalWidth, artworkFinalHeight);
       
       // Add placeholder text
       ctx.fillStyle = '#6c757d';
       ctx.font = 'bold 18px Arial';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillText('Your Artwork', currentX + currentWidth / 2, currentY + currentHeight / 2);
+      ctx.fillText('Your Artwork', artworkX + artworkFinalWidth / 2, artworkY + artworkFinalHeight / 2);
       
       if (onFrameImageCaptured) {
         setTimeout(() => {
