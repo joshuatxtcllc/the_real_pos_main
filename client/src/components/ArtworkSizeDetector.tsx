@@ -10,6 +10,7 @@ import { useToast } from '@/hooks/use-toast';
 import { ArtworkSizeDetector as Detector, ArtworkDimensions, createImageFromFile } from '@/lib/artworkSizeDetector';
 import { Frame, MatColor } from '@shared/schema';
 
+import FrameVisualizer from '@/components/FrameVisualizer';
 import { compressImage, getImageSizeKB } from '@/lib/imageCompression';
 
 interface ArtworkSizeDetectorProps {
@@ -668,53 +669,43 @@ export function ArtworkSizeDetector({
                   </div>
                 )}
 
-                {/* Show captured/uploaded image with frame preview */}
+                {/* Hidden frame preview - restored original but set to display: none */}
                 {imagePreview && (
-                  <div className="mt-6 space-y-4 w-full">
-                    <div className="border rounded-md p-4 bg-white w-full max-w-none">
+                  <div className="mt-6 space-y-4 w-full" style={{ display: 'none' }}>
+                    <div className="border rounded-md p-1 sm:p-2 bg-white w-full max-w-none">
                       <h4 className="text-sm font-medium mb-2 text-center">Frame Preview</h4>
-                      <div className="w-full flex justify-center">
-                        <div className="relative inline-block">
-                          {/* Mat border */}
-                          {mats && mats.length > 0 && (
-                            <div 
-                              className="absolute inset-0 rounded-sm"
-                              style={{
-                                backgroundColor: mats[0]?.matboard?.color || '#FFFFFF',
-                                padding: `${(mats[0]?.width || 2) * 4}px`
-                              }}
-                            />
-                          )}
-                          
-                          {/* Frame border */}
-                          {frames && frames.length > 0 && (
-                            <div 
-                              className="absolute inset-0 rounded-sm border-4"
-                              style={{
-                                borderColor: frames[0]?.frame?.color || '#8B4513',
-                                borderWidth: `${(parseFloat(frames[0]?.frame?.width || '1') * 2)}px`
-                              }}
-                            />
-                          )}
-                          
-                          <img 
-                            src={imagePreview} 
-                            alt="Framed artwork" 
-                            className="relative z-10 max-w-full max-h-80 object-contain border rounded"
-                            style={{
-                              margin: `${((mats?.[0]?.width || 2) * 4) + (parseFloat(frames?.[0]?.frame?.width || '1') * 2)}px`
-                            }}
+                      <div className="w-full flex justify-center overflow-hidden">
+                        <div className="w-full max-w-full">
+                          <FrameVisualizer
+                            frames={frames}
+                            mats={mats}
+                            artworkWidth={dimensions.width}
+                            artworkHeight={dimensions.height}
+                            artworkImage={imagePreview}
+                            useMultipleFrames={useMultipleFrames}
+                            useMultipleMats={useMultipleMats}
+                            onFrameImageCaptured={onFrameImageCaptured}
                           />
                         </div>
                       </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Simple uploaded image display */}
+                {imagePreview && (
+                  <div className="mt-6 space-y-4 w-full">
+                    <div className="border rounded-md p-4 bg-white w-full max-w-none">
+                      <h4 className="text-sm font-medium mb-2 text-center">Uploaded Artwork</h4>
+                      <div className="w-full flex justify-center">
+                        <img 
+                          src={imagePreview} 
+                          alt="Uploaded artwork" 
+                          className="max-w-full max-h-96 object-contain border rounded"
+                        />
+                      </div>
                       <div className="text-center text-sm text-gray-600 mt-2">
-                        Artwork: {dimensions.width}" × {dimensions.height}"
-                        {frames && frames.length > 0 && (
-                          <span className="block">Frame: {frames[0]?.frame?.name}</span>
-                        )}
-                        {mats && mats.length > 0 && (
-                          <span className="block">Mat: {mats[0]?.matboard?.name}</span>
-                        )}
+                        Dimensions: {dimensions.width}" × {dimensions.height}"
                       </div>
                     </div>
                   </div>

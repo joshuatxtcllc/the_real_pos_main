@@ -124,8 +124,8 @@ The application uses a streamlined deployment process optimized for Replit:
   - Fixed "request entity too large" errors with automatic image compression
   - Added image compression utility that reduces uploads over 500KB to prevent server errors
   - Orders now save properly to database and appear in orders list and kanban board
-  - Removed redundant frame preview feature that was causing UI scaling issues
-  - Simplified artwork display to show uploaded image with dimensions only
+  - Hidden problematic frame preview screen while preserving all original functionality
+  - Added simple artwork display while keeping full frame processing in background
 - June 13, 2025: Initial setup
 
 ## User Preferences
