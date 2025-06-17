@@ -114,7 +114,7 @@ const Dashboard = () => {
   const getFilteredOrders = () => {
     // Handle API response structure - orders might be wrapped in response object
     const ordersList = Array.isArray(orders) ? orders : 
-                      (orders && typeof orders === 'object' && 'orders' in orders && Array.isArray(orders.orders)) ? orders.orders : 
+                      (orders?.orders && Array.isArray(orders.orders)) ? orders.orders : 
                       [];
 
     if (!ordersList.length) return [];
@@ -186,7 +186,7 @@ const Dashboard = () => {
     });
 
     return Object.entries(framesCount).map(([frameId, count]) => {
-      const frame = Array.isArray(frames) ? frames.find((f: any) => f.id === frameId) : null;
+      const frame = frames.find((f: Frame) => f.id === frameId);
       return {
         name: frame ? frame.name : 'Unknown',
         value: count,
@@ -209,7 +209,7 @@ const Dashboard = () => {
     });
 
     return Object.entries(matColorCount).map(([matColorId, count]) => {
-      const matColor = Array.isArray(matColors) ? matColors.find((m: any) => m.id === matColorId) : null;
+      const matColor = matColors.find((m: MatColor) => m.id === matColorId);
       return {
         name: matColor ? matColor.name : 'Unknown',
         value: count,
@@ -233,7 +233,7 @@ const Dashboard = () => {
     });
 
     return Object.entries(glassOptionCount).map(([glassOptionId, count]) => {
-      const glassOption = Array.isArray(glassOptions) ? glassOptions.find((g: any) => g.id === glassOptionId) : null;
+      const glassOption = glassOptions.find((g: GlassOption) => g.id === glassOptionId);
       return {
         name: glassOption ? glassOption.name : 'Unknown',
         value: count,
@@ -319,7 +319,7 @@ const Dashboard = () => {
         />
         <StatCard
           title="Wholesale Orders"
-          value={Array.isArray(wholesaleOrders) ? wholesaleOrders.length : 0}
+          value={wholesaleOrders?.length || 0}
           description="Material orders to wholesalers"
           icon={
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -500,7 +500,7 @@ const Dashboard = () => {
                 <CardDescription>Material orders by manufacturer</CardDescription>
               </CardHeader>
               <CardContent className="h-[300px]">
-                {Array.isArray(wholesaleOrders) && wholesaleOrders.length > 0 ? (
+                {wholesaleOrders && wholesaleOrders.length > 0 ? (
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart
                       data={

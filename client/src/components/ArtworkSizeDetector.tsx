@@ -9,7 +9,6 @@ import { Loader2, Upload, Camera, Ruler, Image as ImageIcon, RefreshCw } from 'l
 import { useToast } from '@/hooks/use-toast';
 import { ArtworkSizeDetector as Detector, ArtworkDimensions, createImageFromFile } from '@/lib/artworkSizeDetector';
 import { Frame, MatColor } from '@shared/schema';
-
 import FrameVisualizer from '@/components/FrameVisualizer';
 import { compressImage, getImageSizeKB } from '@/lib/imageCompression';
 
@@ -669,9 +668,9 @@ export function ArtworkSizeDetector({
                   </div>
                 )}
 
-                {/* Hidden frame preview - restored original but set to display: none */}
+                {/* Show captured/uploaded image and frame preview */}
                 {imagePreview && (
-                  <div className="mt-6 space-y-4 w-full" style={{ display: 'none' }}>
+                  <div className="mt-6 space-y-4 w-full">
                     <div className="border rounded-md p-1 sm:p-2 bg-white w-full max-w-none">
                       <h4 className="text-sm font-medium mb-2 text-center">Frame Preview</h4>
                       <div className="w-full flex justify-center overflow-hidden">
@@ -687,25 +686,6 @@ export function ArtworkSizeDetector({
                             onFrameImageCaptured={onFrameImageCaptured}
                           />
                         </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Simple uploaded image display */}
-                {imagePreview && (
-                  <div className="mt-6 space-y-4 w-full">
-                    <div className="border rounded-md p-4 bg-white w-full max-w-none">
-                      <h4 className="text-sm font-medium mb-2 text-center">Uploaded Artwork</h4>
-                      <div className="w-full flex justify-center">
-                        <img 
-                          src={imagePreview} 
-                          alt="Uploaded artwork" 
-                          className="max-w-full max-h-96 object-contain border rounded"
-                        />
-                      </div>
-                      <div className="text-center text-sm text-gray-600 mt-2">
-                        Dimensions: {dimensions.width}" × {dimensions.height}"
                       </div>
                     </div>
                   </div>

@@ -49,49 +49,50 @@ export default function FrameVisualizer({
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    // Calculate frame and mat border widths in pixels
+    // Set properly proportioned canvas size
+    const canvasWidth = 1200;
+    const canvasHeight = 900;
+    canvas.width = canvasWidth;
+    canvas.height = canvasHeight;
+
+    // Clear canvas
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Calculate artwork display size for wide canvas
+    const artworkDisplaySize = 600; // Larger base size for wide canvas
+    const aspectRatio = artworkWidth / artworkHeight;
+    
+    let artworkDisplayWidth, artworkDisplayHeight;
+    if (aspectRatio > 1) {
+      artworkDisplayWidth = artworkDisplaySize;
+      artworkDisplayHeight = artworkDisplaySize / aspectRatio;
+    } else {
+      artworkDisplayHeight = artworkDisplaySize;
+      artworkDisplayWidth = artworkDisplaySize * aspectRatio;
+    }
+
+    // Calculate frame and mat border widths (much more visible)
     let totalFrameWidth = 0;
     let totalMatWidth = 0;
 
     frames.forEach(frameItem => {
       const frameWidth = parseFloat(frameItem.frame.width) || 1;
-      totalFrameWidth += frameWidth * 3; // Scale factor for display
+      totalFrameWidth += frameWidth * 8; // Reduced multiplier for better proportions
     });
 
     mats.forEach(matItem => {
-      totalMatWidth += matItem.width * 3; // Scale factor for display
+      totalMatWidth += matItem.width * 8; // Reduced multiplier for better proportions
     });
 
     const totalBorderWidth = totalFrameWidth + totalMatWidth;
 
-    // Calculate artwork display dimensions maintaining aspect ratio
-    const aspectRatio = artworkWidth / artworkHeight;
-    const maxArtworkSize = 400; // Maximum size for the artwork area
-    
-    let artworkDisplayWidth, artworkDisplayHeight;
-    if (aspectRatio > 1) {
-      artworkDisplayWidth = maxArtworkSize;
-      artworkDisplayHeight = maxArtworkSize / aspectRatio;
-    } else {
-      artworkDisplayHeight = maxArtworkSize;
-      artworkDisplayWidth = maxArtworkSize * aspectRatio;
-    }
-
-    // Calculate total composition size (artwork + borders)
+    // Calculate total composition size
     const totalWidth = artworkDisplayWidth + (totalBorderWidth * 2);
     const totalHeight = artworkDisplayHeight + (totalBorderWidth * 2);
 
-    // Set canvas size to fit the composition with some padding
-    const padding = 40;
-    canvas.width = totalWidth + (padding * 2);
-    canvas.height = totalHeight + (padding * 2);
-
-    // Clear canvas
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
     // Center the composition on canvas
-    const startX = padding;
-    const startY = padding;
+    const startX = (canvas.width - totalWidth) / 2;
+    const startY = (canvas.height - totalHeight) / 2;
 
     // Current drawing position (start from outside)
     let currentX = startX;
@@ -104,7 +105,7 @@ export default function FrameVisualizer({
     
     if (useMultipleFrames) {
       sortedFrames.forEach(frameItem => {
-        const frameWidth = (parseFloat(frameItem.frame.width) || 1) * 3;
+        const frameWidth = (parseFloat(frameItem.frame.width) || 1) * 8;
         
         // Draw frame rectangle
         ctx.fillStyle = frameItem.frame.color || '#8B4513';
@@ -123,7 +124,7 @@ export default function FrameVisualizer({
       });
     } else if (frames.length > 0) {
       const frame = sortedFrames[sortedFrames.length - 1].frame;
-      const frameWidth = (parseFloat(frame.width) || 1) * 3;
+      const frameWidth = (parseFloat(frame.width) || 1) * 8;
       
       // Draw single frame
       ctx.fillStyle = frame.color || '#8B4513';
@@ -144,7 +145,7 @@ export default function FrameVisualizer({
     
     if (useMultipleMats) {
       sortedMats.forEach(matItem => {
-        const matWidth = matItem.width * 3;
+        const matWidth = matItem.width * 8;
         
         // Draw mat rectangle
         ctx.fillStyle = matItem.matboard.color || '#FFFFFF';
@@ -162,7 +163,7 @@ export default function FrameVisualizer({
       });
     } else if (mats.length > 0) {
       const mat = sortedMats[sortedMats.length - 1];
-      const matWidth = mat.width * 3;
+      const matWidth = mat.width * 8;
       
       // Draw single mat
       ctx.fillStyle = mat.matboard.color || '#FFFFFF';
@@ -178,17 +179,11 @@ export default function FrameVisualizer({
       currentHeight -= matWidth * 2;
     }
 
-    // Calculate the final artwork position and size (after all frames and mats)
-    const artworkX = startX + totalBorderWidth;
-    const artworkY = startY + totalBorderWidth;
-    const artworkFinalWidth = artworkDisplayWidth;
-    const artworkFinalHeight = artworkDisplayHeight;
-
-    // Draw artwork in the exact center opening
+    // Draw artwork in the center
     if (artworkImage) {
       const img = new Image();
       img.onload = () => {
-        ctx.drawImage(img, artworkX, artworkY, artworkFinalWidth, artworkFinalHeight);
+        ctx.drawImage(img, currentX, currentY, currentWidth, currentHeight);
         
         if (onFrameImageCaptured) {
           setTimeout(() => {
@@ -210,19 +205,19 @@ export default function FrameVisualizer({
     function drawPlaceholder() {
       if (!ctx) return;
       
-      // Draw placeholder artwork in the exact opening
+      // Draw placeholder artwork
       ctx.fillStyle = '#f8f9fa';
-      ctx.fillRect(artworkX, artworkY, artworkFinalWidth, artworkFinalHeight);
+      ctx.fillRect(currentX, currentY, currentWidth, currentHeight);
       ctx.strokeStyle = '#dee2e6';
       ctx.lineWidth = 2;
-      ctx.strokeRect(artworkX, artworkY, artworkFinalWidth, artworkFinalHeight);
+      ctx.strokeRect(currentX, currentY, currentWidth, currentHeight);
       
       // Add placeholder text
       ctx.fillStyle = '#6c757d';
       ctx.font = 'bold 18px Arial';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillText('Your Artwork', artworkX + artworkFinalWidth / 2, artworkY + artworkFinalHeight / 2);
+      ctx.fillText('Your Artwork', currentX + currentWidth / 2, currentY + currentHeight / 2);
       
       if (onFrameImageCaptured) {
         setTimeout(() => {
