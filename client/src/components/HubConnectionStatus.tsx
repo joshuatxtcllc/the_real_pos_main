@@ -31,7 +31,7 @@ export default function HubConnectionStatus({ refreshTrigger = 0 }: ConnectionSt
         // For demo purposes, simulate an API response
         await new Promise(resolve => setTimeout(resolve, 1000));
         
-        if (process.env.HUB_API_KEY) {
+        if (import.meta.env.VITE_HUB_API_KEY) {
           return {
             connected: true,
             apiVersion: '1.2.3',
@@ -60,7 +60,7 @@ export default function HubConnectionStatus({ refreshTrigger = 0 }: ConnectionSt
       // For demo purposes, simulate an API test
       await new Promise(resolve => setTimeout(resolve, 1500));
       
-      if (process.env.HUB_API_KEY) {
+      if (import.meta.env.VITE_HUB_API_KEY) {
         return { success: true, message: 'Connection successful' };
       } else {
         throw new Error('Connection failed: API key not found');

@@ -24,7 +24,7 @@ import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 
 // Get Dashboard API URL from environment variables
-const DASHBOARD_API_URL = import.meta.env.VITE_DASHBOARD_API_URL || process.env.DASHBOARD_API_URL;
+const DASHBOARD_API_URL = import.meta.env.VITE_DASHBOARD_API_URL;
 
 // Dashboard overview stats
 interface StatCardProps {
