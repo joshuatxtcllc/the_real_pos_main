@@ -114,7 +114,7 @@ const Dashboard = () => {
   const getFilteredOrders = () => {
     // Handle API response structure - orders might be wrapped in response object
     const ordersList = Array.isArray(orders) ? orders : 
-                      (orders?.orders && Array.isArray(orders.orders)) ? orders.orders : 
+                      (orders && typeof orders === 'object' && 'orders' in orders && Array.isArray(orders.orders)) ? orders.orders : 
                       [];
 
     if (!ordersList.length) return [];
@@ -186,7 +186,7 @@ const Dashboard = () => {
     });
 
     return Object.entries(framesCount).map(([frameId, count]) => {
-      const frame = frames.find((f: Frame) => f.id === frameId);
+      const frame = Array.isArray(frames) ? frames.find((f: any) => f.id === frameId) : null;
       return {
         name: frame ? frame.name : 'Unknown',
         value: count,
@@ -209,7 +209,7 @@ const Dashboard = () => {
     });
 
     return Object.entries(matColorCount).map(([matColorId, count]) => {
-      const matColor = matColors.find((m: MatColor) => m.id === matColorId);
+      const matColor = Array.isArray(matColors) ? matColors.find((m: any) => m.id === matColorId) : null;
       return {
         name: matColor ? matColor.name : 'Unknown',
         value: count,
@@ -233,7 +233,7 @@ const Dashboard = () => {
     });
 
     return Object.entries(glassOptionCount).map(([glassOptionId, count]) => {
-      const glassOption = glassOptions.find((g: GlassOption) => g.id === glassOptionId);
+      const glassOption = Array.isArray(glassOptions) ? glassOptions.find((g: any) => g.id === glassOptionId) : null;
       return {
         name: glassOption ? glassOption.name : 'Unknown',
         value: count,

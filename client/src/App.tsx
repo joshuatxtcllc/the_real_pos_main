@@ -59,7 +59,10 @@ function App() {
       }
     };
 
-    initializeApp();
+    // Use Promise.catch to handle any unhandled rejections
+    initializeApp().catch((error) => {
+      console.error('Unhandled error during app initialization:', error);
+    });
 
     // Cleanup on unmount
     return () => {
