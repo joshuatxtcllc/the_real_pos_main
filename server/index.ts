@@ -22,9 +22,9 @@ app.use(cors({
   credentials: true
 }));
 
-// JSON parsing middleware
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+// JSON parsing middleware with increased limits for image uploads
+app.use(express.json({ limit: '100mb' }));
+app.use(express.urlencoded({ extended: true, limit: '100mb' }));
 
 // Static files
 app.use((req, res, next) => {

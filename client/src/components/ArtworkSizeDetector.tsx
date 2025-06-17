@@ -10,6 +10,7 @@ import { useToast } from '@/hooks/use-toast';
 import { ArtworkSizeDetector as Detector, ArtworkDimensions, createImageFromFile } from '@/lib/artworkSizeDetector';
 import { Frame, MatColor } from '@shared/schema';
 import FrameVisualizer from '@/components/FrameVisualizer';
+import { compressImage, getImageSizeKB } from '@/lib/imageCompression';
 
 interface ArtworkSizeDetectorProps {
   onDimensionsDetected: (dimensions: ArtworkDimensions, imageDataUrl: string) => void;
@@ -96,11 +97,28 @@ export function ArtworkSizeDetector({
         const detectedDimensions = await detector.estimateDimensions(image);
         setDimensions(detectedDimensions);
         
-        // Convert to data URL for passing to parent
+        // Convert to data URL and compress for passing to parent
         const reader = new FileReader();
-        reader.onload = (e) => {
+        reader.onload = async (e) => {
           const imgDataUrl = e.target?.result as string;
-          onDimensionsDetected(detectedDimensions, imgDataUrl);
+          
+          // Compress image to prevent "request entity too large" errors
+          const originalSizeKB = getImageSizeKB(imgDataUrl);
+          console.log(`Original image size: ${originalSizeKB.toFixed(1)} KB`);
+          
+          let compressedDataUrl = imgDataUrl;
+          if (originalSizeKB > 500) { // Compress if larger than 500KB
+            compressedDataUrl = await compressImage(imgDataUrl, {
+              maxWidth: 1920,
+              maxHeight: 1920,
+              quality: 0.8,
+              maxSizeKB: 500
+            });
+            const compressedSizeKB = getImageSizeKB(compressedDataUrl);
+            console.log(`Compressed image size: ${compressedSizeKB.toFixed(1)} KB`);
+          }
+          
+          onDimensionsDetected(detectedDimensions, compressedDataUrl);
         };
         reader.readAsDataURL(file);
         
@@ -109,11 +127,28 @@ export function ArtworkSizeDetector({
           description: `Detected artwork size: ${detectedDimensions.width}" × ${detectedDimensions.height}"`,
         });
       } else {
-        // If detector isn't available, just pass the image
+        // If detector isn't available, compress and pass the image
         const reader = new FileReader();
-        reader.onload = (e) => {
+        reader.onload = async (e) => {
           const imgDataUrl = e.target?.result as string;
-          onDimensionsDetected(dimensions, imgDataUrl);
+          
+          // Compress image to prevent "request entity too large" errors
+          const originalSizeKB = getImageSizeKB(imgDataUrl);
+          console.log(`Original image size: ${originalSizeKB.toFixed(1)} KB`);
+          
+          let compressedDataUrl = imgDataUrl;
+          if (originalSizeKB > 500) { // Compress if larger than 500KB
+            compressedDataUrl = await compressImage(imgDataUrl, {
+              maxWidth: 1920,
+              maxHeight: 1920,
+              quality: 0.8,
+              maxSizeKB: 500
+            });
+            const compressedSizeKB = getImageSizeKB(compressedDataUrl);
+            console.log(`Compressed image size: ${compressedSizeKB.toFixed(1)} KB`);
+          }
+          
+          onDimensionsDetected(dimensions, compressedDataUrl);
         };
         reader.readAsDataURL(file);
       }
@@ -373,7 +408,24 @@ export function ArtworkSizeDetector({
             
             if (isValidSize) {
               setDimensions(detectedDimensions);
-              onDimensionsDetected(detectedDimensions, dataUrl);
+              
+              // Compress image to prevent "request entity too large" errors
+              const originalSizeKB = getImageSizeKB(dataUrl);
+              console.log(`Original webcam image size: ${originalSizeKB.toFixed(1)} KB`);
+              
+              let compressedDataUrl = dataUrl;
+              if (originalSizeKB > 500) { // Compress if larger than 500KB
+                compressedDataUrl = await compressImage(dataUrl, {
+                  maxWidth: 1920,
+                  maxHeight: 1920,
+                  quality: 0.8,
+                  maxSizeKB: 500
+                });
+                const compressedSizeKB = getImageSizeKB(compressedDataUrl);
+                console.log(`Compressed webcam image size: ${compressedSizeKB.toFixed(1)} KB`);
+              }
+              
+              onDimensionsDetected(detectedDimensions, compressedDataUrl);
               
               toast({
                 title: 'Dimensions Detected',
@@ -407,7 +459,24 @@ export function ArtworkSizeDetector({
               };
               
               setDimensions(defaultDimensions);
-              onDimensionsDetected(defaultDimensions, dataUrl);
+              
+              // Compress image to prevent "request entity too large" errors
+              const originalSizeKB = getImageSizeKB(dataUrl);
+              console.log(`Original webcam image size: ${originalSizeKB.toFixed(1)} KB`);
+              
+              let compressedDataUrl = dataUrl;
+              if (originalSizeKB > 500) { // Compress if larger than 500KB
+                compressedDataUrl = await compressImage(dataUrl, {
+                  maxWidth: 1920,
+                  maxHeight: 1920,
+                  quality: 0.8,
+                  maxSizeKB: 500
+                });
+                const compressedSizeKB = getImageSizeKB(compressedDataUrl);
+                console.log(`Compressed webcam image size: ${compressedSizeKB.toFixed(1)} KB`);
+              }
+              
+              onDimensionsDetected(defaultDimensions, compressedDataUrl);
               
               toast({
                 title: 'Detection Adjusted',
