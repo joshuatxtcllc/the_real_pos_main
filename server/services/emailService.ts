@@ -1,9 +1,4 @@
-import sgMail from '@sendgrid/mail';
-
-// Initialize SendGrid with the API key
-if (process.env.SENDGRID_API_KEY) {
-  sgMail.setApiKey(process.env.SENDGRID_API_KEY);
-}
+import { sendNotificationViaSmsHub, sendOrderStatusUpdate as sendSmsStatusUpdate } from './smsHubService.js';
 
 interface EmailParams {
   to: string;
@@ -14,55 +9,37 @@ interface EmailParams {
 }
 
 /**
- * Send an email using SendGrid
- * @param params Email parameters including to, from, subject, text, and html
- * @returns A promise that resolves when the email is sent
+ * Send notification using SMS Hub (replaces SendGrid functionality)
+ * @param params Email parameters converted to SMS Hub notification
+ * @returns A promise that resolves when the notification is sent
  */
 export async function sendEmailWithSendGrid(params: EmailParams): Promise<void> {
-  // Check if SendGrid is configured
-  if (!process.env.SENDGRID_API_KEY) {
-    console.warn('SendGrid API key is not configured. Email sending is disabled.');
-    return;
-  }
-
+  console.log('Using SMS Hub instead of SendGrid for notifications');
+  
   try {
-    // Send the email
-    await sgMail.send({
+    await sendNotificationViaSmsHub({
       to: params.to,
-      from: params.from || process.env.FROM_EMAIL || 'noreply@jaysframes.com',
       subject: params.subject,
-      text: params.text,
-      html: params.html,
+      message: params.text || extractTextFromHtml(params.html || ''),
+      type: 'email_replacement'
     });
-    
-    console.log(`Email sent successfully to ${params.to}`);
   } catch (error: any) {
-    console.error('SendGrid Error:', error);
-    
-    // Log detailed error information
-    if (error.response && error.response.body) {
-      console.error('SendGrid Response Body:', JSON.stringify(error.response.body, null, 2));
-      
-      // Check for specific SendGrid errors
-      const errorBody = error.response.body;
-      if (errorBody.errors && errorBody.errors.length > 0) {
-        const firstError = errorBody.errors[0];
-        
-        if (firstError.message === 'Maximum credits exceeded') {
-          throw new Error('SendGrid account has exceeded credit limit. Please check your SendGrid billing or upgrade your plan.');
-        }
-        
-        if (firstError.message.includes('Unauthorized')) {
-          throw new Error('SendGrid API key is invalid or expired. Please check your API key configuration.');
-        }
-        
-        throw new Error(`SendGrid Error: ${firstError.message}`);
-      }
-    }
-    
-    // Rethrow the error to be handled by the caller
-    throw new Error(`Failed to send email: ${error.message}`);
+    console.error('SMS Hub notification error:', error.message);
+    throw new Error(`Failed to send notification via SMS Hub: ${error.message}`);
   }
+}
+
+/**
+ * Extract plain text from HTML content
+ */
+function extractTextFromHtml(html: string): string {
+  return html
+    .replace(/<[^>]*>/g, '')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .trim();
 }
 
 /**
@@ -242,8 +219,8 @@ export function generateOrderStatusEmailTemplate(
 }
 
 /**
- * Send order status update email to customer
- * @param customerEmail Customer's email address
+ * Send order status update via SMS Hub
+ * @param customerEmail Customer's email address or phone number
  * @param customerName Customer's name
  * @param orderId Order ID
  * @param orderStatus Current order status
@@ -256,23 +233,15 @@ export async function sendOrderStatusUpdate(
   orderStatus: string,
   estimatedCompletion?: Date
 ): Promise<void> {
-  const fromEmail = process.env.FROM_EMAIL || 'noreply@jaysartandframes.com';
-  const subject = `Order #${orderId} Status Update - ${orderStatus.replace('_', ' ').toUpperCase()}`;
+  console.log(`Sending order status update via SMS Hub for order #${orderId}`);
   
-  const htmlContent = generateOrderStatusEmailTemplate(
+  await sendSmsStatusUpdate(
+    customerEmail,
+    '', // phone placeholder
     customerName,
-    orderId,
-    orderStatus,
-    estimatedCompletion
+    orderId.toString(),
+    orderStatus
   );
-
-  await sendEmailWithSendGrid({
-    to: customerEmail,
-    from: fromEmail,
-    subject,
-    html: htmlContent,
-    text: `Hello ${customerName}, your order #${orderId} status has been updated to: ${orderStatus}`
-  });
 }
 
 // Helper function to get the description for each order status
