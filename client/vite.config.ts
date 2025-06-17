@@ -17,6 +17,14 @@ export default defineConfig({
     port: 5173,
     strictPort: false,
     open: false,
+    hmr: {
+      clientPort: 5173,
+      host: "0.0.0.0"
+    },
+    watch: {
+      usePolling: true,
+      interval: 1000
+    }
   },
   optimizeDeps: {
     force: true,

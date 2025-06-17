@@ -11,8 +11,18 @@ window.addEventListener('error', (event) => {
 
 window.addEventListener('unhandledrejection', (event) => {
   console.error('Unhandled promise rejection:', event.reason);
-  event.preventDefault(); // Prevent the default browser behavior
+  // Don't prevent HMR connection errors from being handled by Vite
+  if (!event.reason?.message?.includes('vite') && !event.reason?.message?.includes('WebSocket')) {
+    event.preventDefault();
+  }
 });
+
+// Handle Vite HMR connection issues
+if (import.meta.hot) {
+  import.meta.hot.on('vite:error', (payload) => {
+    console.warn('Vite HMR error (this is normal during development):', payload);
+  });
+}
 
 // Get root element
 const rootElement = document.getElementById('root');
