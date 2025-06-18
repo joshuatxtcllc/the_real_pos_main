@@ -15,7 +15,7 @@ interface NotificationParams {
 }
 
 /**
- * Send notification using the SMS Hub
+ * Send notification using the SMS Hub with email option
  * @param params Notification parameters
  * @returns Promise that resolves when notification is sent
  */
@@ -28,7 +28,9 @@ export async function sendNotificationViaSmsHub(params: NotificationParams): Pro
       orderId: params.orderId,
       customerName: params.customerName,
       type: params.type || 'order_update',
-      source: 'Jays Frames POS'
+      source: 'Jays Frames POS',
+      method: 'email', // Use email delivery method
+      deliveryType: 'email' // Specify email as the delivery type
     }, {
       headers: {
         'Authorization': `Bearer ${SMS_HUB_API_KEY}`,
@@ -38,7 +40,7 @@ export async function sendNotificationViaSmsHub(params: NotificationParams): Pro
     });
 
     if (response.data && response.data.success) {
-      console.log(`Notification sent successfully to ${params.to} via SMS Hub`);
+      console.log(`Email notification sent successfully to ${params.to} via SMS Hub`);
     } else {
       throw new Error(response.data?.error || 'SMS Hub returned error response');
     }
@@ -49,14 +51,14 @@ export async function sendNotificationViaSmsHub(params: NotificationParams): Pro
       console.error('SMS Hub Response:', error.response.data);
     }
     
-    throw new Error(`Failed to send notification via SMS Hub: ${error.message}`);
+    throw new Error(`Failed to send email notification via SMS Hub: ${error.message}`);
   }
 }
 
 /**
- * Send order status update notification
+ * Send order status update notification via email through SMS Hub
  * @param customerEmail Customer email address
- * @param customerPhone Customer phone number
+ * @param customerPhone Customer phone number (unused - using email delivery)
  * @param customerName Customer name
  * @param orderId Order ID
  * @param status New order status
@@ -72,7 +74,7 @@ export async function sendOrderStatusUpdate(
   const message = `Hi ${customerName}, your order #${orderId} status has been updated to: ${status}. Thank you for choosing Jay's Frames!`;
   
   await sendNotificationViaSmsHub({
-    to: customerEmail || customerPhone,
+    to: customerEmail, // Always use email address for delivery
     subject: `Order #${orderId} Update`,
     message,
     orderId,
