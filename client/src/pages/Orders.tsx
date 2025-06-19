@@ -269,7 +269,22 @@ const Orders = () => {
 
   // Check if any order has orderGroupId that matches
   const findOrderGroupForOrder = (orderId: number) => {
-    if (!orderGroups || !ordersArray) return null;
+    if (!orderGroups) return null;
+    
+    // Get ordersArray in this function scope
+    let currentOrdersArray: Order[] = [];
+    try {
+      if (Array.isArray(orders)) {
+        currentOrdersArray = orders;
+      } else if (orders && typeof orders === 'object' && 'orders' in orders) {
+        currentOrdersArray = (orders as any).orders || [];
+      }
+    } catch (error) {
+      console.error('Error parsing orders in findOrderGroupForOrder:', error);
+      return null;
+    }
+    
+    if (!currentOrdersArray.length) return null;
 
     // Extract orderGroups array properly
     let orderGroupArray: any[] = [];
@@ -300,7 +315,7 @@ const Orders = () => {
     }
 
     // Find the order group by matching orders with the given order ID
-    const targetOrders = ordersArray.filter((order: Order) => 
+    const targetOrders = currentOrdersArray.filter((order: Order) => 
       order.id === orderId && order.orderGroupId !== null
     );
 
