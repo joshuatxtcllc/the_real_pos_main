@@ -442,36 +442,7 @@ const MaterialsPickList: React.FC<MaterialsPickListProps> = ({ onCreateOrder }) 
     );
   };
 
-  // Update individual item status
-  const updateItemStatus = async () => {
-    if (!statusDialogItem || !newStatus) return;
 
-    try {
-      const response = await updateMaterialOrder.mutateAsync({
-        id: statusDialogItem.id,
-        data: { 
-          status: newStatus,
-          notes: statusNotes 
-        }
-      });
-
-      toast({
-        title: "Status updated",
-        description: `${statusDialogItem.name} status updated to ${newStatus}`,
-      });
-
-      setIsStatusDialogOpen(false);
-      setStatusDialogItem(null);
-      setNewStatus("");
-      setStatusNotes("");
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to update material status",
-        variant: "destructive",
-      });
-    }
-  };
   
   // Export pick list 
   const exportPickList = () => {
