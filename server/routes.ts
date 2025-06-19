@@ -764,17 +764,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const orderId = parseInt(req.params.orderId);
       
-      if (!orderId) {
+      if (!orderId || isNaN(orderId)) {
         return res.status(400).json({ error: 'Valid order ID is required' });
       }
+
+      console.log(`Generating materials for order ID: ${orderId}`);
 
       const order = await storage.getOrder(orderId);
       if (!order) {
         return res.status(404).json({ error: 'Order not found' });
       }
 
+      console.log(`Found order:`, order);
+
       const materialOrders = await storage.createMaterialOrdersFromOrder(order);
       
+      console.log(`Generated ${materialOrders.length} material orders`);
+
       res.json({ 
         success: true, 
         message: `Generated ${materialOrders.length} material orders for order #${orderId}`,
@@ -782,7 +788,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error: any) {
       console.error('Error generating materials for order:', error);
-      res.status(500).json({ error: error.message });
+      res.status(500).json({ 
+        success: false, 
+        error: error.message || 'Failed to generate material orders' 
+      });
     }
   });
 

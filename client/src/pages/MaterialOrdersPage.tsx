@@ -18,9 +18,32 @@ const MaterialOrdersPage: React.FC = () => {
   const [selectedType, setSelectedType] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
 
-  const { data: materials = [], isLoading, error } = useMaterialsPickList();
+  const { data: materials = [], isLoading, error, refetch } = useMaterialsPickList();
   const { data: materialTypes = [] } = useMaterialTypes();
   const { data: suppliers = [] } = useMaterialSuppliers();
+
+  const handleGenerateAllMaterials = async () => {
+    try {
+      const response = await fetch('/api/orders/generate-all-materials', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+
+      const result = await response.json();
+      
+      if (result.success) {
+        // Refetch materials to show new ones
+        refetch();
+        console.log('Materials generated successfully:', result.message);
+      } else {
+        console.error('Failed to generate materials:', result.error);
+      }
+    } catch (error) {
+      console.error('Error generating materials:', error);
+    }
+  };
 
   // Filter materials based on active tab, type, and search
   const filteredMaterials = materials.filter(material => {
@@ -73,10 +96,16 @@ const MaterialOrdersPage: React.FC = () => {
               Manage and track material orders for your framing business
             </p>
           </div>
-          <Button className="flex items-center gap-2">
-            <Plus className="h-4 w-4" />
-            New Order
-          </Button>
+          <div className="flex gap-2">
+            <Button onClick={handleGenerateAllMaterials} variant="outline" className="flex items-center gap-2">
+              <Package className="h-4 w-4" />
+              Generate Materials
+            </Button>
+            <Button className="flex items-center gap-2">
+              <Plus className="h-4 w-4" />
+              New Order
+            </Button>
+          </div>
         </div>
       </div>
 

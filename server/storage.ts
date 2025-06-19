@@ -189,6 +189,7 @@ export interface IStorage {
 import { db } from "./db";
 import { eq, desc, sql, asc, and, or } from "drizzle-orm";
 import { log } from "./utils/logger";
+import { materialOrders as materialOrdersTable } from "@shared/schema";
 
 export class DatabaseStorage implements IStorage {
   /**
@@ -1904,7 +1905,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Materials Pick List functionality
-  async getMaterialsPickList() {
+  async getMaterialsPickList(): Promise<any[]> {
     try {
       // Get all material orders from the database with pending, processed status
       const materialsList = await db
@@ -2147,13 +2148,23 @@ export class DatabaseStorage implements IStorage {
         }
       }
 
-      // Insert all material orders
+      // Save all material orders to the database
+      console.log(`Attempting to save ${materialOrders.length} material orders`);
       const createdOrders: MaterialOrder[] = [];
+
       for (const materialOrder of materialOrders) {
-        const created = await this.createMaterialOrder(materialOrder);
-        createdOrders.push(created);
+        try {
+          console.log('Inserting material order:', materialOrder);
+          const [created] = await db.insert(materialOrders).values(materialOrder).returning();
+          createdOrders.push(created);
+          console.log('Successfully inserted material order:', created.id);
+        } catch (error) {
+          console.error('Error inserting material order:', error, materialOrder);
+          // Continue with other orders
+        }
       }
 
+      console.log(`Successfully created ${createdOrders.length} material orders for order ${order.id}`);
       return createdOrders;
     } catch (error) {
       log(`Error creating material orders from order: ${error}`, 'storage');
