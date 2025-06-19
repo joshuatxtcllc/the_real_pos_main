@@ -60,6 +60,8 @@ interface OrderSummaryProps {
   }>;
   initialDiscountPercentage?: number;
   onDiscountChange?: (discountPercentage: number, discountAmount: number) => void;
+  initialQuantity?: number;
+  onQuantityChange?: (quantity: number) => void;
 }
 
 const OrderSummary: React.FC<OrderSummaryProps> = ({
@@ -88,7 +90,9 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({
   manualFrameCost = 0,
   miscCharges = [],
   initialDiscountPercentage = 0,
-  onDiscountChange
+  onDiscountChange,
+  initialQuantity = 1,
+  onQuantityChange
 }) => {
   // Local state for wholesale order checkbox if not provided through props
   const [localAddToWholesaleOrder, setLocalAddToWholesaleOrder] = useState(false);
@@ -96,12 +100,24 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({
   // Discount state
   const [discountPercentage, setDiscountPercentage] = useState<number>(initialDiscountPercentage);
   
+  // Quantity state
+  const [quantity, setQuantity] = useState<number>(initialQuantity);
+  
   // Handle discount change
   const handleDiscountChange = (newDiscountPercentage: number) => {
     setDiscountPercentage(newDiscountPercentage);
     const newDiscountAmount = (preOverheadSubtotal + overheadCharge) * (newDiscountPercentage / 100);
     if (onDiscountChange) {
       onDiscountChange(newDiscountPercentage, newDiscountAmount);
+    }
+  };
+
+  // Handle quantity change
+  const handleQuantityChange = (newQuantity: number) => {
+    if (newQuantity < 1) return;
+    setQuantity(newQuantity);
+    if (onQuantityChange) {
+      onQuantityChange(newQuantity);
     }
   };
 
@@ -149,8 +165,8 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({
   // Calculate overhead charges
   const overheadCharge = calculateOverheadCharge(preOverheadSubtotal);
 
-  // Calculate final subtotal with overhead
-  const subtotal = preOverheadSubtotal + overheadCharge;
+  // Calculate final subtotal with overhead and quantity
+  const subtotal = (preOverheadSubtotal + overheadCharge) * quantity;
   
   // Apply discount
   const discountAmount = subtotal * (discountPercentage / 100);
@@ -299,6 +315,40 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({
         </div>
 
         <div className="border-t border-light-border dark:border-dark-border pt-2">
+          {/* Quantity Controls */}
+          <div className="flex justify-between items-center mb-3">
+            <div className="flex items-center space-x-2">
+              <span className="text-sm font-medium">Quantity</span>
+              <div className="flex items-center">
+                <button
+                  type="button"
+                  onClick={() => handleQuantityChange(quantity - 1)}
+                  disabled={quantity <= 1}
+                  className="w-8 h-8 rounded-l border border-gray-300 bg-gray-50 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center text-sm font-medium"
+                >
+                  -
+                </button>
+                <Input
+                  type="number"
+                  min="1"
+                  className="w-16 h-8 rounded-none text-center border-l-0 border-r-0"
+                  value={quantity}
+                  onChange={(e) => handleQuantityChange(parseInt(e.target.value) || 1)}
+                />
+                <button
+                  type="button"
+                  onClick={() => handleQuantityChange(quantity + 1)}
+                  className="w-8 h-8 rounded-r border border-gray-300 bg-gray-50 hover:bg-gray-100 flex items-center justify-center text-sm font-medium"
+                >
+                  +
+                </button>
+              </div>
+            </div>
+            <span className="text-sm text-light-textSecondary dark:text-dark-textSecondary">
+              ${((preOverheadSubtotal + overheadCharge) * quantity).toFixed(2)}
+            </span>
+          </div>
+
           <div className="flex justify-between font-medium">
             <span>Subtotal</span>
             <span>${subtotal.toFixed(2)}</span>
