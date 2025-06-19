@@ -75,7 +75,7 @@ const PaymentStatusBadge = ({ orderGroup, total }: { orderGroup: OrderGroup | nu
   const getPaymentBadge = () => {
     const totalAmount = parseFloat(orderGroup.total || '0');
     const paidAmount = parseFloat(orderGroup.cashAmount || '0');
-    
+
     if (orderGroup.status === 'paid') {
       return (
         <span className="px-2 py-1 rounded-full text-xs font-bold bg-green-600 text-white shadow-md">
@@ -83,7 +83,7 @@ const PaymentStatusBadge = ({ orderGroup, total }: { orderGroup: OrderGroup | nu
         </span>
       );
     }
-    
+
     if (paidAmount > 0 && paidAmount < totalAmount) {
       const remaining = totalAmount - paidAmount;
       return (
@@ -94,7 +94,7 @@ const PaymentStatusBadge = ({ orderGroup, total }: { orderGroup: OrderGroup | nu
         </div>
       );
     }
-    
+
     return (
       <div className="flex items-center space-x-2">
         <span className="px-3 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800 border-2 border-red-300 animate-pulse">
@@ -270,7 +270,7 @@ const Orders = () => {
   // Check if any order has orderGroupId that matches
   const findOrderGroupForOrder = (orderId: number) => {
     if (!orderGroups) return null;
-    
+
     // Get ordersArray in this function scope
     let currentOrdersArray: Order[] = [];
     try {
@@ -283,7 +283,7 @@ const Orders = () => {
       console.error('Error parsing orders in findOrderGroupForOrder:', error);
       return null;
     }
-    
+
     if (!currentOrdersArray.length) return null;
 
     // Extract orderGroups array properly
@@ -334,7 +334,7 @@ const Orders = () => {
 
   // Extract orders array from API response and filter based on search term and status
   let ordersArray: Order[] = [];
-  
+
   try {
     if (Array.isArray(orders)) {
       ordersArray = orders;
@@ -345,10 +345,10 @@ const Orders = () => {
     console.error('Error parsing orders:', error);
     ordersArray = [];
   }
-  
+
   console.log('Orders response:', orders);
   console.log('Orders array:', ordersArray);
-  
+
   const filteredOrders = Array.isArray(ordersArray) ? ordersArray.filter((order: Order) => {
     try {
       const customerName = getCustomerName(order.customerId);
