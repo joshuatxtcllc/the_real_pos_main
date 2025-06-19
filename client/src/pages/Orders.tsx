@@ -417,7 +417,7 @@ const Orders = () => {
             <div className="w-full sm:w-auto">
               <Input
                 placeholder="Search by customer or order #"
-                className="max-w-md text-gray-900 dark:text-white placeholder-gray-600 dark:placeholder-gray-400"
+                className="max-w-md text-black dark:text-white placeholder-gray-700 dark:placeholder-gray-300 bg-white dark:bg-gray-800 border-2 border-gray-400 dark:border-gray-600"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
@@ -427,10 +427,10 @@ const Orders = () => {
                 value={statusFilter}
                 onValueChange={setStatusFilter}
               >
-                <SelectTrigger className="w-full sm:w-[180px] text-gray-900 dark:text-white">
+                <SelectTrigger className="w-full sm:w-[180px] text-black dark:text-white bg-white dark:bg-gray-800 border-2 border-gray-400 dark:border-gray-600">
                   <SelectValue placeholder="Filter by status" />
                 </SelectTrigger>
-                <SelectContent className="text-gray-900 dark:text-white">
+                <SelectContent className="text-black dark:text-white bg-white dark:bg-gray-800">
                   <SelectItem value="all">All Statuses</SelectItem>
                   <SelectItem value="pending">Pending</SelectItem>
                   <SelectItem value="in_progress">In Progress</SelectItem>
@@ -443,8 +443,8 @@ const Orders = () => {
 
           {filteredOrders.length === 0 ? (
             <div className="text-center py-12">
-              <div className="text-gray-700 dark:text-gray-300 text-lg mb-2 font-semibold">No orders found</div>
-              <p className="text-gray-600 dark:text-gray-400">
+              <div className="text-black dark:text-white text-xl mb-2 font-bold">No orders found</div>
+              <p className="text-black dark:text-white text-lg">
                 {searchTerm || statusFilter !== 'all' ? 
                   'Try changing your search filters' : 
                   'Start by creating your first order'}
@@ -455,40 +455,40 @@ const Orders = () => {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="text-gray-900 dark:text-white font-semibold">Order #</TableHead>
-                    <TableHead className="text-gray-900 dark:text-white font-semibold">Customer</TableHead>
-                    <TableHead className="text-gray-900 dark:text-white font-semibold">Payment Status</TableHead>
-                    <TableHead className="text-gray-900 dark:text-white font-semibold">Frame</TableHead>
-                    <TableHead className="text-gray-900 dark:text-white font-semibold">Size</TableHead>
-                    <TableHead className="text-gray-900 dark:text-white font-semibold">Qty</TableHead>
-                    <TableHead className="text-gray-900 dark:text-white font-semibold">Location</TableHead>
-                    <TableHead className="text-gray-900 dark:text-white font-semibold">Status</TableHead>
-                    <TableHead className="text-gray-900 dark:text-white font-semibold">Actions</TableHead>
+                    <TableHead className="text-black dark:text-white font-bold text-base bg-gray-100 dark:bg-gray-800">Order #</TableHead>
+                    <TableHead className="text-black dark:text-white font-bold text-base bg-gray-100 dark:bg-gray-800">Customer</TableHead>
+                    <TableHead className="text-black dark:text-white font-bold text-base bg-gray-100 dark:bg-gray-800">Payment Status</TableHead>
+                    <TableHead className="text-black dark:text-white font-bold text-base bg-gray-100 dark:bg-gray-800">Frame</TableHead>
+                    <TableHead className="text-black dark:text-white font-bold text-base bg-gray-100 dark:bg-gray-800">Size</TableHead>
+                    <TableHead className="text-black dark:text-white font-bold text-base bg-gray-100 dark:bg-gray-800">Qty</TableHead>
+                    <TableHead className="text-black dark:text-white font-bold text-base bg-gray-100 dark:bg-gray-800">Location</TableHead>
+                    <TableHead className="text-black dark:text-white font-bold text-base bg-gray-100 dark:bg-gray-800">Status</TableHead>
+                    <TableHead className="text-black dark:text-white font-bold text-base bg-gray-100 dark:bg-gray-800">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filteredOrders.map((order: Order) => {
                     const orderGroup = findOrderGroupForOrder(order.id);
                     return (
-                      <TableRow key={order.id} className={!orderGroup || orderGroup.status !== 'paid' ? 'bg-red-50 border-l-4 border-l-red-500' : ''}>
-                        <TableCell className="font-medium text-gray-900 dark:text-white">{order.id}</TableCell>
-                        <TableCell className="font-medium text-gray-900 dark:text-white">{getCustomerName(order.customerId)}</TableCell>
+                      <TableRow key={order.id} className={!orderGroup || orderGroup.status !== 'paid' ? 'bg-red-50 dark:bg-red-900/30 border-l-4 border-l-red-500' : 'bg-white dark:bg-gray-900'}>
+                        <TableCell className="font-bold text-black dark:text-white text-base">{order.id}</TableCell>
+                        <TableCell className="font-bold text-black dark:text-white text-base">{getCustomerName(order.customerId)}</TableCell>
                         <TableCell>
                           <div className="space-y-1">
                             <PaymentStatusBadge orderGroup={orderGroup} total={order.total} />
-                            <div className="text-xs text-gray-800 dark:text-gray-200">
-                              <div className="font-medium">Unit: ${(parseFloat(order.total) / (order.quantity || 1)).toFixed(2)}</div>
-                              <div className="font-semibold text-gray-900 dark:text-white">Total: ${order.total} (×{order.quantity || 1})</div>
+                            <div className="text-sm text-black dark:text-white">
+                              <div className="font-bold">Unit: ${(parseFloat(order.total) / (order.quantity || 1)).toFixed(2)}</div>
+                              <div className="font-bold text-black dark:text-white">Total: ${order.total} (×{order.quantity || 1})</div>
                             </div>
                           </div>
                         </TableCell>
-                        <TableCell className="text-gray-900 dark:text-white">{getFrameName(order.frameId)}</TableCell>
-                        <TableCell className="text-gray-900 dark:text-white">{`${order.artworkWidth}" × ${order.artworkHeight}"`}</TableCell>
-                        <TableCell className="text-center font-bold text-lg bg-blue-100 dark:bg-blue-900 border-2 border-blue-300 dark:border-blue-700 text-gray-900 dark:text-white">{order.quantity || 1}</TableCell>
+                        <TableCell className="text-black dark:text-white font-semibold">{getFrameName(order.frameId)}</TableCell>
+                        <TableCell className="text-black dark:text-white font-semibold">{`${order.artworkWidth}" × ${order.artworkHeight}"`}</TableCell>
+                        <TableCell className="text-center font-bold text-xl bg-yellow-200 dark:bg-yellow-800 border-2 border-yellow-400 dark:border-yellow-600 text-black dark:text-white">{order.quantity || 1}</TableCell>
                         <TableCell className="text-sm">
-                          <div className="text-gray-800 dark:text-gray-200">
-                            <div><strong className="text-gray-900 dark:text-white">Art:</strong> {order.artworkLocation || 'Not specified'}</div>
-                            <div><strong className="text-gray-900 dark:text-white">Materials:</strong> Workshop - Bay A</div>
+                          <div className="text-black dark:text-white">
+                            <div><strong className="text-black dark:text-white">Art:</strong> {order.artworkLocation || 'Not specified'}</div>
+                            <div><strong className="text-black dark:text-white">Materials:</strong> Workshop - Bay A</div>
                           </div>
                         </TableCell>
                         <TableCell>
