@@ -135,10 +135,26 @@ export function OrderEditDialog({ isOpen, onClose, order }: OrderEditDialogProps
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    // Only update the specific field that was changed
+    // Update only the specific field that was changed - ensure no linking between width/height
     setFormData(prev => ({ 
       ...prev, 
       [name]: value 
+    }));
+  };
+
+  const handleWidthChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { value } = e.target;
+    setFormData(prev => ({ 
+      ...prev, 
+      artworkWidth: value 
+    }));
+  };
+
+  const handleHeightChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { value } = e.target;
+    setFormData(prev => ({ 
+      ...prev, 
+      artworkHeight: value 
     }));
   };
 
@@ -325,8 +341,9 @@ export function OrderEditDialog({ isOpen, onClose, order }: OrderEditDialogProps
               type="number"
               step="0.125"
               value={formData.artworkWidth || ''}
-              onChange={handleChange}
+              onChange={handleWidthChange}
               className="col-span-3"
+              placeholder="Enter width"
             />
           </div>
           <div className="grid grid-cols-4 items-center gap-4">
@@ -339,8 +356,9 @@ export function OrderEditDialog({ isOpen, onClose, order }: OrderEditDialogProps
               type="number"
               step="0.125"
               value={formData.artworkHeight || ''}
-              onChange={handleChange}
+              onChange={handleHeightChange}
               className="col-span-3"
+              placeholder="Enter height"
             />
           </div>
           <div className="grid grid-cols-4 items-center gap-4">
