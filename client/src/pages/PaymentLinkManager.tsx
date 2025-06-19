@@ -44,7 +44,7 @@ export default function PaymentLinkManager() {
     queryKey: ['/api/orders'],
   });
 
-  const orders = (ordersData as any)?.orders || [];
+  const orders = Array.isArray(ordersData?.orders) ? ordersData.orders : [];
 
   // Create payment link mutation
   const createPaymentLinkMutation = useMutation({
@@ -94,7 +94,7 @@ export default function PaymentLinkManager() {
   };
 
   const handleOrderSelection = (orderId: number) => {
-    const order = orders.find((o: Order) => o.id === orderId);
+    const order = Array.isArray(orders) ? orders.find((o: Order) => o.id === orderId) : null;
     if (order) {
       setSelectedOrderId(orderId);
       setSelectedCustomerId(order.customerId);
@@ -112,7 +112,7 @@ export default function PaymentLinkManager() {
   };
 
   const sendViaEmail = () => {
-    const selectedCustomer = customers?.find((c: Customer) => c.id === selectedCustomerId);
+    const selectedCustomer = Array.isArray(customers) ? customers.find((c: Customer) => c.id === selectedCustomerId) : null;
     if (selectedCustomer?.email && generatedLink) {
       const subject = encodeURIComponent(`Payment Request - ${description}`);
       const body = encodeURIComponent(`Hi ${selectedCustomer.name},\n\nPlease use the following link to complete your payment:\n\n${generatedLink}\n\nAmount: $${amount}\nDescription: ${description}\n\nThank you!`);
@@ -149,11 +149,11 @@ export default function PaymentLinkManager() {
                 onChange={(e) => e.target.value && handleOrderSelection(parseInt(e.target.value))}
               >
                 <option value="">Select an order...</option>
-                {orders.map((order: Order) => {
-                  const customer = customers?.find((c: Customer) => c.id === order.customerId);
+                {Array.isArray(orders) && orders.map((order: Order) => {
+                  const customer = Array.isArray(customers) ? customers.find((c: Customer) => c.id === order.customerId) : null;
                   return (
                     <option key={order.id} value={order.id}>
-                      Order #{order.id} - {customer?.name} - ${order.total}
+                      Order #{order.id} - {customer?.name || 'Unknown Customer'} - ${order.total}
                     </option>
                   );
                 })}
@@ -169,7 +169,7 @@ export default function PaymentLinkManager() {
                 onChange={(e) => setSelectedCustomerId(e.target.value ? parseInt(e.target.value) : null)}
               >
                 <option value="">Select customer...</option>
-                {customers?.map((customer: Customer) => (
+                {Array.isArray(customers) && customers.map((customer: Customer) => (
                   <option key={customer.id} value={customer.id}>
                     {customer.name} - {customer.email}
                   </option>
