@@ -284,14 +284,20 @@ const Orders = () => {
       return null;
     }
 
+    // Ensure orderGroupArray is actually an array before proceeding
+    if (!Array.isArray(orderGroupArray)) {
+      console.warn('orderGroupArray is not an array:', orderGroupArray);
+      return null;
+    }
+
     // Find the order group by matching orders with the given order ID
     const targetOrders = ordersArray.filter((order: Order) => 
       order.id === orderId && order.orderGroupId !== null
     );
 
-    if (targetOrders.length > 0 && Array.isArray(orderGroupArray)) {
+    if (targetOrders.length > 0) {
       const orderGroupId = targetOrders[0].orderGroupId;
-      return orderGroupArray.find(group => group.id === orderGroupId && group.status === 'pending');
+      return orderGroupArray.find(group => group.id === orderGroupId);
     }
 
     return null;
