@@ -102,6 +102,14 @@ const MaterialsPickList: React.FC<MaterialsPickListProps> = ({ onCreateOrder }) 
   const { data: materials = [], isLoading, error } = useMaterialsPickList();
   const updateMaterialOrder = useUpdateMaterial();
   
+  // State for admin approval dialog
+  const [isAdminDialogOpen, setIsAdminDialogOpen] = useState(false);
+  const [pendingAction, setPendingAction] = useState<{
+    materialIds: string[];
+    status: string;
+    alreadyOrderedMaterials: MaterialItem[];
+  } | null>(null);
+  
   // Calculate unique suppliers and material types for filters
   const suppliers = [...new Set(materials.map(item => item.supplier))];
   const materialTypes = [...new Set(materials.map(item => item.type))];
@@ -189,6 +197,117 @@ const MaterialsPickList: React.FC<MaterialsPickListProps> = ({ onCreateOrder }) 
       // Set new field and reset direction
       setSortField(field);
       setSortDirection("asc");
+    }
+  };
+
+  // Enhanced bulk update with failsafe mechanism
+  const handleBulkUpdate = async (status: string, adminApproval = false) => {
+    if (selectedItems.length === 0) {
+      toast({
+        title: "No items selected",
+        description: "Please select materials to update.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/materials/bulk-update', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          materialIds: selectedItems,
+          status,
+          adminApproval
+        })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        if (data.error === 'DOUBLE_ORDER_PREVENTION') {
+          // Show admin approval dialog
+          setPendingAction({
+            materialIds: selectedItems,
+            status,
+            alreadyOrderedMaterials: data.alreadyOrderedMaterials
+          });
+          setIsAdminDialogOpen(true);
+          return;
+        }
+        throw new Error(data.message || 'Failed to update materials');
+      }
+
+      toast({
+        title: "Success",
+        description: data.message,
+        variant: "default"
+      });
+
+      // Clear selection and refresh data
+      setSelectedItems([]);
+      window.location.reload(); // Simple refresh for now
+
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive"
+      });
+    }
+  };
+
+  // Handle admin approval for double ordering
+  const handleAdminApproval = async () => {
+    if (!pendingAction) return;
+
+    await handleBulkUpdate(pendingAction.status, true);
+    setIsAdminDialogOpen(false);
+    setPendingAction(null);
+  };
+
+  // Mark materials as out of stock
+  const handleMarkOutOfStock = async (notes = "") => {
+    if (selectedItems.length === 0) {
+      toast({
+        title: "No items selected",
+        description: "Please select materials to mark as out of stock.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/materials/mark-out-of-stock', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          materialIds: selectedItems,
+          notes
+        })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to mark materials as out of stock');
+      }
+
+      toast({
+        title: "Success",
+        description: data.message,
+        variant: "default"
+      });
+
+      setSelectedItems([]);
+      window.location.reload();
+
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive"
+      });
     }
   };
   
@@ -390,6 +509,26 @@ const MaterialsPickList: React.FC<MaterialsPickListProps> = ({ onCreateOrder }) 
           >
             <FileText className="h-4 w-4" />
             Export
+          </Button>
+          
+          {/* Enhanced one-click ordering buttons */}
+          <Button 
+            onClick={() => handleBulkUpdate("ordered")}
+            disabled={selectedItems.length === 0}
+            className="flex items-center gap-2 bg-green-600 hover:bg-green-700"
+          >
+            <Check className="h-4 w-4" />
+            Mark as Ordered
+          </Button>
+          
+          <Button 
+            variant="outline" 
+            onClick={() => handleMarkOutOfStock()}
+            disabled={selectedItems.length === 0}
+            className="flex items-center gap-2 border-red-500 text-red-600 hover:bg-red-50"
+          >
+            <AlertTriangle className="h-4 w-4" />
+            Out of Stock
           </Button>
           
           <Button 
@@ -775,6 +914,76 @@ const MaterialsPickList: React.FC<MaterialsPickListProps> = ({ onCreateOrder }) 
             </Button>
             <Button onClick={updateItemStatus}>
               Update Status
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Admin Approval Dialog for Double-Order Prevention */}
+      <Dialog open={isAdminDialogOpen} onOpenChange={setIsAdminDialogOpen}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle className="text-red-600 font-bold">
+              ⚠️ DOUBLE ORDER PREVENTION ALERT
+            </DialogTitle>
+            <DialogDescription className="text-red-700">
+              Some materials are already ordered. Admin approval required to proceed.
+            </DialogDescription>
+          </DialogHeader>
+          
+          {pendingAction && (
+            <div className="space-y-4 py-4">
+              <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                <h4 className="font-semibold text-red-800 mb-2">
+                  Already Ordered Materials:
+                </h4>
+                <ul className="space-y-1">
+                  {pendingAction.alreadyOrderedMaterials.map(material => (
+                    <li key={material.id} className="text-sm text-red-700">
+                      • {material.name} (SKU: {material.sku}) - Status: {material.status}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                <h4 className="font-semibold text-yellow-800 mb-2">
+                  Action Requested:
+                </h4>
+                <p className="text-sm text-yellow-700">
+                  Mark {pendingAction.materialIds.length} materials as "{pendingAction.status}"
+                </p>
+              </div>
+              
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <h4 className="font-semibold text-blue-800 mb-2">
+                  Admin Override Options:
+                </h4>
+                <ul className="text-sm text-blue-700 space-y-1">
+                  <li>• Approve if duplicate ordering is intentional</li>
+                  <li>• Cancel if this was an error</li>
+                  <li>• Review material status before proceeding</li>
+                </ul>
+              </div>
+            </div>
+          )}
+          
+          <DialogFooter className="gap-2">
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setIsAdminDialogOpen(false);
+                setPendingAction(null);
+              }}
+            >
+              Cancel
+            </Button>
+            <Button 
+              variant="destructive" 
+              onClick={handleAdminApproval}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Admin Approve Override
             </Button>
           </DialogFooter>
         </DialogContent>

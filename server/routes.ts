@@ -671,6 +671,60 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/materials/purchase-order', createPurchaseOrder);
   app.get('/api/materials/types', getMaterialTypes);
   app.get('/api/materials/suppliers', getMaterialSuppliers);
+  
+  // Enhanced materials ordering routes with failsafe mechanisms
+  app.post('/api/materials/bulk-update', async (req, res) => {
+    try {
+      const { materialIds, status, adminApproval } = req.body;
+      
+      // Check if materials are already ordered - FAILSAFE MECHANISM
+      const materials = await storage.getMaterialsPickList();
+      const selectedMaterials = materials.filter(m => materialIds.includes(m.id));
+      const alreadyOrdered = selectedMaterials.filter(m => 
+        m.status === 'ordered' || m.status === 'arrived' || m.status === 'completed'
+      );
+      
+      if (alreadyOrdered.length > 0 && !adminApproval) {
+        return res.status(400).json({
+          error: 'DOUBLE_ORDER_PREVENTION',
+          message: `❌ ALERT: Materials already ordered! ${alreadyOrdered.map(m => m.name).join(', ')}`,
+          requiresAdminApproval: true,
+          alreadyOrderedMaterials: alreadyOrdered,
+          severity: 'HIGH'
+        });
+      }
+      
+      // Update materials status
+      for (const materialId of materialIds) {
+        await storage.updateMaterialOrder(materialId, { 
+          status,
+          orderDate: status === 'ordered' ? new Date() : undefined
+        });
+      }
+      
+      res.json({ success: true, message: 'Materials updated successfully' });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+  
+  // Mark materials as out of stock
+  app.post('/api/materials/mark-out-of-stock', async (req, res) => {
+    try {
+      const { materialIds, notes } = req.body;
+      
+      for (const materialId of materialIds) {
+        await storage.updateMaterialOrder(materialId, { 
+          status: 'canceled',
+          notes: `Out of stock: ${notes || 'No additional notes'}`
+        });
+      }
+      
+      res.json({ success: true, message: 'Materials marked as out of stock' });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
 
   // Create HTTP server
   const httpServer = createServer(app);
