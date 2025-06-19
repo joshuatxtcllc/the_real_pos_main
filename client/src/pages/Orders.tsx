@@ -116,6 +116,7 @@ const Orders = () => {
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [isWholesaleDialogOpen, setIsWholesaleDialogOpen] = useState(false);
   const [_, setLocation] = useLocation();
+  const [isCheckingOut, setIsCheckingOut] = useState(false);
 
   // Fetch orders
   const { data: orders, isLoading: ordersLoading, isError: ordersError } = useQuery({
@@ -381,6 +382,56 @@ const Orders = () => {
 
   const isLoading = ordersLoading || orderGroupsLoading;
   const isError = ordersError || orderGroupsError;
+
+  // Handle checkout
+  const handleCheckout = async (orderId: number) => {
+    try {
+      setIsCheckingOut(true);
+
+      console.log(`Creating checkout session for order ${orderId}`);
+
+      // Call the payment link API to create a checkout session
+      const response = await fetch(`/api/payment-links/${orderId}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          orderId: orderId,
+          amount: parseFloat(orders.find(o => o.id === orderId)?.total || "0"),
+          description: `Order #${orderId} - Custom Framing`
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to create payment link');
+      }
+
+      const paymentData = await response.json();
+
+      if (paymentData.paymentUrl) {
+        // Redirect to payment processor
+        window.open(paymentData.paymentUrl, '_blank');
+
+        toast({
+          title: "Checkout Created",
+          description: "Payment window opened. Complete payment to process the order.",
+        });
+      } else {
+        throw new Error('No payment URL received');
+      }
+
+    } catch (error) {
+      console.error('Error during checkout:', error);
+      toast({
+        title: "Checkout Error",
+        description: "Failed to create checkout session. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsCheckingOut(false);
+    }
+  };
 
   if (isLoading) {
     return (

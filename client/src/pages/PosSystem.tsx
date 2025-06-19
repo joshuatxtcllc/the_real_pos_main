@@ -45,8 +45,8 @@ const PosSystem = () => {
   });
 
   // Artwork Details
-  const [artworkWidth, setArtworkWidth] = useState<number>(16);
-  const [artworkHeight, setArtworkHeight] = useState<number>(20);
+  const [artworkWidth, setArtworkWidth] = useState<string>('16');
+  const [artworkHeight, setArtworkHeight] = useState<string>('20');
   const [artworkImage, setArtworkImage] = useState<string | null>(null);
   const [artworkDescription, setArtworkDescription] = useState<string>('');
   const [artworkType, setArtworkType] = useState<string>('print');
@@ -116,9 +116,9 @@ const PosSystem = () => {
 
   // Size surcharge calculation
   const getSizeSurcharge = () => {
-    if (artworkWidth > 40 || artworkHeight > 60) {
+    if (parseFloat(artworkWidth) > 40 || parseFloat(artworkHeight) > 60) {
       return 75; // $75 surcharge for extra large (over 40"×60")
-    } else if (artworkWidth > 32 || artworkHeight > 40) {
+    } else if (parseFloat(artworkWidth) > 32 || parseFloat(artworkHeight) > 40) {
       return 35; // $35 surcharge for large (over 32"×40")
     }
     return 0;
@@ -140,7 +140,7 @@ const PosSystem = () => {
     artworkImage?: string;
     totalPrice: number;
   }
-  
+
   // Manual frame entry
   const [useManualFrame, setUseManualFrame] = useState<boolean>(false);
   const [manualFrameName, setManualFrameName] = useState<string>('');
@@ -160,13 +160,13 @@ const PosSystem = () => {
   React.useEffect(() => {
     const frame = selectedFrames.length > 0 ? selectedFrames[0].frame : null;
     const mat = selectedMatboards.length > 0 ? selectedMatboards[0].matboard : null;
-    
+
     if (frame && mat) {
       const frameCost = useManualFrame ? manualFrameCost : 
-        selectedFrames.reduce((total, item) => total + calculateFramePrice(artworkWidth, artworkHeight, item.distance, Number(item.frame.price)), 0);
-      const matCost = selectedMatboards.reduce((total, item) => total + calculateMatPrice(artworkWidth, artworkHeight, item.width, Number(item.matboard.price)), 0);
-      const glassCost = selectedGlassOption ? calculateGlassPrice(artworkWidth, artworkHeight, primaryMatWidth, Number(selectedGlassOption.price)) : 0;
-      const backingCost = calculateBackingPrice(artworkWidth, artworkHeight, primaryMatWidth, 0.02);
+        selectedFrames.reduce((total, item) => total + calculateFramePrice(parseFloat(artworkWidth), parseFloat(artworkHeight), item.distance, Number(item.frame.price)), 0);
+      const matCost = selectedMatboards.reduce((total, item) => total + calculateMatPrice(parseFloat(artworkWidth), parseFloat(artworkHeight), item.width, Number(item.matboard.price)), 0);
+      const glassCost = selectedGlassOption ? calculateGlassPrice(parseFloat(artworkWidth), parseFloat(artworkHeight), primaryMatWidth, Number(selectedGlassOption.price)) : 0;
+      const backingCost = calculateBackingPrice(parseFloat(artworkWidth), parseFloat(artworkHeight), primaryMatWidth, 0.02);
       const servicesCost = selectedServices.reduce((total, service) => total + Number(service.price), 0);
       const miscCost = miscCharges.reduce((sum, charge) => sum + charge.amount, 0);
       const sizeCost = getSizeSurcharge();
@@ -178,14 +178,14 @@ const PosSystem = () => {
         matColor: mat.name || mat.id,
         glassType: selectedGlassOption?.name || 'Standard Glass',
         dimensions: {
-          width: artworkWidth,
-          height: artworkHeight,
+          width: parseFloat(artworkWidth),
+          height: parseFloat(artworkHeight),
           unit: 'in'
         },
         artworkImage: artworkImage || undefined,
         totalPrice: total
       };
-      
+
       setCurrentFrameDesign(designData);
     }
   }, [selectedFrames, selectedMatboards, selectedGlassOption, selectedServices, miscCharges, artworkWidth, artworkHeight, artworkImage, useManualFrame, manualFrameName, manualFrameCost, primaryMatWidth]);
@@ -334,9 +334,9 @@ const PosSystem = () => {
             setAspectRatio(imgAspectRatio);
 
             // Update width based on the height and aspect ratio
-            const newWidth = parseFloat((artworkHeight * imgAspectRatio).toFixed(2));
+            const newWidth = parseFloat((parseFloat(artworkHeight) * imgAspectRatio).toFixed(2));
             console.log('Setting artwork width to:', newWidth);
-            setArtworkWidth(newWidth);
+            setArtworkWidth(newWidth.toString());
           }
         } catch (dimensionError) {
           console.error('Error calculating dimensions:', dimensionError);
@@ -484,9 +484,9 @@ const PosSystem = () => {
         setAspectRatio(imgAspectRatio);
 
         // Update width based on the height and aspect ratio
-        const newWidth = parseFloat((artworkHeight * imgAspectRatio).toFixed(2));
+        const newWidth = parseFloat((parseFloat(artworkHeight) * imgAspectRatio).toFixed(2));
         console.log('Setting artwork width to:', newWidth);
-        setArtworkWidth(newWidth);
+        setArtworkWidth(newWidth.toString());
       };
 
       // IMPORTANT: Set the state before setting the img.src
@@ -513,7 +513,7 @@ const PosSystem = () => {
   // Handle mat color selection
   const handleMatColorChange = (id: string) => {
     console.log('Changing mat color to ID:', id);
-    
+
     // Handle "No Mat" selection
     if (id === 'none' || id === 'no-mat') {
       const existingMatIndex = selectedMatboards.findIndex(m => m.position === activeMatPosition);
@@ -524,7 +524,7 @@ const PosSystem = () => {
       }
       return;
     }
-    
+
     const matColor = getMatboardById(id);
 
     if (matColor) {
@@ -685,21 +685,13 @@ const PosSystem = () => {
   };
 
   // Handle dimension changes
-  const handleDimensionChange = (dimension: 'width' | 'height', value: number) => {
-    if (value <= 0) return;
+  const handleDimensionChange = (dimension: 'width' | 'height', value: string) => {
+    if (!value) return;
 
     if (dimension === 'width') {
       setArtworkWidth(value);
-      // Prevent infinite loop by checking if aspectRatio is valid
-      if (aspectRatio > 0 && aspectRatio !== Infinity) {
-        setArtworkHeight(parseFloat((value / aspectRatio).toFixed(2)));
-      }
     } else {
       setArtworkHeight(value);
-      // Prevent infinite loop by checking if aspectRatio is valid
-      if (aspectRatio > 0 && aspectRatio !== Infinity) {
-        setArtworkWidth(parseFloat((value * aspectRatio).toFixed(2)));
-      }
     }
   };
 
@@ -817,18 +809,18 @@ const PosSystem = () => {
 
       // Calculate prices using the proper pricing service with dollar-based markup brackets
       const framePrices = selectedFrames.map(frameItem => 
-        calculateFramePrice(artworkWidth, artworkHeight, primaryMatWidth, Number(frameItem.frame.price))
+        calculateFramePrice(parseFloat(artworkWidth), parseFloat(artworkHeight), primaryMatWidth, Number(frameItem.frame.price))
       );
       const totalFramePrice = framePrices.reduce((total, price) => total + price, 0);
 
       const matPrices = selectedMatboards.map(matItem => 
-        calculateMatPrice(artworkWidth, artworkHeight, matItem.width, Number(matItem.matboard.price))
+        calculateMatPrice(parseFloat(artworkWidth), parseFloat(artworkHeight), matItem.width, Number(matItem.matboard.price))
       );
       const totalMatPrice = matPrices.reduce((total, price) => total + price, 0);
 
       const calculatedGlassPrice = selectedGlassOption ? 
-        calculateGlassPrice(artworkWidth, artworkHeight, primaryMatWidth, Number(selectedGlassOption.price)) : 0;
-      const backingPrice = calculateBackingPrice(artworkWidth, artworkHeight, primaryMatWidth, 0.02);
+        calculateGlassPrice(parseFloat(artworkWidth), parseFloat(artworkHeight), primaryMatWidth, Number(selectedGlassOption.price)) : 0;
+      const backingPrice = calculateBackingPrice(parseFloat(artworkWidth), parseFloat(artworkHeight), primaryMatWidth, 0.02);
       const laborPrice = 25;
       const specialServicesPrice = selectedServices.reduce((total, service) => total + Number(service.price), 0);
 
@@ -972,7 +964,7 @@ const PosSystem = () => {
           materialType: 'frame',
           materialId: frameItem.frame.id,
           materialName: frameItem.frame.name,
-          quantity: Math.ceil((2 * (artworkWidth + artworkHeight) / 12) + 1).toString(), // Frame length in feet
+          quantity: Math.ceil((2 * (parseFloat(artworkWidth) + parseFloat(artworkHeight)) / 12) + 1).toString(), // Frame length in feet
           status: 'pending',
           notes: `Wholesale order for ${customer.name} (${frameItem.position === 1 ? 'Inner' : 'Outer'} Frame)`,
           vendor: frameItem.frame.manufacturer || 'Larson Juhl',
@@ -1036,8 +1028,8 @@ const PosSystem = () => {
       phone: '',
       address: ''
     });
-    setArtworkWidth(16);
-    setArtworkHeight(20);
+    setArtworkWidth('16');
+    setArtworkHeight('20');
     setArtworkImage(null);
     setArtworkDescription('');
     setArtworkType('print');
@@ -1168,19 +1160,19 @@ const PosSystem = () => {
           <h2 className="text-lg lg:text-xl font-semibold mb-3 lg:mb-4 header-underline">Artwork Details</h2>
 
           {/* Size Warnings */}
-{artworkWidth > 32 || artworkHeight > 40 ? (
+{parseFloat(artworkWidth) > 32 || parseFloat(artworkHeight) > 40 ? (
             <div className={`mb-4 p-3 rounded-lg border-l-4 ${
-              artworkWidth > 40 || artworkHeight > 60 
+              parseFloat(artworkWidth) > 40 || parseFloat(artworkHeight) > 60 
                 ? 'bg-red-50 border-red-400 text-red-800' 
                 : 'bg-yellow-50 border-yellow-400 text-yellow-800'
             }`}>
               <div className="flex items-center justify-between">
                 <div className="flex items-center">
                   <span className="font-semibold mr-2">
-                    {artworkWidth > 40 || artworkHeight > 60 ? '⚠️ Large Size Alert:' : '⚠️ Size Notice:'}
+                    {parseFloat(artworkWidth) > 40 || parseFloat(artworkHeight) > 60 ? '⚠️ Large Size Alert:' : '⚠️ Size Notice:'}
                   </span>
                   <span>
-                    {artworkWidth > 40 || artworkHeight > 60 
+                    {parseFloat(artworkWidth) > 40 || parseFloat(artworkHeight) > 60 
                       ? 'Artwork over 40"×60" requires special handling and extended processing time.'
                       : 'Artwork over 32"×40" may have additional costs and longer processing time.'}
                   </span>
@@ -1203,7 +1195,7 @@ const PosSystem = () => {
                 step="0.125"
                 min="0.125"
                 value={artworkWidth}
-                onChange={(e) => handleDimensionChange('width', parseFloat(e.target.value))}
+                onChange={(e) => handleDimensionChange('width', e.target.value)}
               />
             </div>
             <div>
@@ -1216,7 +1208,7 @@ const PosSystem = () => {
                 step="0.125"
                 min="0.125"
                 value={artworkHeight}
-                onChange={(e) => handleDimensionChange('height', parseFloat(e.target.value))}
+                onChange={(e) => handleDimensionChange('height', e.target.value)}
               />
             </div>
             <div>
@@ -1779,16 +1771,16 @@ const PosSystem = () => {
         {/* Unified Artwork Detection and Dual Preview */}
         <div className="bg-white dark:bg-dark-cardBg rounded-lg shadow-md p-4 lg:p-6">
           <ArtworkSizeDetector 
-            defaultWidth={artworkWidth}
-            defaultHeight={artworkHeight}
+            defaultWidth={parseFloat(artworkWidth)}
+            defaultHeight={parseFloat(artworkHeight)}
             frames={selectedFrames}
             mats={selectedMatboards}
             useMultipleFrames={useMultipleFrames}
             useMultipleMats={useMultipleMats}
             onDimensionsDetected={(dimensions, imageDataUrl) => {
               // Update dimensions in the parent component
-              setArtworkWidth(dimensions.width);
-              setArtworkHeight(dimensions.height);
+              setArtworkWidth(dimensions.width.toString());
+              setArtworkHeight(dimensions.height.toString());
               setAspectRatio(dimensions.width / dimensions.height);
               setArtworkImage(imageDataUrl);
 
@@ -1883,8 +1875,8 @@ const PosSystem = () => {
           frames={selectedFrames}
           mats={selectedMatboards}
           glassOption={selectedGlassOption}
-          artworkWidth={artworkWidth}
-          artworkHeight={artworkHeight}
+          artworkWidth={parseFloat(artworkWidth)}
+          artworkHeight={parseFloat(artworkHeight)}
           artworkLocation={artworkLocation}
           primaryMatWidth={primaryMatWidth}
           specialServices={selectedServices}
