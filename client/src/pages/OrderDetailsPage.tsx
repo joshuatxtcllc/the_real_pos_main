@@ -207,6 +207,10 @@ export default function OrderDetailsPage() {
                 <h4 className="text-sm font-medium mb-1 text-foreground">Mat Width</h4>
                 <p className="text-sm text-muted-foreground">{order.matWidth}" all around</p>
               </div>
+              <div>
+                <h4 className="text-sm font-medium mb-1 text-foreground">Quantity</h4>
+                <p className="text-sm text-muted-foreground">{order.quantity || 1}</p>
+              </div>
               <div className="col-span-2">
                 <h4 className="text-sm font-medium mb-1 text-foreground">Description</h4>
                 <p className="text-sm text-muted-foreground">{order.artworkDescription || 'No description'}</p>

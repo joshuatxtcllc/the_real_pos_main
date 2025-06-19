@@ -53,6 +53,7 @@ export function OrderEditDialog({ isOpen, onClose, order }: OrderEditDialogProps
     matWidth: string;
     artworkDescription: string;
     artworkType: string;
+    quantity: string;
   };
 
   const [formData, setFormData] = useState<OrderFormData>({
@@ -63,7 +64,8 @@ export function OrderEditDialog({ isOpen, onClose, order }: OrderEditDialogProps
     artworkHeight: '',
     matWidth: '',
     artworkDescription: '',
-    artworkType: ''
+    artworkType: '',
+    quantity: '1'
   });
   const [uploadingImage, setUploadingImage] = useState(false);
   const [artworkPreview, setArtworkPreview] = useState<string | null>(null);
@@ -109,11 +111,12 @@ export function OrderEditDialog({ isOpen, onClose, order }: OrderEditDialogProps
         frameId: order.frameId || '',
         matColorId: order.matColorId || '',
         glassOptionId: order.glassOptionId || '',
-        artworkWidth: order.artworkWidth || '',
-        artworkHeight: order.artworkHeight || '',
-        matWidth: order.matWidth || '',
+        artworkWidth: String(order.artworkWidth || ''),
+        artworkHeight: String(order.artworkHeight || ''),
+        matWidth: String(order.matWidth || ''),
         artworkDescription: order.artworkDescription || '',
         artworkType: order.artworkType || '',
+        quantity: String(order.quantity || '1'),
       });
     } else {
       setFormData({
@@ -125,13 +128,18 @@ export function OrderEditDialog({ isOpen, onClose, order }: OrderEditDialogProps
         matWidth: '',
         artworkDescription: '',
         artworkType: '',
+        quantity: '1',
       });
     }
   }, [order]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    // Only update the specific field that was changed
+    setFormData(prev => ({ 
+      ...prev, 
+      [name]: value 
+    }));
   };
 
   const handleSelectChange = (name: string, value: string) => {
@@ -186,11 +194,12 @@ export function OrderEditDialog({ isOpen, onClose, order }: OrderEditDialogProps
         frameId: formData.frameId || undefined,
         matColorId: formData.matColorId || undefined,
         glassOptionId: formData.glassOptionId || undefined,
-        artworkWidth: formData.artworkWidth ? formData.artworkWidth : undefined,
-        artworkHeight: formData.artworkHeight ? formData.artworkHeight : undefined,
-        matWidth: formData.matWidth ? formData.matWidth : undefined,
+        artworkWidth: formData.artworkWidth ? parseFloat(formData.artworkWidth) || undefined : undefined,
+        artworkHeight: formData.artworkHeight ? parseFloat(formData.artworkHeight) || undefined : undefined,
+        matWidth: formData.matWidth ? parseFloat(formData.matWidth) || undefined : undefined,
         artworkDescription: formData.artworkDescription || undefined,
-        artworkType: formData.artworkType || undefined
+        artworkType: formData.artworkType || undefined,
+        quantity: formData.quantity ? parseInt(formData.quantity) || 1 : 1
       };
 
       updateOrder({ 
@@ -315,7 +324,7 @@ export function OrderEditDialog({ isOpen, onClose, order }: OrderEditDialogProps
               name="artworkWidth"
               type="number"
               step="0.125"
-              value={formData.artworkWidth?.toString() || ''}
+              value={formData.artworkWidth || ''}
               onChange={handleChange}
               className="col-span-3"
             />
@@ -329,7 +338,7 @@ export function OrderEditDialog({ isOpen, onClose, order }: OrderEditDialogProps
               name="artworkHeight"
               type="number"
               step="0.125"
-              value={formData.artworkHeight?.toString() || ''}
+              value={formData.artworkHeight || ''}
               onChange={handleChange}
               className="col-span-3"
             />
@@ -343,7 +352,21 @@ export function OrderEditDialog({ isOpen, onClose, order }: OrderEditDialogProps
               name="matWidth"
               type="number"
               step="0.125"
-              value={formData.matWidth?.toString() || ''}
+              value={formData.matWidth || ''}
+              onChange={handleChange}
+              className="col-span-3"
+            />
+          </div>
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="quantity" className="text-right">
+              Quantity
+            </Label>
+            <Input
+              id="quantity"
+              name="quantity"
+              type="number"
+              min="1"
+              value={formData.quantity || '1'}
               onChange={handleChange}
               className="col-span-3"
             />
@@ -405,7 +428,7 @@ export function OrderEditDialog({ isOpen, onClose, order }: OrderEditDialogProps
             <Input
               id="artworkDescription"
               name="artworkDescription"
-              value={formData.artworkDescription?.toString() || ''}
+              value={formData.artworkDescription || ''}
               onChange={handleChange}
               className="col-span-3"
             />
@@ -417,7 +440,7 @@ export function OrderEditDialog({ isOpen, onClose, order }: OrderEditDialogProps
             <Input
               id="artworkType"
               name="artworkType"
-              value={formData.artworkType?.toString() || ''}
+              value={formData.artworkType || ''}
               onChange={handleChange}
               className="col-span-3"
             />

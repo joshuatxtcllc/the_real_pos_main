@@ -770,7 +770,8 @@ export class DatabaseStorage implements IStorage {
   // Special service methods
   async getSpecialService(id: string): Promise<SpecialService | undefined> {
     // First try to get from the database
-    const [specialService] = await db.select().from(specialServices).where(eq(specialServices.id, id));
+    const [specialService]```python
+= await db.select().from(specialServices).where(eq(specialServices.id, id));
 
     // If not found in database, check catalog
     if (!specialService) {
@@ -917,18 +918,41 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async updateOrder(id: number, data: Partial<Order>): Promise<Order> {
-    const [updatedOrder] = await db
-      .update(orders)
-      .set(data)
-      .where(eq(orders.id, id))
-      .returning();
+  async updateOrder(id: number, data: Partial<Order>): Promise<Order | undefined> {
+    try {
+      const updateData: Record<string, any> = {};
 
-    if (!updatedOrder) {
-      throw new Error('Order not found');
+      // Handle all the fields that might be updated
+      if (data.frameId !== undefined) updateData.frameId = data.frameId;
+      if (data.matColorId !== undefined) updateData.matColorId = data.matColorId;
+      if (data.glassOptionId !== undefined) updateData.glassOptionId = data.glassOptionId;
+      if (data.artworkWidth !== undefined) updateData.artworkWidth = data.artworkWidth;
+      if (data.artworkHeight !== undefined) updateData.artworkHeight = data.artworkHeight;
+      if (data.matWidth !== undefined) updateData.matWidth = data.matWidth;
+      if (data.artworkDescription !== undefined) updateData.artworkDescription = data.artworkDescription;
+      if (data.artworkType !== undefined) updateData.artworkType = data.artworkType;
+      if (data.quantity !== undefined) updateData.quantity = data.quantity;
+      if (data.status !== undefined) updateData.status = data.status;
+      if (data.subtotal !== undefined) updateData.subtotal = data.subtotal;
+      if (data.tax !== undefined) updateData.tax = data.tax;
+      if (data.total !== undefined) updateData.total = data.total;
+
+      // Update the order
+      const [updatedOrder] = await db
+        .update(orders)
+        .set(updateData)
+        .where(eq(orders.id, id))
+        .returning();
+
+      if (!updatedOrder) {
+        throw new Error('Order not found');
+      }
+
+      return updatedOrder;
+    } catch (error) {
+      console.error('Error updating order:', error);
+      throw error;
     }
-
-    return updatedOrder;
   }
 
   async deleteOrder(id: number): Promise<void> {
@@ -1780,8 +1804,7 @@ export class DatabaseStorage implements IStorage {
           itemId: number;
           name: string;
           sku: string;
-          currentStock: number;
-          reorderLevel: number;
+          currentStock: number;          reorderLevel: number;
           reorderQuantity: number;
         }[];
       }> = {};
