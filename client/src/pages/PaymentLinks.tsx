@@ -43,11 +43,21 @@ export default function PaymentLinksPage() {
   // Form state
   const [amount, setAmount] = useState('');
   const [description, setDescription] = useState('');
-  const [customerId, setCustomerId] = useState('');
+  const [customerName, setCustomerName] = useState('');
+  const [selectedOrderId, setSelectedOrderId] = useState('');
   const [expiresInDays, setExpiresInDays] = useState('7');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [sendNotification, setSendNotification] = useState(false);
+
+  // Query customers and orders for dropdowns
+  const { data: customers } = useQuery({
+    queryKey: ['/api/customers'],
+  });
+  
+  const { data: orders } = useQuery({
+    queryKey: ['/api/orders'],
+  });
   
   // Notification state for existing links
   const [notifyEmail, setNotifyEmail] = useState('');
@@ -75,7 +85,8 @@ export default function PaymentLinksPage() {
       // Reset form
       setAmount('');
       setDescription('');
-      setCustomerId('');
+      setCustomerName('');
+      setSelectedOrderId('');
       setExpiresInDays('7');
       setEmail('');
       setPhone('');
@@ -139,7 +150,7 @@ export default function PaymentLinksPage() {
     };
     
     if (description) payload.description = description;
-    if (customerId && !isNaN(parseInt(customerId))) payload.customerId = parseInt(customerId);
+    if (selectedOrderId && !isNaN(parseInt(selectedOrderId))) payload.customerId = parseInt(selectedOrderId);
     if (sendNotification) {
       if (email) payload.email = email;
       if (phone) payload.phone = phone;
@@ -228,14 +239,35 @@ export default function PaymentLinksPage() {
                 </div>
                 
                 <div className="space-y-2">
-                  <Label htmlFor="customerId">Customer ID (optional)</Label>
-                  <Input
-                    id="customerId"
-                    type="number"
-                    placeholder="Customer ID"
-                    value={customerId}
-                    onChange={(e) => setCustomerId(e.target.value)}
-                  />
+                  <Label htmlFor="customerName">Customer Name</Label>
+                  <Select value={customerName} onValueChange={setCustomerName}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select customer" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Array.isArray(customers) && customers.map((customer: any) => (
+                        <SelectItem key={customer.id} value={customer.name}>
+                          {customer.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="selectedOrderId">Related Order (optional)</Label>
+                  <Select value={selectedOrderId} onValueChange={setSelectedOrderId}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select order" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Array.isArray(orders) && orders.map((order: any) => (
+                        <SelectItem key={order.id} value={order.id.toString()}>
+                          Order #{order.id} - ${order.total}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 
                 <div className="space-y-4">

@@ -292,9 +292,7 @@ const Orders = () => {
   };
 
   // Extract orders array from API response and filter based on search term and status
-  const ordersArray = Array.isArray(orders) ? orders : 
-                      (orders?.orders && Array.isArray(orders.orders)) ? orders.orders : 
-                      [];
+  const ordersArray = Array.isArray(orders) ? orders : [];
   
   console.log('Orders response:', orders);
   console.log('Orders array:', ordersArray);
