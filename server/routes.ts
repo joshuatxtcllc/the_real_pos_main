@@ -6,7 +6,7 @@ import { frameDesignController } from "./controllers/frameDesignController";
 import { healthController } from "./controllers/healthController";
 import { validateApiKey, KANBAN_API_KEY } from "./middleware/apiAuth";
 import { validateApiKey as apiKeyAuth } from "./middleware/apiKeyAuth";
-// import { storage } from "./storage_simple";
+import { storage } from "./storage";
 // import { vendorCatalogController } from './controllers/vendorCatalogController';
 // import { hubIntegrationRoutes } from './routes/hubIntegrationRoutes';
 // import { crossVendorInventoryRoutes } from './routes/crossVendorInventoryRoutes';
