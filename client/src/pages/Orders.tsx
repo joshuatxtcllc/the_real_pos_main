@@ -34,6 +34,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Order, Customer, Frame, MatColor, GlassOption, WholesaleOrder, OrderGroup } from '@shared/schema';
 import { generateOrderQrCode, generateMaterialQrCode } from '@/services/qrCodeService';
 import { IntuitivePerformanceMonitor } from '@/components/IntuitivePerformanceMonitor';
+import { Loader2 } from 'lucide-react';
 
 // Status badge component
 const StatusBadge = ({ status }: { status: string }) => {
@@ -119,13 +120,17 @@ const Orders = () => {
   // Fetch orders
   const { data: orders, isLoading: ordersLoading, isError: ordersError } = useQuery({
     queryKey: ['/api/orders'],
-    staleTime: 30000, // 30 seconds
+    staleTime: 30000, // 30 seconds,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
   });
 
   // Fetch order groups
   const { data: orderGroups, isLoading: orderGroupsLoading, isError: orderGroupsError } = useQuery({
     queryKey: ['/api/order-groups'],
     staleTime: 30000, // 30 seconds
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
   });
 
   // Fetch customers for reference
@@ -160,7 +165,7 @@ const Orders = () => {
         description: "Order status has been updated successfully",
       });
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast({
         title: "Update Failed",
         description: error.message || "Failed to update order status",
@@ -183,7 +188,7 @@ const Orders = () => {
         description: "Wholesale order has been created successfully",
       });
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast({
         title: "Creation Failed",
         description: error.message || "Failed to create wholesale order",
@@ -247,7 +252,7 @@ const Orders = () => {
         description: "Customer has been notified of the current order status",
       });
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast({
         title: "Send Failed",
         description: error.message || "Failed to send customer update",
@@ -267,7 +272,7 @@ const Orders = () => {
     setIsWholesaleDialogOpen(true);
   };
 
-  // Check if any order has orderGroupId that matches
+  // Helper function to find order group for an order
   const findOrderGroupForOrder = (orderId: number) => {
     if (!orderGroups) return null;
 
