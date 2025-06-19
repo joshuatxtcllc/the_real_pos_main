@@ -187,7 +187,7 @@ export interface IStorage {
 }
 
 import { db } from "./db";
-import { eq, desc, sql, asc } from "drizzle-orm";
+import { eq, desc, sql, asc, and, or } from "drizzle-orm";
 import { log } from "./utils/logger";
 
 export class DatabaseStorage implements IStorage {
@@ -1896,65 +1896,54 @@ export class DatabaseStorage implements IStorage {
   // Materials Pick List functionality
   async getMaterialsPickList() {
     try {
-      // Mock data for materials pick list
-      return [
-        {
-          id: 'mat-pick-1',
-          orderIds: [1, 2],
-          name: 'Modern Black Frame Moulding',
-          sku: 'LJ-MB-001',
-          supplier: 'Larson-Juhl',
-          type: 'frame',
-          quantity: 25,
-          status: 'pending',
-          priority: 'high',
-          notes: 'Urgent for customer orders',
-          orderDate: null,
-          receiveDate: null
-        },
-        {
-          id: 'mat-pick-2',
-          orderIds: [3],
-          name: 'White Core Matboard',
-          sku: 'CR-WC-003',
-          supplier: 'Crescent',
-          type: 'mat',
-          quantity: 50,
-          status: 'ordered',
-          priority: 'medium',
-          notes: 'Standard white matboard',
-          orderDate: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
-          receiveDate: null
-        },
-        {
-          id: 'mat-pick-3',
-          orderIds: [4, 5],
-          name: 'Museum Glass 32x40',
-          sku: 'TV-MG-3240',
-          supplier: 'Tru Vue',
-          type: 'glass',
-          quantity: 15,
-          status: 'received',
-          priority: 'low',
-          notes: 'Premium conservation glass',
-          orderDate: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-          receiveDate: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString()
-        },
-        {
-          id: 'mat-pick-4',
-          orderIds: [6],
-          name: 'Gold Leaf Frame Moulding',
-          sku: 'LJ-GL-007',
-          supplier: 'Larson-Juhl',
-          type: 'frame',
-          quantity: 12,
-          status: 'backorder',
-          priority: 'high',
-          notes: 'Custom gold finish',
-          orderDate: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
-          receiveDate: null
-        }
-      ];
+      // Get all material orders from the database with pending, processed status
+      const materialsList = await db
+        .select({
+          id: materialOrders.id,
+          name: materialOrders.materialName,
+          sku: materialOrders.materialId,
+          supplier: materialOrders.supplierName,
+          type: materialOrders.materialType,
+          quantity: materialOrders.quantity,
+          status: materialOrders.status,
+          priority: materialOrders.priority,
+          notes: materialOrders.notes,
+          orderDate: materialOrders.orderDate,
+          receiveDate: materialOrders.actualArrival,
+          sourceOrderId: materialOrders.sourceOrderId,
+          costPerUnit: materialOrders.costPerUnit,
+          totalCost: materialOrders.totalCost
+        })
+        .from(materialOrders)
+        .where(
+          or(
+            eq(materialOrders.status, 'pending'),
+            eq(materialOrders.status, 'processed'),
+            eq(materialOrders.status, 'ordered'),
+            eq(materialOrders.status, 'arrived')
+          )
+        )
+        .orderBy(desc(materialOrders.createdAt));
+
+      // Transform to expected format with orderIds array
+      const transformedList = materialsList.map(item => ({
+        id: item.id.toString(),
+        orderIds: item.sourceOrderId ? [item.sourceOrderId] : [],
+        name: item.name,
+        sku: item.sku,
+        supplier: item.supplier || 'Unknown',
+        type: item.type,
+        quantity: Number(item.quantity),
+        status: item.status,
+        priority: item.priority || 'medium',
+        notes: item.notes || '',
+        orderDate: item.orderDate?.toISOString() || null,
+        receiveDate: item.receiveDate?.toISOString() || null,
+        costPerUnit: item.costPerUnit ? Number(item.costPerUnit) : 0,
+        totalCost: item.totalCost ? Number(item.totalCost) : 0
+      }));
+
+      return transformedList;
     } catch (error) {
       log(`Error in getMaterialsPickList: ${error}`, 'storage');
       throw error;
@@ -1963,8 +1952,11 @@ export class DatabaseStorage implements IStorage {
 
   async getMaterialsForOrder(orderId: number) {
     try {
-      const materials = await this.getMaterialsPickList();
-      return materials.filter(material => material.orderIds.includes(orderId));
+      const materials = await db
+        .select()
+        .from(materialOrders)
+        .where(eq(materialOrders.sourceOrderId, orderId));
+      return materials;
     } catch (error) {
       log(`Error in getMaterialsForOrder: ${error}`, 'storage');
       throw error;
@@ -1975,17 +1967,39 @@ export class DatabaseStorage implements IStorage {
 
   async createPurchaseOrder(materialIds: string[]) {
     try {
-      const materials = await this.getMaterialsPickList();
-      const selectedMaterials = materials.filter(m => materialIds.includes(m.id));
+      // Convert string IDs to numbers for database query
+      const numericIds = materialIds.map(id => parseInt(id));
+      
+      // Get the selected materials from the database
+      const selectedMaterials = await db
+        .select()
+        .from(materialOrders)
+        .where(sql`${materialOrders.id} IN (${numericIds.join(',')})`);
 
       if (selectedMaterials.length === 0) {
         throw new Error('No valid materials found for purchase order');
       }
 
+      // Check for duplicate ordering - prevent materials already ordered
+      const alreadyOrdered = selectedMaterials.filter(m => 
+        m.status === 'ordered' || m.status === 'arrived' || m.status === 'completed'
+      );
+
+      if (alreadyOrdered.length > 0) {
+        throw new Error(`Materials already ordered: ${alreadyOrdered.map(m => m.materialName).join(', ')}`);
+      }
+
+      // Update material orders to 'ordered' status with order date
+      await db
+        .update(materialOrders)
+        .set({
+          status: 'ordered',
+          orderDate: new Date()
+        })
+        .where(sql`${materialOrders.id} IN (${numericIds.join(',')})`);
+
       const totalAmount = selectedMaterials.reduce((sum, material) => {
-        // Mock pricing calculation
-        const unitPrice = material.type === 'frame' ? 25.99 : material.type === 'glass' ? 45.99 : 18.99;
-        return sum + (material.quantity * unitPrice);
+        return sum + (Number(material.totalCost) || 0);
       }, 0);
 
       const purchaseOrder = {
@@ -1993,7 +2007,7 @@ export class DatabaseStorage implements IStorage {
         orderNumber: `PO-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 1000)).padStart(3, '0')}`,
         materialIds,
         totalAmount,
-        status: 'draft',
+        status: 'sent',
         createdAt: new Date().toISOString(),
         expectedDeliveryDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
         materials: selectedMaterials
@@ -2002,6 +2016,137 @@ export class DatabaseStorage implements IStorage {
       return purchaseOrder;
     } catch (error) {
       log(`Error in createPurchaseOrder: ${error}`, 'storage');
+      throw error;
+    }
+  }
+
+  // Failsafe mechanism to check for duplicate material orders
+  async checkDuplicateMaterialOrder(materialId: string, sourceOrderId: number): Promise<boolean> {
+    try {
+      const existing = await db
+        .select()
+        .from(materialOrders)
+        .where(
+          and(
+            eq(materialOrders.materialId, materialId),
+            eq(materialOrders.sourceOrderId, sourceOrderId),
+            or(
+              eq(materialOrders.status, 'pending'),
+              eq(materialOrders.status, 'ordered'),
+              eq(materialOrders.status, 'arrived')
+            )
+          )
+        );
+      
+      return existing.length > 0;
+    } catch (error) {
+      log(`Error checking duplicate material order: ${error}`, 'storage');
+      return false;
+    }
+  }
+
+  // Create material orders automatically when an order is placed
+  async createMaterialOrdersFromOrder(order: Order): Promise<MaterialOrder[]> {
+    try {
+      const materialOrders: InsertMaterialOrder[] = [];
+
+      // Create frame material order if frame is selected
+      if (order.frameId) {
+        const frame = await this.getFrame(order.frameId);
+        if (frame) {
+          // Check for duplicates first
+          const isDuplicate = await this.checkDuplicateMaterialOrder(order.frameId, order.id);
+          if (!isDuplicate) {
+            // Calculate frame length needed (perimeter + 10% waste)
+            const perimeter = 2 * (Number(order.artworkWidth) + Number(order.artworkHeight));
+            const frameLength = Math.ceil(perimeter * 1.1); // Add 10% for waste
+
+            materialOrders.push({
+              materialType: 'frame' as MaterialType,
+              materialId: order.frameId,
+              materialName: frame.name,
+              quantity: frameLength.toString(),
+              status: 'pending' as MaterialOrderStatus,
+              sourceOrderId: order.id,
+              supplierName: frame.manufacturer,
+              costPerUnit: frame.price,
+              totalCost: (Number(frame.price) * frameLength).toString(),
+              priority: 'medium',
+              unitMeasurement: 'united_inch',
+              notes: `Frame for order #${order.id}`
+            });
+          }
+        }
+      }
+
+      // Create mat material order if mat is selected
+      if (order.matColorId) {
+        const mat = await this.getMatColor(order.matColorId);
+        if (mat) {
+          const isDuplicate = await this.checkDuplicateMaterialOrder(order.matColorId, order.id);
+          if (!isDuplicate) {
+            // Calculate mat size needed
+            const matWidth = Number(order.artworkWidth) + (Number(order.matWidth) * 2) + 4;
+            const matHeight = Number(order.artworkHeight) + (Number(order.matWidth) * 2) + 4;
+            const matArea = matWidth * matHeight;
+
+            materialOrders.push({
+              materialType: 'matboard' as MaterialType,
+              materialId: order.matColorId,
+              materialName: mat.name,
+              quantity: '1',
+              status: 'pending' as MaterialOrderStatus,
+              sourceOrderId: order.id,
+              supplierName: mat.manufacturer || 'Crescent',
+              costPerUnit: (Number(mat.price) * matArea).toString(),
+              totalCost: (Number(mat.price) * matArea).toString(),
+              priority: 'medium',
+              unitMeasurement: 'sheet',
+              notes: `Mat board for order #${order.id} - ${matWidth}"x${matHeight}"`
+            });
+          }
+        }
+      }
+
+      // Create glass material order if glass is selected
+      if (order.glassOptionId) {
+        const glass = await this.getGlassOption(order.glassOptionId);
+        if (glass) {
+          const isDuplicate = await this.checkDuplicateMaterialOrder(order.glassOptionId, order.id);
+          if (!isDuplicate) {
+            // Calculate glass size needed
+            const glassWidth = Number(order.artworkWidth) + (Number(order.matWidth) * 2);
+            const glassHeight = Number(order.artworkHeight) + (Number(order.matWidth) * 2);
+            const glassArea = glassWidth * glassHeight;
+
+            materialOrders.push({
+              materialType: 'glass' as MaterialType,
+              materialId: order.glassOptionId,
+              materialName: glass.name,
+              quantity: '1',
+              status: 'pending' as MaterialOrderStatus,
+              sourceOrderId: order.id,
+              supplierName: 'Tru Vue',
+              costPerUnit: (Number(glass.price) * glassArea).toString(),
+              totalCost: (Number(glass.price) * glassArea).toString(),
+              priority: 'medium',
+              unitMeasurement: 'square_inch',
+              notes: `Glass for order #${order.id} - ${glassWidth}"x${glassHeight}"`
+            });
+          }
+        }
+      }
+
+      // Insert all material orders
+      const createdOrders: MaterialOrder[] = [];
+      for (const materialOrder of materialOrders) {
+        const created = await this.createMaterialOrder(materialOrder);
+        createdOrders.push(created);
+      }
+
+      return createdOrders;
+    } catch (error) {
+      log(`Error creating material orders from order: ${error}`, 'storage');
       throw error;
     }
   }
