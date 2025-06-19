@@ -770,8 +770,7 @@ export class DatabaseStorage implements IStorage {
   // Special service methods
   async getSpecialService(id: string): Promise<SpecialService | undefined> {
     // First try to get from the database
-    const [specialService]```python
-= await db.select().from(specialServices).where(eq(specialServices.id, id));
+    const [specialService] = await db.select().from(specialServices).where(eq(specialServices.id, id));
 
     // If not found in database, check catalog
     if (!specialService) {
