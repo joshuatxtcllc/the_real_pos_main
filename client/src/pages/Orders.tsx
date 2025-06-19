@@ -276,8 +276,17 @@ const Orders = () => {
     try {
       if (Array.isArray(orderGroups)) {
         orderGroupArray = orderGroups;
-      } else if (orderGroups && typeof orderGroups === 'object' && 'orderGroups' in orderGroups) {
-        orderGroupArray = (orderGroups as any).orderGroups || [];
+      } else if (orderGroups && typeof orderGroups === 'object') {
+        // Handle different response structures
+        if ('orderGroups' in orderGroups) {
+          orderGroupArray = (orderGroups as any).orderGroups || [];
+        } else if ('data' in orderGroups && Array.isArray((orderGroups as any).data)) {
+          orderGroupArray = (orderGroups as any).data;
+        } else {
+          // If it's an object but not recognizable structure, return null
+          console.warn('Unrecognized orderGroups structure:', orderGroups);
+          return null;
+        }
       }
     } catch (error) {
       console.error('Error parsing orderGroups:', error);
