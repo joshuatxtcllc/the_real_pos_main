@@ -68,7 +68,7 @@ export default function Orders() {
 
   // Helper function to get customer name
   const getCustomerName = (customerId: number) => {
-    const customer = customers?.find((c: Customer) => c.id === customerId);
+    const customer = Array.isArray(customers) ? customers.find((c: Customer) => c.id === customerId) : null;
     return customer ? customer.name : `Customer ${customerId}`;
   };
 

@@ -44,7 +44,7 @@ export default function PaymentLinkManager() {
     queryKey: ['/api/orders'],
   });
 
-  const orders = Array.isArray(ordersData?.orders) ? ordersData.orders : [];
+  const orders = Array.isArray((ordersData as any)?.orders) ? (ordersData as any).orders : [];
 
   // Create payment link mutation
   const createPaymentLinkMutation = useMutation({
@@ -112,7 +112,8 @@ export default function PaymentLinkManager() {
   };
 
   const sendViaEmail = () => {
-    const selectedCustomer = Array.isArray(customers) ? customers.find((c: Customer) => c.id === selectedCustomerId) : null;
+    const customersArray = Array.isArray(customers) ? customers : [];
+    const selectedCustomer = customersArray.find((c: Customer) => c.id === selectedCustomerId) || null;
     if (selectedCustomer?.email && generatedLink) {
       const subject = encodeURIComponent(`Payment Request - ${description}`);
       const body = encodeURIComponent(`Hi ${selectedCustomer.name},\n\nPlease use the following link to complete your payment:\n\n${generatedLink}\n\nAmount: $${amount}\nDescription: ${description}\n\nThank you!`);

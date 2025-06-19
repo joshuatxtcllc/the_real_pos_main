@@ -24,6 +24,7 @@ import PricingPage from "./pages/PricingPage";
 import VendorSettings from "./pages/VendorSettings";
 import OrderDetailsPage from "./pages/OrderDetailsPage";
 import PaymentLinks from "./pages/PaymentLinks";
+import PaymentLinkManager from "./pages/PaymentLinkManager";
 import Payment from "./pages/Payment";
 import MatBorderDemo from "./pages/MatBorderDemo";
 import SystemHealthPage from "@/pages/SystemHealthPage";

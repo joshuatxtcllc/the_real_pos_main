@@ -1,11 +1,11 @@
 import { useStripe, Elements, PaymentElement, useElements } from '@stripe/react-stripe-js';
 import { loadStripe } from '@stripe/stripe-js';
 import { useEffect, useState } from 'react';
-import { apiRequest } from "@/lib/queryClient";
-import { useToast } from "@/hooks/use-toast";
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useLocation } from 'wouter';
+import { apiRequest } from "../lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 
 // Make sure to call `loadStripe` outside of a component's render to avoid
 // recreating the `Stripe` object on every render.
@@ -14,7 +14,7 @@ if (!import.meta.env.VITE_STRIPE_PUBLIC_KEY) {
 }
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY);
 
-const CheckoutForm = ({ amount, orderId }: { amount: number, orderId?: string }) => {
+const CheckoutForm = ({ amount, orderId, description }: { amount: number; orderId?: string; description?: string }) => {
   const stripe = useStripe();
   const elements = useElements();
   const { toast } = useToast();
@@ -33,9 +33,11 @@ const CheckoutForm = ({ amount, orderId }: { amount: number, orderId?: string })
     const { error } = await stripe.confirmPayment({
       elements,
       confirmParams: {
-        return_url: `${window.location.origin}/orders`,
+        return_url: `${window.location.origin}/payment-status?success=true&orderId=${orderId}`,
       },
     });
+
+    setIsProcessing(false);
 
     if (error) {
       toast({
@@ -46,28 +48,26 @@ const CheckoutForm = ({ amount, orderId }: { amount: number, orderId?: string })
     } else {
       toast({
         title: "Payment Successful",
-        description: "Thank you for your payment!",
+        description: "Thank you for your purchase!",
       });
-      // Redirect to orders page
-      setLocation('/orders');
+      // Redirect will happen automatically via return_url
     }
-
-    setIsProcessing(false);
-  }
+  };
 
   return (
     <Card className="max-w-md mx-auto">
       <CardHeader>
-        <CardTitle>Complete Payment</CardTitle>
-        <p className="text-lg font-semibold">Amount: ${amount.toFixed(2)}</p>
+        <CardTitle>Complete Your Payment</CardTitle>
+        {description && <p className="text-sm text-gray-600">{description}</p>}
+        <p className="text-lg font-semibold">${amount.toFixed(2)}</p>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
           <PaymentElement />
           <Button 
             type="submit" 
-            className="w-full bg-green-600 hover:bg-green-700"
-            disabled={!stripe || !elements || isProcessing}
+            disabled={!stripe || isProcessing}
+            className="w-full"
           >
             {isProcessing ? "Processing..." : `Pay $${amount.toFixed(2)}`}
           </Button>
@@ -79,51 +79,44 @@ const CheckoutForm = ({ amount, orderId }: { amount: number, orderId?: string })
 
 export default function Checkout() {
   const [clientSecret, setClientSecret] = useState("");
-  const [amount, setAmount] = useState(0);
-  const [orderId, setOrderId] = useState<string>("");
   const [, setLocation] = useLocation();
+  
+  // Get URL parameters
+  const urlParams = new URLSearchParams(window.location.search);
+  const amount = parseFloat(urlParams.get('amount') || '0');
+  const orderId = urlParams.get('orderId') || undefined;
+  const description = urlParams.get('description') || undefined;
 
   useEffect(() => {
-    // Get order details from URL or local storage
-    const urlParams = new URLSearchParams(window.location.search);
-    const orderGroupId = urlParams.get('orderGroupId');
-    const orderAmount = urlParams.get('amount');
-    const orderIdParam = urlParams.get('orderId');
-
-    if (orderAmount) {
-      setAmount(parseFloat(orderAmount));
-    }
-    if (orderIdParam) {
-      setOrderId(orderIdParam);
+    if (amount <= 0) {
+      setLocation('/orders');
+      return;
     }
 
-    // Create PaymentIntent
-    const createPaymentIntent = async () => {
-      try {
-        const response = await apiRequest("POST", "/api/create-payment-intent", { 
-          amount: orderAmount ? parseFloat(orderAmount) : 100,
-          orderId: orderIdParam,
-          orderGroupId: orderGroupId
-        });
-        const data = await response.json();
+    // Create PaymentIntent for the specific amount
+    apiRequest("POST", "/api/create-payment-intent", { amount })
+      .then((res) => res.json())
+      .then((data) => {
         setClientSecret(data.clientSecret);
-      } catch (error) {
-        console.error('Error creating payment intent:', error);
-        // Fallback to orders page if payment setup fails
+      })
+      .catch((error) => {
+        console.error('Payment intent creation failed:', error);
         setLocation('/orders');
-      }
-    };
+      });
+  }, [amount, setLocation]);
 
-    createPaymentIntent();
-  }, [setLocation]);
+  if (amount <= 0) {
+    return (
+      <div className="text-center py-8">
+        <p>Invalid payment amount. Redirecting...</p>
+      </div>
+    );
+  }
 
   if (!clientSecret) {
     return (
       <div className="h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-4 border-primary border-t-transparent mx-auto mb-4"></div>
-          <p>Setting up payment...</p>
-        </div>
+        <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" aria-label="Loading"/>
       </div>
     );
   }
@@ -131,19 +124,8 @@ export default function Checkout() {
   // Make SURE to wrap the form in <Elements> which provides the stripe context.
   return (
     <div className="container mx-auto py-8">
-      <div className="mb-6 text-center">
-        <Button 
-          variant="outline" 
-          onClick={() => setLocation('/orders')}
-          className="mb-4"
-        >
-          ← Back to Orders
-        </Button>
-        <h1 className="text-3xl font-bold">Checkout</h1>
-      </div>
-      
       <Elements stripe={stripePromise} options={{ clientSecret }}>
-        <CheckoutForm amount={amount} orderId={orderId} />
+        <CheckoutForm amount={amount} orderId={orderId} description={description} />
       </Elements>
     </div>
   );
