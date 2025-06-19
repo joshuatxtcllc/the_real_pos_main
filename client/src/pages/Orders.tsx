@@ -291,7 +291,7 @@ const Orders = () => {
 
     if (!currentOrdersArray.length) return null;
 
-    // Extract orderGroups array properly
+    // Extract orderGroups array properly with better error handling
     let orderGroupArray: any[] = [];
     try {
       if (Array.isArray(orderGroups)) {
@@ -303,20 +303,22 @@ const Orders = () => {
         } else if ('data' in orderGroups && Array.isArray((orderGroups as any).data)) {
           orderGroupArray = (orderGroups as any).data;
         } else {
-          // If it's an object but not recognizable structure, return null
-          console.warn('Unrecognized orderGroups structure:', orderGroups);
-          return null;
+          // Try to convert object to array or return empty array
+          console.warn('Unrecognized orderGroups structure, using empty array:', orderGroups);
+          orderGroupArray = [];
         }
+      } else {
+        orderGroupArray = [];
       }
     } catch (error) {
-      console.error('Error parsing orderGroups:', error);
-      return null;
+      console.error('Error parsing orderGroups, using empty array:', error);
+      orderGroupArray = [];
     }
 
     // Ensure orderGroupArray is actually an array before proceeding
     if (!Array.isArray(orderGroupArray)) {
-      console.warn('orderGroupArray is not an array:', orderGroupArray);
-      return null;
+      console.warn('orderGroupArray is not an array, converting to empty array:', orderGroupArray);
+      orderGroupArray = [];
     }
 
     // Find the order group by matching orders with the given order ID
@@ -324,9 +326,9 @@ const Orders = () => {
       order.id === orderId && order.orderGroupId !== null
     );
 
-    if (targetOrders.length > 0) {
+    if (targetOrders.length > 0 && orderGroupArray.length > 0) {
       const orderGroupId = targetOrders[0].orderGroupId;
-      return orderGroupArray.find(group => group.id === orderGroupId);
+      return orderGroupArray.find(group => group && group.id === orderGroupId) || null;
     }
 
     return null;
@@ -472,11 +474,17 @@ const Orders = () => {
                         <TableCell className="font-medium">{order.id}</TableCell>
                         <TableCell className="font-medium">{getCustomerName(order.customerId)}</TableCell>
                         <TableCell>
-                          <PaymentStatusBadge orderGroup={orderGroup} total={order.total} />
+                          <div className="space-y-1">
+                            <PaymentStatusBadge orderGroup={orderGroup} total={order.total} />
+                            <div className="text-xs text-gray-600">
+                              <div>Unit: ${(parseFloat(order.total) / (order.quantity || 1)).toFixed(2)}</div>
+                              <div className="font-semibold">Total: ${order.total} (×{order.quantity || 1})</div>
+                            </div>
+                          </div>
                         </TableCell>
                         <TableCell>{getFrameName(order.frameId)}</TableCell>
                         <TableCell>{`${order.artworkWidth}" × ${order.artworkHeight}"`}</TableCell>
-                        <TableCell className="text-center font-medium">{order.quantity || 1}</TableCell>
+                        <TableCell className="text-center font-bold text-lg bg-blue-50 border-2 border-blue-200">{order.quantity || 1}</TableCell>
                         <TableCell className="text-sm">
                           <div>
                             <div><strong>Art:</strong> {order.artworkLocation || 'Not specified'}</div>
