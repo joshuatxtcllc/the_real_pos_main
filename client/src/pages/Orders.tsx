@@ -475,11 +475,25 @@ const Orders = () => {
                         <TableCell className="font-bold text-black dark:text-white text-base">{getCustomerName(order.customerId)}</TableCell>
                         <TableCell>
                           <div className="space-y-1">
-                            <PaymentStatusBadge orderGroup={orderGroup} total={order.total} />
-                            <div className="text-sm text-black dark:text-white">
-                              <div className="font-bold">Unit: ${(parseFloat(order.total) / (order.quantity || 1)).toFixed(2)}</div>
-                              <div className="font-bold text-black dark:text-white">Total: ${order.total} (×{order.quantity || 1})</div>
-                            </div>
+                            {(() => {
+                              // Calculate correct totals
+                              const quantity = order.quantity || 1;
+                              const unitPrice = parseFloat(order.subtotal) || 0;
+                              const calculatedTotal = unitPrice * quantity;
+                              const taxAmount = calculatedTotal * 0.08; // 8% tax
+                              const finalTotal = calculatedTotal + taxAmount;
+                              
+                              return (
+                                <>
+                                  <PaymentStatusBadge orderGroup={orderGroup} total={finalTotal.toFixed(2)} />
+                                  <div className="text-sm text-black dark:text-white">
+                                    <div className="font-bold">Unit: ${unitPrice.toFixed(2)}</div>
+                                    <div className="font-bold text-red-600 dark:text-red-400">Subtotal: ${calculatedTotal.toFixed(2)} (×{quantity})</div>
+                                    <div className="font-bold text-black dark:text-white">Total w/Tax: ${finalTotal.toFixed(2)}</div>
+                                  </div>
+                                </>
+                              );
+                            })()}
                           </div>
                         </TableCell>
                         <TableCell className="text-black dark:text-white font-semibold">{getFrameName(order.frameId)}</TableCell>
