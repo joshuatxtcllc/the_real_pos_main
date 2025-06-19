@@ -10,6 +10,7 @@ import {
 } from '@shared/pricingUtils';
 import { formatCurrency, generateQrCode } from '@/lib/utils';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Input } from '@/components/ui/input';
 import QRCode from 'react-qr-code';
 import { ShoppingCart, CreditCard, DollarSign, FileText, Send } from 'lucide-react';
 import CheckoutPayment from './CheckoutPayment';
@@ -57,6 +58,8 @@ interface OrderSummaryProps {
     description: string;
     amount: number;
   }>;
+  initialDiscountPercentage?: number;
+  onDiscountChange?: (discountPercentage: number, discountAmount: number) => void;
 }
 
 const OrderSummary: React.FC<OrderSummaryProps> = ({
@@ -83,10 +86,24 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({
   useManualFrame = false,
   manualFrameName = '',
   manualFrameCost = 0,
-  miscCharges = []
+  miscCharges = [],
+  initialDiscountPercentage = 0,
+  onDiscountChange
 }) => {
   // Local state for wholesale order checkbox if not provided through props
   const [localAddToWholesaleOrder, setLocalAddToWholesaleOrder] = useState(false);
+  
+  // Discount state
+  const [discountPercentage, setDiscountPercentage] = useState<number>(initialDiscountPercentage);
+  
+  // Handle discount change
+  const handleDiscountChange = (newDiscountPercentage: number) => {
+    setDiscountPercentage(newDiscountPercentage);
+    const newDiscountAmount = (preOverheadSubtotal + overheadCharge) * (newDiscountPercentage / 100);
+    if (onDiscountChange) {
+      onDiscountChange(newDiscountPercentage, newDiscountAmount);
+    }
+  };
 
   // Use either provided props or local state for wholesale order flag
   const effectiveAddToWholesaleOrder = typeof addToWholesaleOrder !== 'undefined' ? addToWholesaleOrder : localAddToWholesaleOrder;
@@ -134,9 +151,14 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({
 
   // Calculate final subtotal with overhead
   const subtotal = preOverheadSubtotal + overheadCharge;
+  
+  // Apply discount
+  const discountAmount = subtotal * (discountPercentage / 100);
+  const discountedSubtotal = subtotal - discountAmount;
+  
   const taxRate = 0.08; // 8% tax rate
-  const tax = subtotal * taxRate;
-  const total = subtotal + tax;
+  const tax = discountedSubtotal * taxRate;
+  const total = discountedSubtotal + tax;
 
   // Generate QR code data if orderId is available
   const qrCodeData = orderId ? generateQrCode(orderId) : null;
@@ -281,6 +303,33 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({
             <span>Subtotal</span>
             <span>${subtotal.toFixed(2)}</span>
           </div>
+          
+          {/* Discount Input */}
+          <div className="flex justify-between items-center mt-2">
+            <div className="flex items-center space-x-2">
+              <span className="text-sm text-light-textSecondary dark:text-dark-textSecondary">Discount</span>
+              <input
+                type="number"
+                min="0"
+                max="100"
+                step="0.1"
+                value={discountPercentage || ''}
+                onChange={(e) => handleDiscountChange(parseFloat(e.target.value) || 0)}
+                className="w-16 px-2 py-1 text-xs border border-gray-300 rounded text-center"
+                placeholder="0"
+              />
+              <span className="text-xs text-light-textSecondary dark:text-dark-textSecondary">%</span>
+            </div>
+            <span className="text-sm text-red-600">-${discountAmount.toFixed(2)}</span>
+          </div>
+          
+          {discountPercentage > 0 && (
+            <div className="flex justify-between font-medium text-green-600">
+              <span>Discounted Subtotal</span>
+              <span>${discountedSubtotal.toFixed(2)}</span>
+            </div>
+          )}
+          
           <div className="flex justify-between text-sm text-light-textSecondary dark:text-dark-textSecondary">
             <span>Tax (8%)</span>
             <span>${tax.toFixed(2)}</span>
