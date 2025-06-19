@@ -769,6 +769,7 @@ export class DatabaseStorage implements IStorage {
   // Special service methods
   async getSpecialService(id: string): Promise<SpecialService | undefined> {
     // First try to get from the database
+```text
     const [specialService] = await db.selectfrom(specialServices).where(eq(specialServices.id, id));
 
     // If not found in database, check catalog
@@ -1979,7 +1980,7 @@ export class DatabaseStorage implements IStorage {
     try {
       // Convert string IDs to numbers for database query
       const numericIds = materialIds.map(id => parseInt(id));
-      
+
       // Get the selected materials from the database
       const selectedMaterials = await db
         .select()
@@ -2047,7 +2048,7 @@ export class DatabaseStorage implements IStorage {
             )
           )
         );
-      
+
       return existing.length > 0;
     } catch (error) {
       log(`Error checking duplicate material order: ${error}`, 'storage');
