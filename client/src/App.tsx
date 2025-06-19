@@ -114,6 +114,7 @@ function App() {
               <Switch>
                 <Route path="/" component={PosSystem} />
                 <Route path="/orders" component={Orders} />
+                <Route path="/checkout" component={lazy(() => import('./pages/Checkout'))} />
                 <Route path="/dashboard" component={Dashboard} />
                 <Route path="/production" component={ProductionPage} />
                 <Route path="/orders/:orderId" component={OrderDetailsPage} />
@@ -134,6 +135,7 @@ function App() {
                 <Route path="/customers/:id" component={CustomerManagement} />
                 <Route path="/customers" component={Customers} />
                 <Route path="/payment-links" component={PaymentLinks} />
+                <Route path="/payment-link-manager" component={lazy(() => import('./pages/PaymentLinkManager'))} />
                 <Route path="/payment/:token" component={Payment} />
                 <Route path="/frame-education" component={FrameEducationPage} />
                 <Route path="/webhook-integration" component={WebhookIntegrationPage} />

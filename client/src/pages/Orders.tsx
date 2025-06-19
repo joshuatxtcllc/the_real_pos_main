@@ -579,37 +579,11 @@ const Orders = () => {
                                     variant="default" 
                                     size="sm"
                                     className="bg-green-600 hover:bg-green-700 text-white font-bold"
-                                    onClick={async () => {
-                                      try {
-                                        // Calculate proper totals first
-                                        const quantity = order.quantity || 1;
-                                        const unitPrice = parseFloat(order.subtotal) || 0;
-                                        const calculatedSubtotal = unitPrice * quantity;
-                                        const taxAmount = calculatedSubtotal * 0.08; // 8% tax
-                                        const finalTotal = calculatedSubtotal + taxAmount;
-
-                                        console.log(`Creating INSTANT payment link for order ${order.id}`);
-
-                                        // Show loading state
-                                        toast({
-                                          title: "🔄 Creating Payment Link...",
-                                          description: "Please wait while we generate your payment link.",
-                                        });
-
-                                        // Create order group first if needed
-                                        let orderGroupId = order.orderGroupId;
-                                        if (!orderGroupId) {
-                                          const orderGroupResponse = await fetch('/api/order-groups', {
-                                            method: 'POST',
-                                            headers: {
-                                              'Content-Type': 'application/json',
-                                            },
-                                            body: JSON.stringify({
-                                              customerId: order.customerId,
-                                              subtotal: calculatedSubtotal.toFixed(2),
-                                              tax: taxAmount.toFixed(2),
-                                              total: finalTotal.toFixed(2),
-                                              status: 'open',
+                                    onClick={() => {
+                                      const amount = parseFloat(order.total);
+                                      const checkoutUrl = `/checkout?amount=${amount}&orderId=${order.id}&description=Order Payment for Order #${order.id}`;
+                                      setLocation(checkoutUrl);
+                                    }}
                                               notes: `Order group for Order #${order.id}`
                                             }),
                                           });

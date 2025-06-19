@@ -44,6 +44,75 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Pricing monitor routes (commented out temporarily)
   // app.use('/api/pricing-monitor', pricingMonitorRoutes);
 
+  // Initialize Stripe
+  if (!process.env.STRIPE_SECRET_KEY) {
+    throw new Error('Missing required Stripe secret: STRIPE_SECRET_KEY');
+  }
+  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+    apiVersion: "2020-08-27",
+  });
+
+  // Stripe payment intent route for checkout
+  app.post("/api/create-payment-intent", async (req, res) => {
+    try {
+      const { amount, orderId, orderGroupId } = req.body;
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount: Math.round(amount * 100), // Convert to cents
+        currency: "usd",
+        metadata: {
+          orderId: orderId || '',
+          orderGroupId: orderGroupId || '',
+        },
+      });
+      res.json({ clientSecret: paymentIntent.client_secret });
+    } catch (error: any) {
+      res.status(500).json({ message: "Error creating payment intent: " + error.message });
+    }
+  });
+
+  // Create payment link for sending to customers
+  app.post("/api/create-payment-link", async (req, res) => {
+    try {
+      const { amount, description, customerEmail, orderId } = req.body;
+      
+      // Create a product first
+      const product = await stripe.products.create({
+        name: description || `Order Payment - #${orderId}`,
+      });
+
+      // Create a price for the product
+      const price = await stripe.prices.create({
+        unit_amount: Math.round(amount * 100), // Convert to cents
+        currency: 'usd',
+        product: product.id,
+      });
+
+      const paymentLink = await stripe.paymentLinks.create({
+        line_items: [
+          {
+            price: price.id,
+            quantity: 1,
+          },
+        ],
+        metadata: {
+          orderId: orderId || '',
+          customerEmail: customerEmail || '',
+        },
+      });
+      
+      res.json({ 
+        success: true, 
+        paymentLink: paymentLink.url,
+        id: paymentLink.id 
+      });
+    } catch (error: any) {
+      res.status(500).json({ 
+        success: false, 
+        message: "Error creating payment link: " + error.message 
+      });
+    }
+  });
+
   // Health check endpoint
   app.get('/api/health', (req, res) => {
     res.json({ 
