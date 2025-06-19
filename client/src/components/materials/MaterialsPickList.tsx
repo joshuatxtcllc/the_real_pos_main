@@ -60,6 +60,14 @@ const ORDER_STATUSES = [
   { value: "cancelled", label: "Cancelled", color: "destructive" },
 ];
 
+// Stock status options
+const STOCK_STATUSES = [
+  { value: "in_stock", label: "In Stock", color: "success", icon: Check },
+  { value: "low_stock", label: "Low Stock", color: "warning", icon: AlertTriangle },
+  { value: "out_of_stock", label: "Out of Stock", color: "destructive", icon: AlertTriangle },
+  { value: "unknown", label: "Check Stock", color: "default", icon: Clock }
+];
+
 // Material item interface
 interface MaterialItem {
   id: string;
@@ -70,6 +78,8 @@ interface MaterialItem {
   type: string;
   quantity: number;
   status: string;
+  stockStatus?: "in_stock" | "low_stock" | "out_of_stock" | "unknown";
+  stockQuantity?: number;
   orderDate?: string;
   receiveDate?: string;
   priority: "low" | "medium" | "high";
@@ -292,6 +302,68 @@ const MaterialsPickList: React.FC<MaterialsPickListProps> = ({ onCreateOrder }) 
         variant: "destructive",
       });
     }
+  };
+
+  // Update stock status for an item
+  const updateStockStatus = async (itemId: string, stockStatus: string, stockQuantity?: number) => {
+    try {
+      await updateMaterialOrder.mutateAsync({
+        id: itemId,
+        data: { 
+          stockStatus,
+          stockQuantity: stockQuantity?.toString() || '0'
+        }
+      });
+
+      toast({
+        title: "Stock status updated",
+        description: `Material stock status updated`,
+      });
+
+      window.location.reload();
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update stock status",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Render stock status badge
+  const renderStockStatus = (item: MaterialItem) => {
+    const stockStatus = STOCK_STATUSES.find(s => s.value === (item.stockStatus || 'unknown'));
+    const Icon = stockStatus?.icon || Clock;
+    
+    return (
+      <div className="flex items-center gap-2">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="sm" className="flex items-center gap-1 h-6 px-2">
+              <Icon className="h-3 w-3" />
+              {stockStatus?.label}
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent>
+            {STOCK_STATUSES.map(status => (
+              <DropdownMenuItem 
+                key={status.value}
+                onClick={() => updateStockStatus(item.id, status.value)}
+                className="flex items-center gap-2"
+              >
+                <status.icon className="h-3 w-3" />
+                {status.label}
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
+        {item.stockQuantity && (
+          <span className="text-sm text-muted-foreground">
+            Qty: {item.stockQuantity}
+          </span>
+        )}
+      </div>
+    );
   };
 
   // Mark materials as out of stock
@@ -804,7 +876,7 @@ const MaterialsPickList: React.FC<MaterialsPickListProps> = ({ onCreateOrder }) 
                         className="flex items-center cursor-pointer"
                         onClick={() => handleSort("status")}
                       >
-                        Status
+                        Order Status
                         {sortField === "status" && (
                           <ChevronDown 
                             className={`h-4 w-4 ml-1 ${
@@ -814,6 +886,7 @@ const MaterialsPickList: React.FC<MaterialsPickListProps> = ({ onCreateOrder }) 
                         )}
                       </div>
                     </TableHead>
+                    <TableHead>Stock Status</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -836,6 +909,7 @@ const MaterialsPickList: React.FC<MaterialsPickListProps> = ({ onCreateOrder }) 
                       <TableCell className="text-right">{item.quantity}</TableCell>
                       <TableCell>{getPriorityBadge(item.priority)}</TableCell>
                       <TableCell>{getStatusBadge(item.status)}</TableCell>
+                      <TableCell>{renderStockStatus(item)}</TableCell>
                       <TableCell className="text-right">
                         <Button
                           variant="ghost"
