@@ -423,6 +423,7 @@ const Orders = () => {
                     <TableHead>Payment Status</TableHead>
                     <TableHead>Frame</TableHead>
                     <TableHead>Size</TableHead>
+                    <TableHead>Qty</TableHead>
                     <TableHead>Location</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Actions</TableHead>
@@ -440,6 +441,7 @@ const Orders = () => {
                         </TableCell>
                         <TableCell>{getFrameName(order.frameId)}</TableCell>
                         <TableCell>{`${order.artworkWidth}" × ${order.artworkHeight}"`}</TableCell>
+                        <TableCell className="text-center font-medium">{order.quantity || 1}</TableCell>
                         <TableCell className="text-sm">
                           <div>
                             <div><strong>Art:</strong> {order.artworkLocation || 'Not specified'}</div>
