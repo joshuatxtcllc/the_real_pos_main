@@ -291,27 +291,34 @@ const Orders = () => {
 
     if (!currentOrdersArray.length) return null;
 
-    // Extract orderGroups array properly
+    // Extract orderGroups array properly with better error handling
     let orderGroupArray: any[] = [];
     try {
       if (Array.isArray(orderGroups)) {
         orderGroupArray = orderGroups;
-      } else if (orderGroups && typeof orderGroups === 'object' && 'orderGroups' in orderGroups) {
-        orderGroupArray = (orderGroups as any).orderGroups || [];
-      }
-
-      // Ensure it's always an array
-      if (!Array.isArray(orderGroupArray)) {
+      } else if (orderGroups && typeof orderGroups === 'object') {
+        // Handle different response structures
+        if ('orderGroups' in orderGroups) {
+          const groups = (orderGroups as any).orderGroups;
+          orderGroupArray = Array.isArray(groups) ? groups : [];
+        } else if ('data' in orderGroups && Array.isArray((orderGroups as any).data)) {
+          orderGroupArray = (orderGroups as any).data;
+        } else {
+          // If it's an object but not recognizable structure, try to convert
+          console.warn('Unrecognized orderGroups structure:', orderGroups);
+          orderGroupArray = [];
+        }
+      } else {
         orderGroupArray = [];
       }
     } catch (error) {
       console.error('Error parsing order groups in findOrderGroupForOrder:', error);
-      return null;
+      orderGroupArray = [];
     }
 
-    // Ensure orderGroupArray is actually an array before proceeding
-    if (!Array.isArray(orderGroupArray)) {
-      console.warn('orderGroupArray is not an array, converting to empty array:', orderGroupArray);
+    // Double-check it's an array and has find method
+    if (!Array.isArray(orderGroupArray) || typeof orderGroupArray.find !== 'function') {
+      console.warn('orderGroupArray is not a proper array, setting to empty array:', orderGroupArray);
       orderGroupArray = [];
     }
 
@@ -322,7 +329,12 @@ const Orders = () => {
 
     if (targetOrders.length > 0 && orderGroupArray.length > 0) {
       const orderGroupId = targetOrders[0].orderGroupId;
-      return orderGroupArray.find(group => group && group.id === orderGroupId) || null;
+      try {
+        return orderGroupArray.find(group => group && group.id === orderGroupId) || null;
+      } catch (error) {
+        console.error('Error finding order group:', error);
+        return null;
+      }
     }
 
     return null;
