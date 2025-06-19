@@ -59,6 +59,55 @@ const StatusBadge = ({ status }: { status: string }) => {
   );
 };
 
+// Payment status badge with urgent alerts
+const PaymentStatusBadge = ({ orderGroup, total }: { orderGroup: OrderGroup | null, total: string }) => {
+  if (!orderGroup) {
+    return (
+      <div className="flex items-center space-x-2">
+        <span className="px-3 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800 border-2 border-red-300 animate-pulse">
+          🚨 PAYMENT REQUIRED
+        </span>
+        <span className="text-sm font-medium text-red-600">${total}</span>
+      </div>
+    );
+  }
+
+  const getPaymentBadge = () => {
+    const totalAmount = parseFloat(orderGroup.total || '0');
+    const paidAmount = parseFloat(orderGroup.cashAmount || '0');
+    
+    if (orderGroup.status === 'paid') {
+      return (
+        <span className="px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+          ✅ PAID
+        </span>
+      );
+    }
+    
+    if (paidAmount > 0 && paidAmount < totalAmount) {
+      const remaining = totalAmount - paidAmount;
+      return (
+        <div className="flex items-center space-x-2">
+          <span className="px-3 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800 border-2 border-orange-300 animate-pulse">
+            🔔 PARTIAL: ${remaining.toFixed(2)} DUE
+          </span>
+        </div>
+      );
+    }
+    
+    return (
+      <div className="flex items-center space-x-2">
+        <span className="px-3 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800 border-2 border-red-300 animate-pulse">
+          🚨 PAYMENT REQUIRED
+        </span>
+        <span className="text-sm font-medium text-red-600">${totalAmount.toFixed(2)}</span>
+      </div>
+    );
+  };
+
+  return getPaymentBadge();
+};
+
 const Orders = () => {
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
@@ -185,6 +234,31 @@ const Orders = () => {
     if (selectedOrder) {
       createWholesaleOrderMutation.mutate(selectedOrder.id);
     }
+  };
+
+  // Send customer update mutation
+  const sendUpdateMutation = useMutation({
+    mutationFn: async (orderId: number) => {
+      return apiRequest('POST', `/api/orders/${orderId}/send-update`, {});
+    },
+    onSuccess: () => {
+      toast({
+        title: "Update Sent",
+        description: "Customer has been notified of the current order status",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Send Failed",
+        description: error.message || "Failed to send customer update",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Handle sending customer update
+  const handleSendUpdate = (orderId: number) => {
+    sendUpdateMutation.mutate(orderId);
   };
 
   // Open wholesale order dialog
@@ -320,90 +394,95 @@ const Orders = () => {
                   <TableRow>
                     <TableHead>Order #</TableHead>
                     <TableHead>Customer</TableHead>
-                    <TableHead>Date</TableHead>
+                    <TableHead>Payment Status</TableHead>
                     <TableHead>Frame</TableHead>
                     <TableHead>Size</TableHead>
-                    <TableHead>Total</TableHead>
+                    <TableHead>Location</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredOrders.map((order: Order) => (
-                    <TableRow key={order.id}>
-                      <TableCell className="font-medium">{order.id}</TableCell>
-                      <TableCell>{getCustomerName(order.customerId)}</TableCell>
-                      <TableCell>{new Date(order.createdAt || '').toLocaleDateString()}</TableCell>
-                      <TableCell>{getFrameName(order.frameId)}</TableCell>
-                      <TableCell>{`${order.artworkWidth}" × ${order.artworkHeight}"`}</TableCell>
-                      <TableCell>${order.total}</TableCell>
-                      <TableCell>
-                        <StatusBadge status={order.status} />
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex space-x-2">
-                          <Select
-                            value={order.status}
-                            onValueChange={(value) => handleStatusChange(order.id, value)}
-                          >
-                            <SelectTrigger className="w-[120px]">
-                              <SelectValue placeholder="Status" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="pending">Pending</SelectItem>
-                              <SelectItem value="in_progress">In Progress</SelectItem>
-                              <SelectItem value="completed">Completed</SelectItem>
-                              <SelectItem value="cancelled">Cancelled</SelectItem>
-                            </SelectContent>
-                          </Select>
-                          <div className="flex gap-2">
-                            {order.status === 'pending' && (
+                  {filteredOrders.map((order: Order) => {
+                    const orderGroup = findOrderGroupForOrder(order.id);
+                    return (
+                      <TableRow key={order.id} className={!orderGroup || orderGroup.status !== 'paid' ? 'bg-red-50 border-l-4 border-l-red-500' : ''}>
+                        <TableCell className="font-medium">{order.id}</TableCell>
+                        <TableCell className="font-medium">{getCustomerName(order.customerId)}</TableCell>
+                        <TableCell>
+                          <PaymentStatusBadge orderGroup={orderGroup} total={order.total} />
+                        </TableCell>
+                        <TableCell>{getFrameName(order.frameId)}</TableCell>
+                        <TableCell>{`${order.artworkWidth}" × ${order.artworkHeight}"`}</TableCell>
+                        <TableCell className="text-sm">
+                          <div>
+                            <div><strong>Art:</strong> {order.artworkLocation || 'Not specified'}</div>
+                            <div><strong>Materials:</strong> Workshop - Bay A</div>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <StatusBadge status={order.status} />
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex flex-col space-y-2">
+                            <div className="flex gap-2">
+                              {(!orderGroup || orderGroup.status !== 'paid') && (
+                                <Button 
+                                  variant="default" 
+                                  size="sm"
+                                  className="bg-green-600 hover:bg-green-700"
+                                  onClick={() => {
+                                    if (orderGroup) {
+                                      handleProceedToCheckout(orderGroup.id);
+                                    } else {
+                                      // Create order group for checkout
+                                      toast({
+                                        title: "Creating checkout session...",
+                                        description: "Setting up payment for this order.",
+                                      });
+                                    }
+                                  }}
+                                >
+                                  💳 Checkout
+                                </Button>
+                              )}
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                onClick={() => handleSendUpdate(order.id)}
+                                disabled={sendUpdateMutation.isPending}
+                              >
+                                📧 Send Update
+                              </Button>
+                            </div>
+                            <div className="flex gap-2">
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                onClick={() => openWholesaleDialog(order)}
+                              >
+                                📦 Materials
+                              </Button>
+                              <Button 
+                                variant="secondary" 
+                                size="sm"
+                                onClick={() => setLocation(`/order-progress/${order.id}`)}
+                              >
+                                📊 Progress
+                              </Button>
                               <Button 
                                 variant="default" 
                                 size="sm"
-                                className="bg-green-600 hover:bg-green-700"
-                                onClick={() => {
-                                  const orderGroup = findOrderGroupForOrder(order.id);
-                                  if (orderGroup) {
-                                    handleProceedToCheckout(orderGroup.id);
-                                  } else {
-                                    toast({
-                                      title: "Checkout Error",
-                                      description: "No order group found for this order.",
-                                      variant: "destructive"
-                                    });
-                                  }
-                                }}
+                                onClick={() => setLocation(`/orders/${order.id}`)}
                               >
-                                Checkout
+                                <Eye className="h-4 w-4 mr-1" /> Details
                               </Button>
-                            )}
-                            <Button 
-                              variant="outline" 
-                              size="sm"
-                              onClick={() => openWholesaleDialog(order)}
-                            >
-                              Order Materials
-                            </Button>
-                            <Button 
-                              variant="secondary" 
-                              size="sm"
-                              onClick={() => setLocation(`/order-progress/${order.id}`)}
-                            >
-                              Track Progresss
-                            </Button>
-                            <Button 
-                              variant="default" 
-                              size="sm"
-                              onClick={() => setLocation(`/orders/${order.id}`)}
-                            >
-                              <Edit className="h-4 w-4 mr-1" /> Details
-                            </Button>
+                            </div>
                           </div>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             </div>

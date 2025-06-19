@@ -10,6 +10,7 @@ import Dashboard from "./pages/Dashboard";
 import Checkout from "./pages/Checkout";
 import PaymentStatus from "./pages/PaymentStatus";
 import CustomerManagement from "./pages/CustomerManagement";
+import Customers from "./pages/Customers";
 import ProductionPage from "./pages/ProductionPage";
 import OrderProgressPage from "./pages/OrderProgressPage";
 import MaterialOrdersPage from "./pages/MaterialOrdersPage";
@@ -131,7 +132,7 @@ function App() {
                 <Route path="/payment-status" component={PaymentStatus} />
                 <Route path="/order-progress/:orderId" component={OrderProgressPage} />
                 <Route path="/customers/:id" component={CustomerManagement} />
-                <Route path="/customers" component={CustomerManagement} />
+                <Route path="/customers" component={Customers} />
                 <Route path="/payment-links" component={PaymentLinks} />
                 <Route path="/payment/:token" component={Payment} />
                 <Route path="/frame-education" component={FrameEducationPage} />
