@@ -291,28 +291,22 @@ const Orders = () => {
 
     if (!currentOrdersArray.length) return null;
 
-    // Extract orderGroups array properly with better error handling
+    // Extract orderGroups array properly
     let orderGroupArray: any[] = [];
     try {
       if (Array.isArray(orderGroups)) {
         orderGroupArray = orderGroups;
-      } else if (orderGroups && typeof orderGroups === 'object') {
-        // Handle different response structures
-        if ('orderGroups' in orderGroups) {
-          orderGroupArray = (orderGroups as any).orderGroups || [];
-        } else if ('data' in orderGroups && Array.isArray((orderGroups as any).data)) {
-          orderGroupArray = (orderGroups as any).data;
-        } else {
-          // Try to convert object to array or return empty array
-          console.warn('Unrecognized orderGroups structure, using empty array:', orderGroups);
-          orderGroupArray = [];
-        }
-      } else {
+      } else if (orderGroups && typeof orderGroups === 'object' && 'orderGroups' in orderGroups) {
+        orderGroupArray = (orderGroups as any).orderGroups || [];
+      }
+
+      // Ensure it's always an array
+      if (!Array.isArray(orderGroupArray)) {
         orderGroupArray = [];
       }
     } catch (error) {
-      console.error('Error parsing orderGroups, using empty array:', error);
-      orderGroupArray = [];
+      console.error('Error parsing order groups in findOrderGroupForOrder:', error);
+      return null;
     }
 
     // Ensure orderGroupArray is actually an array before proceeding
@@ -482,7 +476,7 @@ const Orders = () => {
                               const calculatedTotal = unitPrice * quantity;
                               const taxAmount = calculatedTotal * 0.08; // 8% tax
                               const finalTotal = calculatedTotal + taxAmount;
-                              
+
                               return (
                                 <>
                                   <PaymentStatusBadge orderGroup={orderGroup} total={finalTotal.toFixed(2)} />
@@ -516,17 +510,67 @@ const Orders = () => {
                                   variant="default" 
                                   size="sm"
                                   className="bg-green-600 hover:bg-green-700"
-                                  onClick={() => {
-                                    if (orderGroup) {
-                                      handleProceedToCheckout(orderGroup.id);
-                                    } else {
+                                  onClick={async () => {
+                                  if (order.orderGroupId) {
+                                    // Navigate to existing checkout
+                                    setLocation(`/checkout/${order.orderGroupId}`);
+                                  } else {
+                                    try {
                                       // Create order group for checkout
                                       toast({
                                         title: "Creating checkout session...",
                                         description: "Setting up payment for this order.",
                                       });
+
+                                      const response = await fetch('/api/order-groups', {
+                                        method: 'POST',
+                                        headers: {
+                                          'Content-Type': 'application/json',
+                                        },
+                                        body: JSON.stringify({
+                                          customerId: order.customerId,
+                                          subtotal: order.subtotal,
+                                          tax: order.tax,
+                                          total: order.total,
+                                          status: 'open',
+                                          notes: `Order group for Order #${order.id}`
+                                        }),
+                                      });
+
+                                      if (!response.ok) {
+                                        throw new Error('Failed to create order group');
+                                      }
+
+                                      const { orderGroup } = await response.json();
+
+                                      // Update the order with the new orderGroupId
+                                      const updateResponse = await fetch(`/api/orders/${order.id}`, {
+                                        method: 'PATCH',
+                                        headers: {
+                                          'Content-Type': 'application/json',
+                                        },
+                                        body: JSON.stringify({
+                                          orderGroupId: orderGroup.id
+                                        }),
+                                      });
+
+                                      if (!updateResponse.ok) {
+                                        throw new Error('Failed to update order with group ID');
+                                      }
+
+                                      // Navigate to checkout
+                                      setLocation(`/checkout/${orderGroup.id}`);
+
+                                    } catch (error) {
+                                      console.error('Error creating checkout session:', error);
+                                      toast({
+                                        title: "Checkout Error",
+                                        description: "Failed to create checkout session. Please try again.",
+                                        variant: "destructive",
+                                      });
                                     }
-                                  }}
+                                  }
+                                }}
                                 >
                                   💳 Checkout
                                 </Button>
