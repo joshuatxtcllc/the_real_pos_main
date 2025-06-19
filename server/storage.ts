@@ -772,7 +772,7 @@ export class DatabaseStorage implements IStorage {
     const [specialService] = await db.select().from(specialServices).where(eq(specialServices.id, id));
 
     // If not found in database, check catalog
-    if (!specialService){
+    if (!specialService) {
       const catalogSpecialService = specialServicesCatalog.find(s => s.id === id);
       if (catalogSpecialService) {
         // Insert into database
