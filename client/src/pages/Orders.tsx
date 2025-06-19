@@ -133,6 +133,9 @@ const Orders = () => {
     refetchOnReconnect: false,
   });
 
+  // Debug logging for order groups
+  console.log('Order groups response:', orderGroups);
+
   // Fetch customers for reference
   const { data: customers } = useQuery({
     queryKey: ['/api/customers'],
@@ -523,90 +526,90 @@ const Orders = () => {
                                   size="sm"
                                   className="bg-green-600 hover:bg-green-700"
                                   onClick={async () => {
-                                  try {
-                                    // Check if order already has a group
-                                    if (order.orderGroupId) {
-                                      console.log(`Order ${order.id} already has orderGroupId: ${order.orderGroupId}`);
-                                      setLocation(`/checkout/${order.orderGroupId}`);
-                                      return;
+                                    try {
+                                      // Check if order already has a group
+                                      if (order.orderGroupId) {
+                                        console.log(`Order ${order.id} already has orderGroupId: ${order.orderGroupId}`);
+                                        setLocation(`/checkout/${order.orderGroupId}`);
+                                        return;
+                                      }
+
+                                      // Create order group for checkout
+                                      toast({
+                                        title: "Creating checkout session...",
+                                        description: "Setting up payment for this order.",
+                                      });
+
+                                      console.log('Creating order group for order:', order.id);
+
+                                      // Calculate proper totals
+                                      const quantity = order.quantity || 1;
+                                      const unitPrice = parseFloat(order.subtotal) || 0;
+                                      const calculatedSubtotal = unitPrice * quantity;
+                                      const taxAmount = calculatedSubtotal * 0.08; // 8% tax
+                                      const finalTotal = calculatedSubtotal + taxAmount;
+
+                                      const response = await fetch('/api/order-groups', {
+                                        method: 'POST',
+                                        headers: {
+                                          'Content-Type': 'application/json',
+                                        },
+                                        body: JSON.stringify({
+                                          customerId: order.customerId,
+                                          subtotal: calculatedSubtotal.toFixed(2),
+                                          tax: taxAmount.toFixed(2),
+                                          total: finalTotal.toFixed(2),
+                                          status: 'open',
+                                          notes: `Order group for Order #${order.id}`
+                                        }),
+                                      });
+
+                                      if (!response.ok) {
+                                        const errorData = await response.text();
+                                        console.error('Order group creation failed:', errorData);
+                                        throw new Error(`Failed to create order group: ${response.status}`);
+                                      }
+
+                                      const responseData = await response.json();
+                                      console.log('Order group created:', responseData);
+
+                                      const newOrderGroup = responseData.orderGroup || responseData;
+
+                                      // Update the order with the new orderGroupId
+                                      const updateResponse = await fetch(`/api/orders/${order.id}`, {
+                                        method: 'PATCH',
+                                        headers: {
+                                          'Content-Type': 'application/json',
+                                        },
+                                        body: JSON.stringify({
+                                          orderGroupId: newOrderGroup.id
+                                        }),
+                                      });
+
+                                      if (!updateResponse.ok) {
+                                        const updateErrorData = await updateResponse.text();
+                                        console.error('Order update failed:', updateErrorData);
+                                        throw new Error(`Failed to update order: ${updateResponse.status}`);
+                                      }
+
+                                      console.log(`Order ${order.id} updated with orderGroupId: ${newOrderGroup.id}`);
+
+                                      // Refresh the orders data
+                                      queryClient.invalidateQueries({ queryKey: ['/api/orders'] });
+                                      queryClient.invalidateQueries({ queryKey: ['/api/order-groups'] });
+
+                                      // Navigate to checkout
+                                      setLocation(`/checkout/${newOrderGroup.id}`);
+
+                                    } catch (error) {
+                                      console.error('Detailed checkout error:', error);
+                                      toast({
+                                        title: "Checkout Error",
+                                        description: `Failed to create checkout session: ${error instanceof Error ? error.message : 'Unknown error'}`,
+                                        variant: "destructive",
+                                      });
                                     }
-
-                                    // Create order group for checkout
-                                    toast({
-                                      title: "Creating checkout session...",
-                                      description: "Setting up payment for this order.",
-                                    });
-
-                                    console.log('Creating order group for order:', order.id);
-
-                                    // Calculate proper totals
-                                    const quantity = order.quantity || 1;
-                                    const unitPrice = parseFloat(order.subtotal) || 0;
-                                    const calculatedSubtotal = unitPrice * quantity;
-                                    const taxAmount = calculatedSubtotal * 0.08; // 8% tax
-                                    const finalTotal = calculatedSubtotal + taxAmount;
-
-                                    const response = await fetch('/api/order-groups', {
-                                      method: 'POST',
-                                      headers: {
-                                        'Content-Type': 'application/json',
-                                      },
-                                      body: JSON.stringify({
-                                        customerId: order.customerId,
-                                        subtotal: calculatedSubtotal.toFixed(2),
-                                        tax: taxAmount.toFixed(2),
-                                        total: finalTotal.toFixed(2),
-                                        status: 'open',
-                                        notes: `Order group for Order #${order.id}`
-                                      }),
-                                    });
-
-                                    if (!response.ok) {
-                                      const errorData = await response.text();
-                                      console.error('Order group creation failed:', errorData);
-                                      throw new Error(`Failed to create order group: ${response.status}`);
-                                    }
-
-                                    const responseData = await response.json();
-                                    console.log('Order group created:', responseData);
-
-                                    const orderGroup = responseData.orderGroup || responseData;
-
-                                    // Update the order with the new orderGroupId
-                                    const updateResponse = await fetch(`/api/orders/${order.id}`, {
-                                      method: 'PATCH',
-                                      headers: {
-                                        'Content-Type': 'application/json',
-                                      },
-                                      body: JSON.stringify({
-                                        orderGroupId: orderGroup.id
-                                      }),
-                                    });
-
-                                    if (!updateResponse.ok) {
-                                      const updateErrorData = await updateResponse.text();
-                                      console.error('Order update failed:', updateErrorData);
-                                      throw new Error(`Failed to update order: ${updateResponse.status}`);
-                                    }
-
-                                    console.log(`Order ${order.id} updated with orderGroupId: ${orderGroup.id}`);
-
-                                    // Refresh the orders data
-                                    queryClient.invalidateQueries({ queryKey: ['/api/orders'] });
-                                    queryClient.invalidateQueries({ queryKey: ['/api/order-groups'] });
-
-                                    // Navigate to checkout
-                                    setLocation(`/checkout/${orderGroup.id}`);
-
-                                  } catch (error) {
-                                    console.error('Detailed checkout error:', error);
-                                    toast({
-                                      title: "Checkout Error",
-                                      description: `Failed to create checkout session: ${error.message}`,
-                                      variant: "destructive",
-                                    });
-                                  }
-                                }}
+                                  }}
                                 >
                                   💳 Checkout
                                 </Button>
