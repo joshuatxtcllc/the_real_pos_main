@@ -269,7 +269,7 @@ const Orders = () => {
 
   // Check if any order has orderGroupId that matches
   const findOrderGroupForOrder = (orderId: number) => {
-    if (!orderGroups) return null;
+    if (!orderGroups || !ordersArray) return null;
 
     // Extract orderGroups array properly
     let orderGroupArray: any[] = [];
