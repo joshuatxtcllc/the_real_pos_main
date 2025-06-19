@@ -590,6 +590,12 @@ const Orders = () => {
 
                                         console.log(`Creating INSTANT payment link for order ${order.id}`);
 
+                                        // Show loading state
+                                        toast({
+                                          title: "🔄 Creating Payment Link...",
+                                          description: "Please wait while we generate your payment link.",
+                                        });
+
                                         // Create payment link directly
                                         const response = await fetch('/api/payment-links', {
                                           method: 'POST',
@@ -606,7 +612,8 @@ const Orders = () => {
                                         });
 
                                         if (!response.ok) {
-                                          throw new Error('Failed to create payment link');
+                                          const errorText = await response.text();
+                                          throw new Error(`Failed to create payment link: ${errorText}`);
                                         }
 
                                         const paymentData = await response.json();
@@ -616,27 +623,46 @@ const Orders = () => {
                                           const baseUrl = window.location.origin;
                                           const paymentUrl = `${baseUrl}/payment/${paymentData.paymentLink.token}`;
 
-                                          // Copy to clipboard
-                                          navigator.clipboard.writeText(paymentUrl);
+                                          // Try to copy to clipboard with fallback
+                                          try {
+                                            await navigator.clipboard.writeText(paymentUrl);
+                                          } catch (clipboardError) {
+                                            console.warn('Clipboard access failed:', clipboardError);
+                                          }
 
                                           // Open the link in new tab
                                           window.open(paymentUrl, '_blank');
 
+                                          // Show success with prominent display
                                           toast({
-                                            title: "💰 PAYMENT LINK READY!",
-                                            description: `Link copied to clipboard and opened in new tab. Send this to your customer: ${paymentUrl}`,
-                                            duration: 10000,
+                                            title: "💰 PAYMENT LINK CREATED!",
+                                            description: (
+                                              <div className="space-y-2">
+                                                <div className="font-bold text-green-800">✅ Link opened in new tab and copied to clipboard!</div>
+                                                <div className="text-sm bg-white p-2 rounded border break-all">
+                                                  {paymentUrl}
+                                                </div>
+                                                <div className="text-xs text-gray-600">
+                                                  Amount: ${finalTotal.toFixed(2)} | Customer: {getCustomerName(order.customerId)}
+                                                </div>
+                                              </div>
+                                            ),
+                                            duration: 15000,
                                           });
+
+                                          // Also log to console for easy access
+                                          console.log('🔗 PAYMENT LINK READY:', paymentUrl);
                                         } else {
-                                          throw new Error('No payment URL in response');
+                                          throw new Error('No payment token in response');
                                         }
 
                                       } catch (error) {
                                         console.error('Payment link creation error:', error);
                                         toast({
                                           title: "❌ Payment Link Failed",
-                                          description: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+                                          description: `Error: ${error instanceof Error ? error.message : 'Unknown error'}. Check console for details.`,
                                           variant: "destructive",
+                                          duration: 10000,
                                         });
                                       }
                                     }}
