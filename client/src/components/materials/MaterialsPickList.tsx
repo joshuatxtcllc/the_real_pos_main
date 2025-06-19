@@ -111,8 +111,8 @@ const MaterialsPickList: React.FC<MaterialsPickListProps> = ({ onCreateOrder }) 
   } | null>(null);
   
   // Calculate unique suppliers and material types for filters
-  const suppliers = [...new Set(materials.map(item => item.supplier))];
-  const materialTypes = [...new Set(materials.map(item => item.type))];
+  const suppliers = Array.from(new Set(materials.map(item => item.supplier)));
+  const materialTypes = Array.from(new Set(materials.map(item => item.type)));
   
   // Filter and sort materials
   const filteredMaterials = materials.filter(item => {
@@ -431,7 +431,7 @@ const MaterialsPickList: React.FC<MaterialsPickListProps> = ({ onCreateOrder }) 
       {
         onSuccess: () => {
           // Update all selected items to "ordered" status
-          bulkUpdateStatus("ordered");
+          handleBulkUpdate("ordered");
           
           // Call the onCreateOrder callback if provided
           if (onCreateOrder) {
@@ -440,6 +440,37 @@ const MaterialsPickList: React.FC<MaterialsPickListProps> = ({ onCreateOrder }) 
         }
       }
     );
+  };
+
+  // Update individual item status
+  const updateItemStatus = async () => {
+    if (!statusDialogItem || !newStatus) return;
+
+    try {
+      const response = await updateMaterialOrder.mutateAsync({
+        id: statusDialogItem.id,
+        data: { 
+          status: newStatus,
+          notes: statusNotes 
+        }
+      });
+
+      toast({
+        title: "Status updated",
+        description: `${statusDialogItem.name} status updated to ${newStatus}`,
+      });
+
+      setIsStatusDialogOpen(false);
+      setStatusDialogItem(null);
+      setNewStatus("");
+      setStatusNotes("");
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update material status",
+        variant: "destructive",
+      });
+    }
   };
   
   // Export pick list 
@@ -840,7 +871,7 @@ const MaterialsPickList: React.FC<MaterialsPickListProps> = ({ onCreateOrder }) 
                 {ORDER_STATUSES.map(status => (
                   <DropdownMenuItem 
                     key={status.value}
-                    onClick={() => bulkUpdateStatus(status.value)}
+                    onClick={() => handleBulkUpdate(status.value)}
                   >
                     {status.label}
                   </DropdownMenuItem>

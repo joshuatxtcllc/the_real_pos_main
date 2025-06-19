@@ -677,52 +677,85 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { materialIds, status, adminApproval } = req.body;
       
+      if (!materialIds || !Array.isArray(materialIds) || materialIds.length === 0) {
+        return res.status(400).json({ error: "Material IDs are required" });
+      }
+
+      if (!status) {
+        return res.status(400).json({ error: "Status is required" });
+      }
+
       // Check if materials are already ordered - FAILSAFE MECHANISM
       const materials = await storage.getMaterialsPickList();
-      const selectedMaterials = materials.filter(m => materialIds.includes(m.id));
+      const selectedMaterials = materials.filter(m => materialIds.includes(m.id.toString()));
       const alreadyOrdered = selectedMaterials.filter(m => 
         m.status === 'ordered' || m.status === 'arrived' || m.status === 'completed'
       );
       
       if (alreadyOrdered.length > 0 && !adminApproval) {
-        return res.status(400).json({
+        return res.status(409).json({
           error: 'DOUBLE_ORDER_PREVENTION',
-          message: `❌ ALERT: Materials already ordered! ${alreadyOrdered.map(m => m.name).join(', ')}`,
-          requiresAdminApproval: true,
-          alreadyOrderedMaterials: alreadyOrdered,
-          severity: 'HIGH'
+          message: `Materials already ordered. Admin approval required.`,
+          alreadyOrderedMaterials: alreadyOrdered
         });
       }
       
       // Update materials status
+      const updatedMaterials = [];
       for (const materialId of materialIds) {
-        await storage.updateMaterialOrder(materialId, { 
-          status,
-          orderDate: status === 'ordered' ? new Date() : undefined
-        });
+        try {
+          const updated = await storage.updateMaterialOrder(parseInt(materialId), { 
+            status,
+            notes: adminApproval ? "Admin approved override for duplicate order" : undefined
+          });
+          updatedMaterials.push(updated);
+        } catch (error) {
+          console.error(`Failed to update material ${materialId}:`, error);
+        }
       }
-      
-      res.json({ success: true, message: 'Materials updated successfully' });
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+
+      res.json({
+        message: `Successfully updated ${updatedMaterials.length} materials to ${status}`,
+        updatedMaterials,
+        adminApproval: adminApproval || false
+      });
+
+    } catch (error) {
+      console.error("Error in bulk update:", error);
+      res.status(500).json({ error: "Failed to update materials" });
     }
   });
-  
+
   // Mark materials as out of stock
   app.post('/api/materials/mark-out-of-stock', async (req, res) => {
     try {
       const { materialIds, notes } = req.body;
-      
-      for (const materialId of materialIds) {
-        await storage.updateMaterialOrder(materialId, { 
-          status: 'canceled',
-          notes: `Out of stock: ${notes || 'No additional notes'}`
-        });
+
+      if (!materialIds || !Array.isArray(materialIds) || materialIds.length === 0) {
+        return res.status(400).json({ error: "Material IDs are required" });
       }
-      
-      res.json({ success: true, message: 'Materials marked as out of stock' });
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+
+      const updatedMaterials = [];
+      for (const materialId of materialIds) {
+        try {
+          const updated = await storage.updateMaterialOrder(parseInt(materialId), { 
+            status: "out_of_stock",
+            notes: notes || "Marked as out of stock"
+          });
+          updatedMaterials.push(updated);
+        } catch (error) {
+          console.error(`Failed to mark material ${materialId} as out of stock:`, error);
+        }
+      }
+
+      res.json({
+        message: `Successfully marked ${updatedMaterials.length} materials as out of stock`,
+        updatedMaterials
+      });
+
+    } catch (error) {
+      console.error("Error marking materials as out of stock:", error);
+      res.status(500).json({ error: "Failed to mark materials as out of stock" });
     }
   });
 
