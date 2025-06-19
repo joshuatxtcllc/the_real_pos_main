@@ -897,6 +897,16 @@ export class DatabaseStorage implements IStorage {
         .returning();
       console.log('DatabaseStorage.createOrder - Order created successfully:', newOrder);
 
+      // Automatically create material orders for this order
+      try {
+        console.log('Creating material orders for order:', newOrder.id);
+        const materialOrders = await this.createMaterialOrdersFromOrder(newOrder);
+        console.log(`Created ${materialOrders.length} material orders for order ${newOrder.id}`);
+      } catch (materialError) {
+        console.error('Error creating material orders:', materialError);
+        // Don't fail the order creation if material orders fail
+      }
+
       // Email notification would be sent here if email service is configured
 
       return newOrder;

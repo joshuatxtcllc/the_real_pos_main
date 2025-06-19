@@ -266,6 +266,34 @@ const MaterialsPickList: React.FC<MaterialsPickListProps> = ({ onCreateOrder }) 
     setPendingAction(null);
   };
 
+  // Generate materials for all existing orders
+  const generateMaterialsForAllOrders = async () => {
+    try {
+      const response = await fetch('/api/orders/generate-all-materials', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        toast({
+          title: "Materials Generated",
+          description: `Created ${data.totalMaterialOrders} material orders from ${data.processedOrders} orders`,
+        });
+        window.location.reload(); // Refresh to show new materials
+      } else {
+        throw new Error(data.error || 'Failed to generate materials');
+      }
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: "Failed to generate materials from orders",
+        variant: "destructive",
+      });
+    }
+  };
+
   // Mark materials as out of stock
   const handleMarkOutOfStock = async (notes = "") => {
     if (selectedItems.length === 0) {
@@ -540,6 +568,15 @@ const MaterialsPickList: React.FC<MaterialsPickListProps> = ({ onCreateOrder }) 
           >
             <ShoppingCart className="h-4 w-4" />
             Create Purchase Order
+          </Button>
+          
+          <Button 
+            onClick={generateMaterialsForAllOrders}
+            variant="secondary"
+            className="flex items-center gap-2"
+          >
+            <Plus className="h-4 w-4" />
+            Generate Materials from Orders
           </Button>
         </div>
       </div>

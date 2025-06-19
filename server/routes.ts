@@ -759,6 +759,63 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Generate material orders for existing orders
+  app.post('/api/orders/:orderId/generate-materials', async (req, res) => {
+    try {
+      const orderId = parseInt(req.params.orderId);
+      
+      if (!orderId) {
+        return res.status(400).json({ error: 'Valid order ID is required' });
+      }
+
+      const order = await storage.getOrder(orderId);
+      if (!order) {
+        return res.status(404).json({ error: 'Order not found' });
+      }
+
+      const materialOrders = await storage.createMaterialOrdersFromOrder(order);
+      
+      res.json({ 
+        success: true, 
+        message: `Generated ${materialOrders.length} material orders for order #${orderId}`,
+        materialOrders 
+      });
+    } catch (error: any) {
+      console.error('Error generating materials for order:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Generate material orders for ALL existing orders
+  app.post('/api/orders/generate-all-materials', async (req, res) => {
+    try {
+      const orders = await storage.getAllOrders();
+      let totalMaterialOrders = 0;
+      let processedOrders = 0;
+
+      for (const order of orders) {
+        try {
+          const materialOrders = await storage.createMaterialOrdersFromOrder(order);
+          totalMaterialOrders += materialOrders.length;
+          processedOrders++;
+        } catch (error) {
+          console.error(`Error creating materials for order ${order.id}:`, error);
+          // Continue with other orders
+        }
+      }
+
+      res.json({ 
+        success: true, 
+        message: `Generated ${totalMaterialOrders} material orders from ${processedOrders} orders`,
+        totalMaterialOrders,
+        processedOrders 
+      });
+    } catch (error: any) {
+      console.error('Error generating materials for all orders:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // Create HTTP server
   const httpServer = createServer(app);
 
