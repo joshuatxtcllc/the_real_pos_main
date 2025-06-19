@@ -37,10 +37,10 @@ export async function createPaymentLink(
 ): Promise<PaymentLink> {
   const token = generateToken();
   const expiresAt = addDays(new Date(), expiresInDays);
-  
+
   // Convert amount to cents for Stripe
   const amountInCents = Math.round(amount * 100);
-  
+
   // Create the payment link in the database
   const [paymentLink] = await db
     .insert(paymentLinks)
@@ -52,7 +52,7 @@ export async function createPaymentLink(
       expiresAt
     })
     .returning();
-  
+
   return paymentLink;
 }
 
@@ -73,21 +73,21 @@ export async function sendPaymentLinkViaEmail(
     .select()
     .from(paymentLinks)
     .where(eq(paymentLinks.id, paymentLinkId));
-  
+
   if (!paymentLink) {
     throw new Error(`Payment link with ID ${paymentLinkId} not found`);
   }
-  
+
   const amount = Number(paymentLink.amount);
   const formattedAmount = amount.toLocaleString('en-US', {
     style: 'currency',
     currency: 'USD',
   });
-  
+
   // Create the payment URL
   const baseUrl = process.env.BASE_URL || 'http://localhost:5000';
   const paymentUrl = `${baseUrl}/payment/${paymentLink.token}`;
-  
+
   // Create the email HTML
   const emailHtml = `
     <h2>Payment Request from ${businessName}</h2>
@@ -109,7 +109,7 @@ export async function sendPaymentLinkViaEmail(
     <p>This payment link will expire on ${paymentLink.expiresAt.toLocaleDateString()}.</p>
     <p>Thank you for your business!</p>
   `;
-  
+
   try {
     await sendEmailWithSendGrid({
       to: email,
@@ -118,7 +118,7 @@ export async function sendPaymentLinkViaEmail(
       text: `Payment Request from ${businessName}\n\nA payment of ${formattedAmount} is due.\n\n${paymentLink.description || ''}\n\nPay online at: ${paymentUrl}\n\nThis payment link will expire on ${paymentLink.expiresAt.toLocaleDateString()}.\n\nThank you for your business!`,
       html: emailHtml
     });
-    
+
     // Record the notification in the database
     await db.insert(customerNotifications).values({
       customerId: paymentLink.customerId,
@@ -129,11 +129,11 @@ export async function sendPaymentLinkViaEmail(
       successful: true,
       paymentLinkId: paymentLink.id
     });
-    
+
     return true;
   } catch (error) {
     console.error('Failed to send payment link email:', error);
-    
+
     // Record the failed notification
     await db.insert(customerNotifications).values({
       customerId: paymentLink.customerId,
@@ -144,7 +144,7 @@ export async function sendPaymentLinkViaEmail(
       successful: false,
       paymentLinkId: paymentLink.id
     });
-    
+
     return false;
   }
 }
@@ -166,17 +166,17 @@ export async function sendPaymentLinkViaSmsWithId(
     .select()
     .from(paymentLinks)
     .where(eq(paymentLinks.id, paymentLinkId));
-  
+
   if (!paymentLink) {
     throw new Error(`Payment link with ID ${paymentLinkId} not found`);
   }
-  
+
   const amount = Number(paymentLink.amount);
-  
+
   // Create the payment URL
   const baseUrl = process.env.BASE_URL || 'http://localhost:5000';
   const paymentUrl = `${baseUrl}/payment/${paymentLink.token}`;
-  
+
   try {
     const result = await sendPaymentLinkViaSms(
       phoneNumber,
@@ -184,7 +184,7 @@ export async function sendPaymentLinkViaSmsWithId(
       paymentUrl,
       businessName
     );
-    
+
     // Record the notification in the database
     await db.insert(customerNotifications).values({
       customerId: paymentLink.customerId,
@@ -196,11 +196,11 @@ export async function sendPaymentLinkViaSmsWithId(
       paymentLinkId: paymentLink.id,
       responseData: result
     });
-    
+
     return result.success;
   } catch (error) {
     console.error('Failed to send payment link SMS:', error);
-    
+
     // Record the failed notification
     await db.insert(customerNotifications).values({
       customerId: paymentLink.customerId,
@@ -211,7 +211,7 @@ export async function sendPaymentLinkViaSmsWithId(
       successful: false,
       paymentLinkId: paymentLink.id
     });
-    
+
     return false;
   }
 }
@@ -223,7 +223,7 @@ export async function sendPaymentLinkViaSmsWithId(
  */
 export async function validatePaymentLink(token: string): Promise<PaymentLink | null> {
   const now = new Date();
-  
+
   const [paymentLink] = await db
     .select()
     .from(paymentLinks)
@@ -234,7 +234,7 @@ export async function validatePaymentLink(token: string): Promise<PaymentLink | 
         gt(paymentLinks.expiresAt, now)
       )
     );
-  
+
   return paymentLink || null;
 }
 
@@ -248,20 +248,20 @@ export async function createPaymentIntentForLink(paymentLinkId: number): Promise
     console.warn('Stripe is not configured. Payment processing is disabled.');
     return null;
   }
-  
+
   // Get the payment link
   const [paymentLink] = await db
     .select()
     .from(paymentLinks)
     .where(eq(paymentLinks.id, paymentLinkId));
-  
+
   if (!paymentLink) {
     throw new Error(`Payment link with ID ${paymentLinkId} not found`);
   }
-  
+
   // Convert amount to cents for Stripe
   const amountInCents = Math.round(Number(paymentLink.amount) * 100);
-  
+
   try {
     // Create a payment intent
     const paymentIntent = await stripe.paymentIntents.create({
@@ -273,7 +273,7 @@ export async function createPaymentIntentForLink(paymentLinkId: number): Promise
         token: paymentLink.token
       }
     });
-    
+
     // Update the payment link with the payment intent ID
     await db
       .update(paymentLinks)
@@ -281,7 +281,7 @@ export async function createPaymentIntentForLink(paymentLinkId: number): Promise
         paymentIntentId: paymentIntent.id
       })
       .where(eq(paymentLinks.id, paymentLinkId));
-    
+
     return paymentIntent.client_secret;
   } catch (error) {
     console.error('Failed to create payment intent:', error);
@@ -308,6 +308,74 @@ export async function markPaymentLinkAsUsed(
     })
     .where(eq(paymentLinks.id, paymentLinkId))
     .returning();
-  
+
   return paymentLink || null;
 }
+
+export const completePayment = async (token: string, paymentIntentId: string) => {
+  try {
+    // Get payment link
+    const paymentLink = await getPaymentLinkByToken(token);
+    if (!paymentLink) {
+      throw new Error('Payment link not found');
+    }
+
+    if (paymentLink.status === 'completed') {
+      throw new Error('Payment already completed');
+    }
+
+    // Update payment link status
+    const result = await db
+      .update(paymentLinks)
+      .set({
+        status: 'completed',
+        paidAt: new Date(),
+        stripePaymentIntentId: paymentIntentId
+      })
+      .where(eq(paymentLinks.token, token))
+      .returning();
+
+    if (result.length === 0) {
+      throw new Error('Failed to update payment link');
+    }
+
+    const updatedPaymentLink = result[0];
+
+    // Update associated order group if exists
+    if (updatedPaymentLink.orderGroupId) {
+      try {
+        await db
+          .update(orderGroups)
+          .set({
+            status: 'paid',
+            paymentMethod: 'card',
+            paymentDate: new Date(),
+            stripePaymentIntentId: paymentIntentId,
+            stripePaymentStatus: 'succeeded'
+          })
+          .where(eq(orderGroups.id, updatedPaymentLink.orderGroupId));
+
+        console.log(`Updated order group ${updatedPaymentLink.orderGroupId} to paid status`);
+      } catch (orderGroupError) {
+        console.error('Failed to update order group:', orderGroupError);
+      }
+    }
+
+    // Send confirmation email
+    if (updatedPaymentLink.customerId) {
+      try {
+        const customer = await storage.getCustomer(updatedPaymentLink.customerId);
+        if (customer && customer.email) {
+          await sendPaymentConfirmation(customer.email, updatedPaymentLink);
+        }
+      } catch (emailError) {
+        console.error('Failed to send confirmation email:', emailError);
+      }
+    }
+
+    return updatedPaymentLink;
+  } catch (error: any) {
+    console.error('Error completing payment:', error);
+    throw error;
+  }
+};

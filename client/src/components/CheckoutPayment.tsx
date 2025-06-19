@@ -531,10 +531,15 @@ const CheckoutPayment: React.FC<CheckoutPaymentProps> = ({
   return (
     <Card className="w-full max-w-md mx-auto">
       <CardHeader>
-        <CardTitle>Payment</CardTitle>
-        <CardDescription>
-          Complete your payment of {formatCurrency(Number(orderGroup.total))}
+        <CardTitle className="text-2xl text-green-600">🔥 ONE-CLICK PAYMENT</CardTitle>
+        <CardDescription className="text-lg font-semibold">
+          Just enter your card details below - Amount: {formatCurrency(Number(orderGroup.total))}
         </CardDescription>
+        <div className="bg-green-100 p-3 rounded-lg border-2 border-green-500">
+          <p className="text-green-800 font-bold text-center">
+            ✅ NO MORE FORMS TO FILL OUT! Just pay and you're done!
+          </p>
+        </div>
       </CardHeader>
       <CardContent className="space-y-6">
         

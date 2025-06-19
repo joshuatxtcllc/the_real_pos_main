@@ -1,6 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { WebSocketServer, WebSocket } from "ws";
+import Stripe from "stripe";
 import { artLocationController } from "./controllers/artLocationController";
 import { frameDesignController } from "./controllers/frameDesignController";
 import { healthController } from "./controllers/healthController";

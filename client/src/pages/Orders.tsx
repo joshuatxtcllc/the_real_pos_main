@@ -596,7 +596,42 @@ const Orders = () => {
                                           description: "Please wait while we generate your payment link.",
                                         });
 
-                                        // Create payment link directly
+                                        // Create order group first if needed
+                                        let orderGroupId = order.orderGroupId;
+                                        if (!orderGroupId) {
+                                          const orderGroupResponse = await fetch('/api/order-groups', {
+                                            method: 'POST',
+                                            headers: {
+                                              'Content-Type': 'application/json',
+                                            },
+                                            body: JSON.stringify({
+                                              customerId: order.customerId,
+                                              subtotal: calculatedSubtotal.toFixed(2),
+                                              tax: taxAmount.toFixed(2),
+                                              total: finalTotal.toFixed(2),
+                                              status: 'open',
+                                              notes: `Order group for Order #${order.id}`
+                                            }),
+                                          });
+
+                                          if (orderGroupResponse.ok) {
+                                            const orderGroupData = await orderGroupResponse.json();
+                                            orderGroupId = orderGroupData.orderGroup?.id || orderGroupData.id;
+                                            
+                                            // Update order with order group ID
+                                            await fetch(`/api/orders/${order.id}`, {
+                                              method: 'PATCH',
+                                              headers: {
+                                                'Content-Type': 'application/json',
+                                              },
+                                              body: JSON.stringify({
+                                                orderGroupId: orderGroupId
+                                              }),
+                                            });
+                                          }
+                                        }
+
+                                        // Create payment link with order group
                                         const response = await fetch('/api/payment-links', {
                                           method: 'POST',
                                           headers: {
@@ -605,9 +640,10 @@ const Orders = () => {
                                           body: JSON.stringify({
                                             amount: finalTotal,
                                             customerId: order.customerId,
+                                            orderGroupId: orderGroupId,
                                             description: `Payment for Order #${order.id} - ${getCustomerName(order.customerId)}`,
                                             expiresInDays: 7,
-                                            sendNotification: false // We'll copy the link manually
+                                            sendNotification: false
                                           }),
                                         });
 
@@ -623,7 +659,7 @@ const Orders = () => {
                                           const baseUrl = window.location.origin;
                                           const paymentUrl = `${baseUrl}/payment/${paymentData.paymentLink.token}`;
 
-                                          // Try to copy to clipboard with fallback
+                                          // Try to copy to clipboard
                                           try {
                                             await navigator.clipboard.writeText(paymentUrl);
                                           } catch (clipboardError) {
@@ -639,7 +675,7 @@ const Orders = () => {
                                             description: (
                                               <div className="space-y-2">
                                                 <div className="font-bold text-green-800">✅ Link opened in new tab and copied to clipboard!</div>
-                                                <div className="text-sm bg-white p-2 rounded border break-all">
+                                                <div className="text-sm bg-white p-2 rounded border break-all font-mono">
                                                   {paymentUrl}
                                                 </div>
                                                 <div className="text-xs text-gray-600">
@@ -647,11 +683,16 @@ const Orders = () => {
                                                 </div>
                                               </div>
                                             ),
-                                            duration: 15000,
+                                            duration: 20000,
                                           });
 
                                           // Also log to console for easy access
                                           console.log('🔗 PAYMENT LINK READY:', paymentUrl);
+                                          
+                                          // Refresh the data to show updated status
+                                          queryClient.invalidateQueries({ queryKey: ['/api/orders'] });
+                                          queryClient.invalidateQueries({ queryKey: ['/api/order-groups'] });
+                                          
                                         } else {
                                           throw new Error('No payment token in response');
                                         }
