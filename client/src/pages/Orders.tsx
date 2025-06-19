@@ -584,152 +584,29 @@ const Orders = () => {
                                       const checkoutUrl = `/checkout?amount=${amount}&orderId=${order.id}&description=Order Payment for Order #${order.id}`;
                                       setLocation(checkoutUrl);
                                     }}
-                                              notes: `Order group for Order #${order.id}`
-                                            }),
-                                          });
-
-                                          if (orderGroupResponse.ok) {
-                                            const orderGroupData = await orderGroupResponse.json();
-                                            orderGroupId = orderGroupData.orderGroup?.id || orderGroupData.id;
-                                            
-                                            // Update order with order group ID
-                                            await fetch(`/api/orders/${order.id}`, {
-                                              method: 'PATCH',
-                                              headers: {
-                                                'Content-Type': 'application/json',
-                                              },
-                                              body: JSON.stringify({
-                                                orderGroupId: orderGroupId
-                                              }),
-                                            });
-                                          }
-                                        }
-
-                                        // Create payment link with order group
-                                        const response = await fetch('/api/payment-links', {
-                                          method: 'POST',
-                                          headers: {
-                                            'Content-Type': 'application/json',
-                                          },
-                                          body: JSON.stringify({
-                                            amount: finalTotal,
-                                            customerId: order.customerId,
-                                            orderGroupId: orderGroupId,
-                                            description: `Payment for Order #${order.id} - ${getCustomerName(order.customerId)}`,
-                                            expiresInDays: 7,
-                                            sendNotification: false
-                                          }),
-                                        });
-
-                                        if (!response.ok) {
-                                          const errorText = await response.text();
-                                          throw new Error(`Failed to create payment link: ${errorText}`);
-                                        }
-
-                                        const paymentData = await response.json();
-                                        console.log('Payment link created:', paymentData);
-
-                                        if (paymentData.paymentLink && paymentData.paymentLink.token) {
-                                          const baseUrl = window.location.origin;
-                                          const paymentUrl = `${baseUrl}/payment/${paymentData.paymentLink.token}`;
-
-                                          // Try to copy to clipboard
-                                          try {
-                                            await navigator.clipboard.writeText(paymentUrl);
-                                          } catch (clipboardError) {
-                                            console.warn('Clipboard access failed:', clipboardError);
-                                          }
-
-                                          // Open the link in new tab
-                                          window.open(paymentUrl, '_blank');
-
-                                          // Show success with prominent display
-                                          toast({
-                                            title: "💰 PAYMENT LINK CREATED!",
-                                            description: (
-                                              <div className="space-y-2">
-                                                <div className="font-bold text-green-800">✅ Link opened in new tab and copied to clipboard!</div>
-                                                <div className="text-sm bg-white p-2 rounded border break-all font-mono">
-                                                  {paymentUrl}
-                                                </div>
-                                                <div className="text-xs text-gray-600">
-                                                  Amount: ${finalTotal.toFixed(2)} | Customer: {getCustomerName(order.customerId)}
-                                                </div>
-                                              </div>
-                                            ),
-                                            duration: 20000,
-                                          });
-
-                                          // Also log to console for easy access
-                                          console.log('🔗 PAYMENT LINK READY:', paymentUrl);
-                                          
-                                          // Refresh the data to show updated status
-                                          queryClient.invalidateQueries({ queryKey: ['/api/orders'] });
-                                          queryClient.invalidateQueries({ queryKey: ['/api/order-groups'] });
-                                          
-                                        } else {
-                                          throw new Error('No payment token in response');
-                                        }
-
-                                      } catch (error) {
-                                        console.error('Payment link creation error:', error);
-                                        toast({
-                                          title: "❌ Payment Link Failed",
-                                          description: `Error: ${error instanceof Error ? error.message : 'Unknown error'}. Check console for details.`,
-                                          variant: "destructive",
-                                          duration: 10000,
-                                        });
-                                      }
-                                    }}
                                   >
-                                    💰 INSTANT PAY LINK
+                                    💳 Checkout
                                   </Button>
-                                  <Button 
-                                    variant="default" 
-                                    size="sm"
-                                    className="bg-green-600 hover:bg-green-700"
-                                    onClick={async () => {
-                                      try {
-                                        // Check if order already has a group
-                                        if (order.orderGroupId) {
-                                          console.log(`Order ${order.id} already has orderGroupId: ${order.orderGroupId}`);
-                                          setLocation(`/checkout/${order.orderGroupId}`);
-                                          return;
-                                        }
 
-                                        // Create order group for checkout
-                                        toast({
-                                          title: "Creating checkout session...",
-                                          description: "Setting up payment for this order.",
-                                        });
-
-                                        console.log('Creating order group for order:', order.id);
-
-                                        // Calculate proper totals
-                                        const quantity = order.quantity || 1;
-                                        const unitPrice = parseFloat(order.subtotal) || 0;
-                                        const calculatedSubtotal = unitPrice * quantity;
-                                        const taxAmount = calculatedSubtotal * 0.08; // 8% tax
-                                        const finalTotal = calculatedSubtotal + taxAmount;
-
-                                        const response = await fetch('/api/order-groups', {
-                                          method: 'POST',
-                                          headers: {
-                                            'Content-Type': 'application/json',
-                                          },
-                                          body: JSON.stringify({
-                                            customerId: order.customerId,
-                                            subtotal: calculatedSubtotal.toFixed(2),
-                                            tax: taxAmount.toFixed(2),
-                                            total: finalTotal.toFixed(2),
-                                            status: 'open',
-                                            notes: `Order group for Order #${order.id}`
-                                          }),
-                                        });
-
-                                        if (!response.ok) {
-                                          const errorData = await response.text();
-                                          console.error('Order group creation failed:', errorData);
+                                {/* Second Payment Button */}
+                                <Button 
+                                  variant="outline" 
+                                  size="sm"
+                                  className="bg-blue-600 hover:bg-blue-700 text-white"
+                                  onClick={() => setLocation(`/payment-link-manager?orderId=${order.id}`)}
+                                >
+                                  Create Payment Link
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
                                           throw new Error(`Failed to create order group: ${response.status}`);
                                         }
 
