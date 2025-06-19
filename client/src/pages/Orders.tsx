@@ -40,20 +40,20 @@ const StatusBadge = ({ status }: { status: string }) => {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'pending':
-        return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200';
+        return 'bg-yellow-600 text-white shadow-md';
       case 'in_progress':
-        return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200';
+        return 'bg-blue-600 text-white shadow-md';
       case 'completed':
-        return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
+        return 'bg-green-600 text-white shadow-md';
       case 'cancelled':
-        return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200';
+        return 'bg-red-600 text-white shadow-md';
       default:
-        return 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200';
+        return 'bg-gray-600 text-white shadow-md';
     }
   };
 
   return (
-    <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(status)}`}>
+    <span className={`px-2 py-1 rounded-full text-xs font-bold ${getStatusColor(status)}`}>
       {status.charAt(0).toUpperCase() + status.slice(1)}
     </span>
   );
@@ -64,10 +64,10 @@ const PaymentStatusBadge = ({ orderGroup, total }: { orderGroup: OrderGroup | nu
   if (!orderGroup) {
     return (
       <div className="flex items-center space-x-2">
-        <span className="px-3 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800 border-2 border-red-300 animate-pulse">
+        <span className="px-3 py-1 rounded-full text-xs font-bold bg-red-600 text-white border-2 border-red-700 animate-pulse shadow-lg">
           🚨 PAYMENT REQUIRED
         </span>
-        <span className="text-sm font-medium text-red-600">${total}</span>
+        <span className="text-sm font-bold text-red-700">${total}</span>
       </div>
     );
   }
@@ -78,7 +78,7 @@ const PaymentStatusBadge = ({ orderGroup, total }: { orderGroup: OrderGroup | nu
     
     if (orderGroup.status === 'paid') {
       return (
-        <span className="px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+        <span className="px-2 py-1 rounded-full text-xs font-bold bg-green-600 text-white shadow-md">
           ✅ PAID
         </span>
       );
@@ -88,7 +88,7 @@ const PaymentStatusBadge = ({ orderGroup, total }: { orderGroup: OrderGroup | nu
       const remaining = totalAmount - paidAmount;
       return (
         <div className="flex items-center space-x-2">
-          <span className="px-3 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800 border-2 border-orange-300 animate-pulse">
+          <span className="px-3 py-1 rounded-full text-xs font-bold bg-orange-600 text-white border-2 border-orange-700 animate-pulse shadow-lg">
             🔔 PARTIAL: ${remaining.toFixed(2)} DUE
           </span>
         </div>
@@ -475,6 +475,7 @@ const Orders = () => {
                               <Button 
                                 variant="outline" 
                                 size="sm"
+                                className="border-2 border-blue-600 text-blue-700 hover:bg-blue-600 hover:text-white font-semibold"
                                 onClick={() => handleSendUpdate(order.id)}
                                 disabled={sendUpdateMutation.isPending}
                               >
@@ -485,6 +486,7 @@ const Orders = () => {
                               <Button 
                                 variant="outline" 
                                 size="sm"
+                                className="border-2 border-purple-600 text-purple-700 hover:bg-purple-600 hover:text-white font-semibold"
                                 onClick={() => openWholesaleDialog(order)}
                               >
                                 📦 Materials
@@ -492,6 +494,7 @@ const Orders = () => {
                               <Button 
                                 variant="secondary" 
                                 size="sm"
+                                className="bg-gray-700 text-white hover:bg-gray-800 font-semibold"
                                 onClick={() => setLocation(`/order-progress/${order.id}`)}
                               >
                                 📊 Progress
@@ -499,6 +502,7 @@ const Orders = () => {
                               <Button 
                                 variant="default" 
                                 size="sm"
+                                className="bg-blue-600 hover:bg-blue-700 text-white font-semibold"
                                 onClick={() => setLocation(`/orders/${order.id}`)}
                               >
                                 <Eye className="h-4 w-4 mr-1" /> Details
