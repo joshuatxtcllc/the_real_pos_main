@@ -271,15 +271,26 @@ const Orders = () => {
   const findOrderGroupForOrder = (orderId: number) => {
     if (!orderGroups) return null;
 
+    // Extract orderGroups array properly
+    let orderGroupArray: any[] = [];
+    try {
+      if (Array.isArray(orderGroups)) {
+        orderGroupArray = orderGroups;
+      } else if (orderGroups && typeof orderGroups === 'object' && 'orderGroups' in orderGroups) {
+        orderGroupArray = (orderGroups as any).orderGroups || [];
+      }
+    } catch (error) {
+      console.error('Error parsing orderGroups:', error);
+      return null;
+    }
+
     // Find the order group by matching orders with the given order ID
-    // We need to get orders that have the orderGroupId matching the group ID
     const targetOrders = ordersArray.filter((order: Order) => 
       order.id === orderId && order.orderGroupId !== null
     );
 
-    if (targetOrders.length > 0) {
+    if (targetOrders.length > 0 && Array.isArray(orderGroupArray)) {
       const orderGroupId = targetOrders[0].orderGroupId;
-      const orderGroupArray = orderGroups as any[];
       return orderGroupArray.find(group => group.id === orderGroupId && group.status === 'pending');
     }
 
@@ -292,17 +303,34 @@ const Orders = () => {
   };
 
   // Extract orders array from API response and filter based on search term and status
-  const ordersArray = orders?.orders || orders || [];
+  let ordersArray: Order[] = [];
+  
+  try {
+    if (Array.isArray(orders)) {
+      ordersArray = orders;
+    } else if (orders && typeof orders === 'object' && 'orders' in orders) {
+      ordersArray = (orders as any).orders || [];
+    }
+  } catch (error) {
+    console.error('Error parsing orders:', error);
+    ordersArray = [];
+  }
   
   console.log('Orders response:', orders);
   console.log('Orders array:', ordersArray);
   
   const filteredOrders = Array.isArray(ordersArray) ? ordersArray.filter((order: Order) => {
-    const matchesSearch = 
-      getCustomerName(order.customerId).toLowerCase().includes(searchTerm.toLowerCase()) ||
-      order.id.toString().includes(searchTerm);
-    const matchesStatus = statusFilter === 'all' || order.status === statusFilter;
-    return matchesSearch && matchesStatus;
+    try {
+      const customerName = getCustomerName(order.customerId);
+      const matchesSearch = 
+        customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        order.id.toString().includes(searchTerm);
+      const matchesStatus = statusFilter === 'all' || order.status === statusFilter;
+      return matchesSearch && matchesStatus;
+    } catch (error) {
+      console.error('Error filtering order:', order, error);
+      return false;
+    }
   }) : [];
 
   const isLoading = ordersLoading || orderGroupsLoading;
