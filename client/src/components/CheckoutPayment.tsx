@@ -238,15 +238,24 @@ const CheckoutPayment: React.FC<CheckoutPaymentProps> = ({
   orderGroupId,
   onPaymentComplete 
 }) => {
-  const [paymentMethod, setPaymentMethod] = useState<'card' | 'cash' | 'check' | 'partial' | 'deferred'>('card');
+  // Initialize with saved state if available
+  const [paymentMethod, setPaymentMethod] = useState<'card' | 'cash' | 'check' | 'partial' | 'deferred'>(() => {
+    const saved = sessionStorage.getItem(`checkout_payment_method_${orderGroupId}`);
+    return saved ? JSON.parse(saved) : 'card';
+  });
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [paymentComplete, setPaymentComplete] = useState(false);
   const [showInvoice, setShowInvoice] = useState(false);
   const [emailSending, setEmailSending] = useState(false);
+
+  // Save payment method selection
+  useEffect(() => {
+    sessionStorage.setItem(`checkout_payment_method_${orderGroupId}`, JSON.stringify(paymentMethod));
+  }, [paymentMethod, orderGroupId]);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Fetch order group
+  // Fetch order group with persistence
   const { data: orderGroup, isLoading } = useQuery({
     queryKey: [`/api/order-groups/${orderGroupId}`],
     queryFn: async () => {
@@ -255,6 +264,19 @@ const CheckoutPayment: React.FC<CheckoutPaymentProps> = ({
         throw new Error('Failed to fetch order group');
       }
       return response.json();
+    },
+    staleTime: 5 * 60 * 1000, // Don't refetch for 5 minutes
+    cacheTime: 10 * 60 * 1000,
+    refetchOnWindowFocus: false,
+    onSuccess: () => {
+      // Notify user that form is ready
+      if (!paymentComplete) {
+        toast({
+          title: "✅ Form Ready!",
+          description: "You can now safely fill out the payment form. Your progress will be saved.",
+          duration: 3000,
+        });
+      }
     }
   });
 
@@ -531,15 +553,10 @@ const CheckoutPayment: React.FC<CheckoutPaymentProps> = ({
   return (
     <Card className="w-full max-w-md mx-auto">
       <CardHeader>
-        <CardTitle className="text-2xl text-green-600">🔥 ONE-CLICK PAYMENT</CardTitle>
-        <CardDescription className="text-lg font-semibold">
-          Just enter your card details below - Amount: {formatCurrency(Number(orderGroup.total))}
+        <CardTitle>Payment</CardTitle>
+        <CardDescription>
+          Complete your payment of {formatCurrency(Number(orderGroup.total))}
         </CardDescription>
-        <div className="bg-green-100 p-3 rounded-lg border-2 border-green-500">
-          <p className="text-green-800 font-bold text-center">
-            ✅ NO MORE FORMS TO FILL OUT! Just pay and you're done!
-          </p>
-        </div>
       </CardHeader>
       <CardContent className="space-y-6">
         

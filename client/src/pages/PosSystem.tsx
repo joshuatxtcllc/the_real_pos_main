@@ -36,13 +36,37 @@ import { IntuitivePerformanceMonitor } from '@/components/IntuitivePerformanceMo
 const PosSystem = () => {
   const { toast } = useToast();
 
-  // Customer Information
-  const [customer, setCustomer] = useState<InsertCustomer>({
-    name: '',
-    email: '',
-    phone: '',
-    address: ''
+  // Initialize customer with saved data
+  const [customer, setCustomer] = useState(() => {
+    const saved = localStorage.getItem('pos_customer_form');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        console.warn('Could not parse saved customer data');
+      }
+    }
+    return {
+      name: '',
+      email: '',
+      phone: '',
+      address: '',
+      city: '',
+      state: '',
+      zipCode: ''
+    };
   });
+
+  // Auto-save customer data as user types
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (customer.name || customer.email || customer.phone) {
+        localStorage.setItem('pos_customer_form', JSON.stringify(customer));
+      }
+    }, 1000); // Save after 1 second of no typing
+
+    return () => clearTimeout(timeoutId);
+  }, [customer]);
 
   // Artwork Details
   const [artworkWidth, setArtworkWidth] = useState<string>('16');
@@ -1026,7 +1050,10 @@ const PosSystem = () => {
       name: '',
       email: '',
       phone: '',
-      address: ''
+      address: '',
+      city: '',
+      state: '',
+      zipCode: ''
     });
     setArtworkWidth('16');
     setArtworkHeight('20');
@@ -1637,7 +1664,8 @@ const PosSystem = () => {
                   {selectedMatboards.map((matItem, index) => (
                     <div key={matItem.matboard.id + '-' + matItem.position} className={index > 0 ? 'mt-3 pt-3 border-t border-light-border dark:border-dark-border' : ''}>
                       <h4 className="text-xs font-medium mb-1">
-                        {matItem.position === 1 ? 'Top' : matItem.position === 2 ? 'Middle' : 'Bottom'} Mat
+                        {matItem.position === 1 ? 'Top' : matItem.position === 2```python
+ ? 'Middle' : 'Bottom'} Mat
                         {useMultipleMats ? ` (Position ${matItem.position})` : ''}
                       </h4>
                       <div className="flex items-center gap-3">

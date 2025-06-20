@@ -1,104 +1,268 @@
-import { useState, useMemo } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useLocation } from 'wouter';
-import { apiRequest } from '../lib/queryClient';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import React, { useState } from 'react';
+import { useQuery, useMutation } from '@tanstack/react-query';
+import { queryClient } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
-import { formatCurrency } from '@/lib/utils';
+import { apiRequest } from '@/lib/queryClient';
+import { useLocation, Link } from 'wouter';
+import { Edit, Eye } from 'lucide-react';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Card, CardContent } from '@/components/ui/card';
+import { Order, Customer, Frame, MatColor, GlassOption, WholesaleOrder, OrderGroup } from '@shared/schema';
+import { generateOrderQrCode, generateMaterialQrCode } from '@/services/qrCodeService';
+import { IntuitivePerformanceMonitor } from '@/components/IntuitivePerformanceMonitor';
+import { SendPaymentLink } from '@/components/SendPaymentLink';
+import { Loader2 } from 'lucide-react';
 
-interface Customer {
-  id: number;
-  name: string;
-  email: string;
-  phone: string;
-}
+// Status badge component
+const StatusBadge = ({ status }: { status: string }) => {
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'pending':
+        return 'bg-yellow-600 text-white shadow-md';
+      case 'in_progress':
+        return 'bg-blue-600 text-white shadow-md';
+      case 'completed':
+        return 'bg-green-600 text-white shadow-md';
+      case 'cancelled':
+        return 'bg-red-600 text-white shadow-md';
+      default:
+        return 'bg-gray-600 text-white shadow-md';
+    }
+  };
 
-interface Order {
-  id: number;
-  customerId: number;
-  total: string;
-  subtotal: string;
-  status: string;
-  artworkDescription: string;
-  frameId?: number;
-  matColorId?: number;
-  glassOptionId?: number;
-  orderGroupId?: number;
-  quantity?: number;
-}
+  return (
+    <span className={`px-2 py-1 rounded-full text-xs font-bold ${getStatusColor(status)}`}>
+      {status.charAt(0).toUpperCase() + status.slice(1)}
+    </span>
+  );
+};
 
-interface OrderGroup {
-  id: number;
-  customerId: number;
-  total: string;
-  status: string;
-}
+// Payment status badge with urgent alerts
+const PaymentStatusBadge = ({ orderGroup, total }: { orderGroup: OrderGroup | null, total: string }) => {
+  if (!orderGroup) {
+    return (
+      <div className="flex items-center space-x-2">
+        <span className="px-3 py-1 rounded-full text-xs font-bold bg-red-600 text-white border-2 border-red-700 animate-pulse shadow-lg">
+          🚨 PAYMENT REQUIRED
+        </span>
+        <span className="text-sm font-bold text-red-800 dark:text-red-400">${total}</span>
+      </div>
+    );
+  }
 
-export default function Orders() {
-  const [, setLocation] = useLocation();
+  const getPaymentBadge = () => {
+    const totalAmount = parseFloat(orderGroup.total || '0');
+    const paidAmount = parseFloat(orderGroup.cashAmount || '0');
+
+    if (orderGroup.status === 'paid') {
+      return (
+        <span className="px-2 py-1 rounded-full text-xs font-bold bg-green-600 text-white shadow-md">
+          ✅ PAID
+        </span>
+      );
+    }
+
+    if (paidAmount > 0 && paidAmount < totalAmount) {
+      const remaining = totalAmount - paidAmount;
+      return (
+        <div className="flex items-center space-x-2">
+          <span className="px-3 py-1 rounded-full text-xs font-bold bg-orange-600 text-white border-2 border-orange-700 animate-pulse shadow-lg">
+            🔔 PARTIAL: ${remaining.toFixed(2)} DUE
+          </span>
+        </div>
+      );
+    }
+
+    return (
+      <div className="flex items-center space-x-2">
+        <span className="px-3 py-1 rounded-full text-xs font-bold bg-red-600 text-white border-2 border-red-700 animate-pulse">
+          🚨 PAYMENT REQUIRED
+        </span>
+        <span className="text-sm font-bold text-red-800 dark:text-red-400">${totalAmount.toFixed(2)}</span>
+      </div>
+    );
+  };
+
+  return getPaymentBadge();
+};
+
+const Orders = () => {
+  const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [isWholesaleDialogOpen, setIsWholesaleDialogOpen] = useState(false);
   const [selectedOrderForPayment, setSelectedOrderForPayment] = useState<Order | null>(null);
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
+  const [_, setLocation] = useLocation();
+  const [isCheckingOut, setIsCheckingOut] = useState(false);
 
-  // Fetch orders
-  const { data: ordersData, isLoading: ordersLoading, isError: ordersError } = useQuery({
+  // Fetch orders with aggressive caching to prevent form clearing
+  const { data: orders, isLoading: ordersLoading, isError: ordersError } = useQuery({
     queryKey: ['/api/orders'],
+    staleTime: 5 * 60 * 1000, // 5 minutes - much longer to prevent refreshes
+    cacheTime: 10 * 60 * 1000, // 10 minutes cache
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+    refetchOnMount: false, // Don't refetch when component mounts
+    retry: false, // Don't retry failed requests automatically
   });
 
-  // Fetch customers
+  // Fetch order groups with aggressive caching
+  const { data: orderGroups, isLoading: orderGroupsLoading, isError: orderGroupsError } = useQuery({
+    queryKey: ['/api/order-groups'],
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    cacheTime: 10 * 60 * 1000, // 10 minutes cache
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+    refetchOnMount: false,
+    retry: false,
+  });
+
+  // Debug logging for order groups
+  console.log('Order groups response:', orderGroups);
+
+  // Fetch customers for reference
   const { data: customers } = useQuery({
     queryKey: ['/api/customers'],
   });
 
-  // Fetch order groups
-  const { data: orderGroupsData } = useQuery({
-    queryKey: ['/api/order-groups'],
+  // Fetch frames for reference
+  const { data: frames } = useQuery({
+    queryKey: ['/api/frames'],
   });
 
-  const orders = (ordersData as any)?.orders || [];
-  const orderGroups = (orderGroupsData as any)?.orderGroups || [];
+  // Fetch mat colors for reference
+  const { data: matColors } = useQuery({
+    queryKey: ['/api/mat-colors'],
+  });
 
-  // Helper function to get customer name
-  const getCustomerName = (customerId: number) => {
-    const customer = Array.isArray(customers) ? customers.find((c: Customer) => c.id === customerId) : null;
-    return customer ? customer.name : `Customer ${customerId}`;
+  // Fetch glass options for reference
+  const { data: glassOptions } = useQuery({
+    queryKey: ['/api/glass-options'],
+  });
+
+  // Update order status mutation
+  const updateOrderMutation = useMutation({
+    mutationFn: async ({ id, status }: { id: number; status: string }) => {
+      return apiRequest('PATCH', `/api/orders/${id}`, { status });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/orders'] });
+      toast({
+        title: "Order Updated",
+        description: "Order status has been updated successfully",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Update Failed",
+        description: error.message || "Failed to update order status",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Create wholesale order mutation
+  const createWholesaleOrderMutation = useMutation({
+    mutationFn: async (orderId: number) => {
+      return apiRequest('POST', '/api/wholesale-orders', { orderId });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/orders'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/wholesale-orders'] });
+      setIsWholesaleDialogOpen(false);
+      toast({
+        title: "Wholesale Order Created",
+        description: "Wholesale order has been created successfully",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Creation Failed",
+        description: error.message || "Failed to create wholesale order",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Get customer name
+  const getCustomerName = (customerId: number | null) => {
+    if (!customerId || !customers) return 'Unknown';
+    const customerArray = customers as Customer[];
+    const customer = customerArray.find((c) => c.id === customerId);
+    return customer ? customer.name : 'Unknown';
   };
 
-  // Filter orders based on search term
-  const filteredOrders = useMemo(() => {
-    if (!searchTerm) return orders;
-    return orders.filter((order: Order) => 
-      getCustomerName(order.customerId).toLowerCase().includes(searchTerm.toLowerCase()) ||
-      order.artworkDescription.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      order.id.toString().includes(searchTerm)
-    );
-  }, [orders, searchTerm, customers]);
+  // Get frame name
+  const getFrameName = (frameId: string | null) => {
+    if (!frameId || !frames) return 'Unknown';
+    const frameArray = frames as Frame[];
+    const frame = frameArray.find((f) => f.id === frameId);
+    return frame ? frame.name : 'Unknown';
+  };
 
-  // Send update mutation
+  // Get mat color name
+  const getMatColorName = (matColorId: string | null) => {
+    if (!matColorId || !matColors) return 'Unknown';
+    const matColorArray = matColors as MatColor[];
+    const matColor = matColorArray.find((m) => m.id === matColorId);
+    return matColor ? matColor.name : 'Unknown';
+  };
+
+  // Get glass option name
+  const getGlassOptionName = (glassOptionId: string | null) => {
+    if (!glassOptionId || !glassOptions) return 'Unknown';
+    const glassOptionArray = glassOptions as GlassOption[];
+    const glassOption = glassOptionArray.find((g) => g.id === glassOptionId);
+    return glassOption ? glassOption.name : 'Unknown';
+  };
+
+  // Update order status
+  const handleStatusChange = (orderId: number, newStatus: string) => {
+    updateOrderMutation.mutate({ id: orderId, status: newStatus });
+  };
+
+  // Create wholesale order
+  const handleCreateWholesaleOrder = () => {
+    if (selectedOrder) {
+      createWholesaleOrderMutation.mutate(selectedOrder.id);
+    }
+  };
+
+  // Send customer update mutation
   const sendUpdateMutation = useMutation({
-    mutationFn: async (order: Order) => {
-      const response = await apiRequest('POST', '/api/send-update', {
-        orderId: order.id,
-        customerId: order.customerId,
-        message: `Order #${order.id} update: Your order is ready for payment.`,
-        includeQR: true
-      });
-      return response.json();
+    mutationFn: async (orderId: number) => {
+      return apiRequest('POST', `/api/orders/${orderId}/send-update`, {});
     },
     onSuccess: () => {
       toast({
         title: "Update Sent",
-        description: "Customer notification sent successfully",
+        description: "Customer has been notified of the current order status",
       });
-      setSelectedOrderForPayment(null);
     },
     onError: (error: any) => {
       toast({
@@ -109,28 +273,197 @@ export default function Orders() {
     },
   });
 
-  const handleSendUpdate = (order: Order) => {
-    sendUpdateMutation.mutate(order);
+  // Handle sending customer update
+  const handleSendUpdate = (orderId: number) => {
+    sendUpdateMutation.mutate(orderId);
   };
 
+  // Open wholesale order dialog
   const openWholesaleDialog = (order: Order) => {
     setSelectedOrder(order);
     setIsWholesaleDialogOpen(true);
   };
 
-  if (ordersLoading) {
+  // Helper function to find order group for an order
+  const findOrderGroupForOrder = (orderId: number) => {
+    if (!orderGroups) return null;
+
+    // Get ordersArray in this function scope
+    let currentOrdersArray: Order[] = [];
+    try {
+      if (Array.isArray(orders)) {
+        currentOrdersArray = orders;
+      } else if (orders && typeof orders === 'object' && 'orders' in orders) {
+        currentOrdersArray = (orders as any).orders || [];
+      }
+    } catch (error) {
+      console.error('Error parsing orders in findOrderGroupForOrder:', error);
+      return null;
+    }
+
+    if (!currentOrdersArray.length) return null;
+
+    // Extract orderGroups array properly with better error handling
+    let orderGroupArray: any[] = [];
+    try {
+      if (Array.isArray(orderGroups)) {
+        orderGroupArray = orderGroups;
+      } else if (orderGroups && typeof orderGroups === 'object') {
+        // Handle different response structures
+        if ('orderGroups' in orderGroups) {
+          const groups = (orderGroups as any).orderGroups;
+          orderGroupArray = Array.isArray(groups) ? groups : [];
+        } else if ('data' in orderGroups && Array.isArray((orderGroups as any).data)) {
+          orderGroupArray = (orderGroups as any).data;
+        } else {
+          // If it's an object but not recognizable structure, try to convert
+          console.warn('Unrecognized orderGroups structure:', orderGroups);
+          orderGroupArray = [];
+        }
+      } else {
+        orderGroupArray = [];
+      }
+    } catch (error) {
+      console.error('Error parsing order groups in findOrderGroupForOrder:', error);
+      orderGroupArray = [];
+    }
+
+    // Double-check it's an array and has find method
+    if (!Array.isArray(orderGroupArray) || typeof orderGroupArray.find !== 'function') {
+      console.warn('orderGroupArray is not a proper array, setting to empty array:', orderGroupArray);
+      orderGroupArray = [];
+    }
+
+    // Find the order group by matching orders with the given order ID
+    const targetOrders = currentOrdersArray.filter((order: Order) => 
+      order.id === orderId && order.orderGroupId !== null
+    );
+
+    if (targetOrders.length > 0 && orderGroupArray.length > 0) {
+      const orderGroupId = targetOrders[0].orderGroupId;
+      try {
+        return orderGroupArray.find(group => group && group.id === orderGroupId) || null;
+      } catch (error) {
+        console.error('Error finding order group:', error);
+        return null;
+      }
+    }
+
+    return null;
+  };
+
+  // Handle proceeding to checkout for an order
+  const handleProceedToCheckout = (orderGroupId: number) => {
+    // Store the current order state to prevent form clearing
+    sessionStorage.setItem('currentOrderCheckout', JSON.stringify({
+      orderGroupId,
+      timestamp: Date.now()
+    }));
+    
+    setLocation(`/checkout/${orderGroupId}`);
+  };
+
+  // Extract orders array from API response and filter based on search term and status
+  let ordersArray: Order[] = [];
+
+  try {
+    if (Array.isArray(orders)) {
+      ordersArray = orders;
+    } else if (orders && typeof orders === 'object' && 'orders' in orders) {
+      ordersArray = (orders as any).orders || [];
+    }
+  } catch (error) {
+    console.error('Error parsing orders:', error);
+    ordersArray = [];
+  }
+
+  console.log('Orders response:', orders);
+  console.log('Orders array:', ordersArray);
+
+  const filteredOrders = Array.isArray(ordersArray) ? ordersArray.filter((order: Order) => {
+    try {
+      const customerName = getCustomerName(order.customerId);
+      const matchesSearch = 
+        customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        order.id.toString().includes(searchTerm);
+      const matchesStatus = statusFilter === 'all' || order.status === statusFilter;
+      return matchesSearch && matchesStatus;
+    } catch (error) {
+      console.error('Error filtering order:', order, error);
+      return false;
+    }
+  }) : [];
+
+  const isLoading = ordersLoading || orderGroupsLoading;
+  const isError = ordersError || orderGroupsError;
+
+  // Handle checkout
+  const handleCheckout = async (orderId: number) => {
+    try {
+      setIsCheckingOut(true);
+
+      console.log(`Creating checkout session for order ${orderId}`);
+
+      // Call the payment link API to create a checkout session
+      const response = await fetch(`/api/payment-links/${orderId}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          orderId: orderId,
+          amount: parseFloat(orders.find(o => o.id === orderId)?.total || "0"),
+          description: `Order #${orderId} - Custom Framing`
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to create payment link');
+      }
+
+      const paymentData = await response.json();
+
+      if (paymentData.paymentUrl) {
+        // Redirect to payment processor
+        window.open(paymentData.paymentUrl, '_blank');
+
+        toast({
+          title: "Checkout Created",
+          description: "Payment window opened. Complete payment to process the order.",
+        });
+      } else {
+        throw new Error('No payment URL received');
+      }
+
+    } catch (error) {
+      console.error('Error during checkout:', error);
+      toast({
+        title: "Checkout Error",
+        description: "Failed to create checkout session. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsCheckingOut(false);
+    }
+  };
+
+  if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" />
+      <div className="flex justify-center items-center min-h-[500px]">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
       </div>
     );
   }
 
-  if (ordersError) {
+  if (isError) {
     return (
-      <div className="text-center py-8">
-        <p className="text-red-600">Error loading orders. Please try again.</p>
+      <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-6 text-center">
+        <div className="text-red-500 dark:text-red-400 text-xl mb-2">Error Loading Orders</div>
+        <p className="text-gray-600 dark:text-gray-400">
+          There was a problem fetching the orders. Please try again later.
+        </p>
         <Button 
+          variant="outline" 
           className="mt-4"
           onClick={() => {
             queryClient.invalidateQueries({ queryKey: ['/api/orders'] });
@@ -147,84 +480,354 @@ export default function Orders() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">Orders</h1>
-        <Button variant="outline" onClick={() => setLocation('/')}>
+        <Button variant="outline" onClick={() => window.location.href = '/'}>
           Create New Order
         </Button>
       </div>
 
-      <div className="flex items-center space-x-2">
-        <Input
-          placeholder="Search orders..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="max-w-sm"
-        />
-      </div>
+      <Card>
+        <CardContent className="p-6">
+          <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between mb-6">
+            <div className="w-full sm:w-auto">
+              <Input
+                placeholder="Search by customer or order #"
+                className="max-w-md text-black dark:text-white placeholder-gray-700 dark:placeholder-gray-300 bg-white dark:bg-gray-800 border-2 border-gray-400 dark:border-gray-600"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+            <div className="w-full sm:w-auto">
+              <Select
+                value={statusFilter}
+                onValueChange={setStatusFilter}
+              >
+                <SelectTrigger className="w-full sm:w-[180px] text-black dark:text-white bg-white dark:bg-gray-800 border-2 border-gray-400 dark:border-gray-600">
+                  <SelectValue placeholder="Filter by status" />
+                </SelectTrigger>
+                <SelectContent className="text-black dark:text-white bg-white dark:bg-gray-800">
+                  <SelectItem value="all">All Statuses</SelectItem>
+                  <SelectItem value="pending">Pending</SelectItem>
+                  <SelectItem value="in_progress">In Progress</SelectItem>
+                  <SelectItem value="completed">Completed</SelectItem>
+                  <SelectItem value="cancelled">Cancelled</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
 
-      <div className="grid gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Recent Orders ({filteredOrders.length})</CardTitle>
-          </CardHeader>
-          <CardContent>
+          {filteredOrders.length === 0 ? (
+            <div className="text-center py-12">
+              <div className="text-black dark:text-white text-xl mb-2 font-bold">No orders found</div>
+              <p className="text-black dark:text-white text-lg">
+                {searchTerm || statusFilter !== 'all' ? 
+                  'Try changing your search filters' : 
+                  'Start by creating your first order'}
+              </p>
+            </div>
+          ) : (
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Order #</TableHead>
-                    <TableHead>Customer</TableHead>
-                    <TableHead>Artwork</TableHead>
-                    <TableHead>Total</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Actions</TableHead>
+                    <TableHead className="text-black dark:text-white font-bold text-base bg-gray-100 dark:bg-gray-800">Order #</TableHead>
+                    <TableHead className="text-black dark:text-white font-bold text-base bg-gray-100 dark:bg-gray-800">Customer</TableHead>
+                    <TableHead className="text-black dark:text-white font-bold text-base bg-gray-100 dark:bg-gray-800">Payment Status</TableHead>
+                    <TableHead className="text-black dark:text-white font-bold text-base bg-gray-100 dark:bg-gray-800">Frame</TableHead>
+                    <TableHead className="text-black dark:text-white font-bold text-base bg-gray-100 dark:bg-gray-800">Size</TableHead>
+                    <TableHead className="text-black dark:text-white font-bold text-base bg-gray-100 dark:bg-gray-800">Qty</TableHead>
+                    <TableHead className="text-black dark:text-white font-bold text-base bg-gray-100 dark:bg-gray-800">Location</TableHead>
+                    <TableHead className="text-black dark:text-white font-bold text-base bg-gray-100 dark:bg-gray-800">Status</TableHead>
+                    <TableHead className="text-black dark:text-white font-bold text-base bg-gray-100 dark:bg-gray-800">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filteredOrders.map((order: Order) => {
-                    const orderGroup = orderGroups.find((og: OrderGroup) => og.id === order.orderGroupId);
-                    
+                    const orderGroup = findOrderGroupForOrder(order.id);
                     return (
-                      <TableRow key={order.id}>
-                        <TableCell className="font-medium">#{order.id}</TableCell>
-                        <TableCell>{getCustomerName(order.customerId)}</TableCell>
-                        <TableCell className="max-w-xs truncate">{order.artworkDescription}</TableCell>
-                        <TableCell className="font-semibold">{formatCurrency(parseFloat(order.total))}</TableCell>
+                      <TableRow key={order.id} className={!orderGroup || orderGroup.status !== 'paid' ? 'bg-red-50 dark:bg-red-900/30 border-l-4 border-l-red-500' : 'bg-white dark:bg-gray-900'}>
+                        <TableCell className="font-bold text-black dark:text-white text-base">{order.id}</TableCell>
+                        <TableCell className="font-bold text-black dark:text-white text-base">{getCustomerName(order.customerId)}</TableCell>
                         <TableCell>
-                          <Badge 
-                            variant={order.status === 'completed' ? 'default' : 'secondary'}
-                            className={`font-bold text-white ${
-                              order.status === 'completed' ? 'bg-green-600' :
-                              order.status === 'in_production' ? 'bg-blue-600' :
-                              order.status === 'pending' ? 'bg-yellow-600' :
-                              'bg-gray-600'
-                            }`}
-                          >
-                            {order.status.replace('_', ' ')}
-                          </Badge>
+                          <div className="space-y-1">
+                            {(() => {
+                              // Calculate correct totals
+                              const quantity = order.quantity || 1;
+                              const unitPrice = parseFloat(order.subtotal) || 0;
+                              const calculatedTotal = unitPrice * quantity;
+                              const taxAmount = calculatedTotal * 0.08; // 8% tax
+                              const finalTotal = calculatedTotal + taxAmount;
+
+                              return (
+                                <>
+                                  <PaymentStatusBadge orderGroup={orderGroup} total={finalTotal.toFixed(2)} />
+                                  <div className="text-sm text-black dark:text-white">
+                                    <div className="font-bold">Unit: ${unitPrice.toFixed(2)}</div>
+                                    <div className="font-bold text-red-600 dark:text-red-400">Subtotal: ${calculatedTotal.toFixed(2)} (×{quantity})</div>
+                                    <div className="font-bold text-black dark:text-white">Total w/Tax: ${finalTotal.toFixed(2)}</div>
+                                  </div>
+                                </>
+                              );
+                            })()}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-black dark:text-white font-semibold">{getFrameName(order.frameId)}</TableCell>
+                        <TableCell className="text-black dark:text-white font-semibold">{`${order.artworkWidth}" × ${order.artworkHeight}"`}</TableCell>
+                        <TableCell className="text-center font-bold text-xl bg-yellow-200 dark:bg-yellow-800 border-2 border-yellow-400 dark:border-yellow-600 text-black dark:text-white">{order.quantity || 1}</TableCell>
+                        <TableCell className="text-sm">
+                          <div className="text-black dark:text-white">
+                            <div><strong className="text-black dark:text-white">Art:</strong> {order.artworkLocation || 'Not specified'}</div>
+                            <div><strong className="text-black dark:text-white">Materials:</strong> Workshop - Bay A</div>
+                          </div>
                         </TableCell>
                         <TableCell>
-                          <div className="flex space-x-2">
-                            <Button 
-                              variant="default" 
-                              size="sm"
-                              className="bg-green-600 hover:bg-green-700 text-white font-bold"
-                              onClick={() => {
-                                const amount = parseFloat(order.total);
-                                const checkoutUrl = `/checkout?amount=${amount}&orderId=${order.id}&description=Order Payment for Order #${order.id}`;
-                                setLocation(checkoutUrl);
-                              }}
-                            >
-                              💳 Checkout
-                            </Button>
-                            
-                            <Button 
-                              variant="outline" 
-                              size="sm"
-                              className="bg-blue-600 hover:bg-blue-700 text-white"
-                              onClick={() => setLocation(`/payment-link-manager?orderId=${order.id}`)}
-                            >
-                              Create Payment Link
-                            </Button>
+                          <StatusBadge status={order.status} />
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex flex-col space-y-2">
+                            <div className="flex gap-2">
+                              {(!orderGroup || orderGroup.status !== 'paid') && (
+                                <>
+                                  <Button 
+                                    variant="default" 
+                                    size="sm"
+                                    className="bg-green-600 hover:bg-green-700 text-white font-bold"
+                                    onClick={async () => {
+                                      try {
+                                        // Calculate proper totals first
+                                        const quantity = order.quantity || 1;
+                                        const unitPrice = parseFloat(order.subtotal) || 0;
+                                        const calculatedSubtotal = unitPrice * quantity;
+                                        const taxAmount = calculatedSubtotal * 0.08; // 8% tax
+                                        const finalTotal = calculatedSubtotal + taxAmount;
+
+                                        console.log(`Creating INSTANT payment link for order ${order.id}`);
+
+                                        // Store current form state
+                                        const currentFormState = {
+                                          orderId: order.id,
+                                          customerName: getCustomerName(order.customerId),
+                                          amount: finalTotal,
+                                          timestamp: Date.now()
+                                        };
+                                        sessionStorage.setItem('currentPaymentLink', JSON.stringify(currentFormState));
+
+                                        // Show loading state
+                                        toast({
+                                          title: "🔄 Creating Payment Link...",
+                                          description: "Please wait while we generate your payment link.",
+                                        });
+
+                                        // Create payment link directly
+                                        const response = await fetch('/api/payment-links', {
+                                          method: 'POST',
+                                          headers: {
+                                            'Content-Type': 'application/json',
+                                          },
+                                          body: JSON.stringify({
+                                            amount: finalTotal,
+                                            customerId: order.customerId,
+                                            description: `Payment for Order #${order.id} - ${getCustomerName(order.customerId)}`,
+                                            expiresInDays: 7,
+                                            sendNotification: false // We'll copy the link manually
+                                          }),
+                                        });
+
+                                        if (!response.ok) {
+                                          const errorText = await response.text();
+                                          throw new Error(`Failed to create payment link: ${errorText}`);
+                                        }
+
+                                        const paymentData = await response.json();
+                                        console.log('Payment link created:', paymentData);
+
+                                        if (paymentData.paymentLink && paymentData.paymentLink.token) {
+                                          const baseUrl = window.location.origin;
+                                          const paymentUrl = `${baseUrl}/payment/${paymentData.paymentLink.token}`;
+
+                                          // Try to copy to clipboard with fallback
+                                          try {
+                                            await navigator.clipboard.writeText(paymentUrl);
+                                          } catch (clipboardError) {
+                                            console.warn('Clipboard access failed:', clipboardError);
+                                          }
+
+                                          // Open the link in new tab
+                                          window.open(paymentUrl, '_blank');
+
+                                          // Show success with prominent display
+                                          toast({
+                                            title: "💰 PAYMENT LINK CREATED!",
+                                            description: (
+                                              <div className="space-y-2">
+                                                <div className="font-bold text-green-800">✅ Link opened in new tab and copied to clipboard!</div>
+                                                <div className="text-sm bg-white p-2 rounded border break-all">
+                                                  {paymentUrl}
+                                                </div>
+                                                <div className="text-xs text-gray-600">
+                                                  Amount: ${finalTotal.toFixed(2)} | Customer: {getCustomerName(order.customerId)}
+                                                </div>
+                                              </div>
+                                            ),
+                                            duration: 15000,
+                                          });
+
+                                          // Also log to console for easy access
+                                          console.log('🔗 PAYMENT LINK READY:', paymentUrl);
+                                        } else {
+                                          throw new Error('No payment token in response');
+                                        }
+
+                                      } catch (error) {
+                                        console.error('Payment link creation error:', error);
+                                        toast({
+                                          title: "❌ Payment Link Failed",
+                                          description: `Error: ${error instanceof Error ? error.message : 'Unknown error'}. Check console for details.`,
+                                          variant: "destructive",
+                                          duration: 10000,
+                                        });
+                                      }
+                                    }}
+                                  >
+                                    💰 INSTANT PAY LINK
+                                  </Button>
+                                  <Button 
+                                    variant="default" 
+                                    size="sm"
+                                    className="bg-green-600 hover:bg-green-700"
+                                    onClick={async () => {
+                                      try {
+                                        // Check if order already has a group
+                                        if (order.orderGroupId) {
+                                          console.log(`Order ${order.id} already has orderGroupId: ${order.orderGroupId}`);
+                                          setLocation(`/checkout/${order.orderGroupId}`);
+                                          return;
+                                        }
+
+                                        // Create order group for checkout
+                                        toast({
+                                          title: "Creating checkout session...",
+                                          description: "Setting up payment for this order.",
+                                        });
+
+                                        console.log('Creating order group for order:', order.id);
+
+                                        // Calculate proper totals
+                                        const quantity = order.quantity || 1;
+                                        const unitPrice = parseFloat(order.subtotal) || 0;
+                                        const calculatedSubtotal = unitPrice * quantity;
+                                        const taxAmount = calculatedSubtotal * 0.08; // 8% tax
+                                        const finalTotal = calculatedSubtotal + taxAmount;
+
+                                        const response = await fetch('/api/order-groups', {
+                                          method: 'POST',
+                                          headers: {
+                                            'Content-Type': 'application/json',
+                                          },
+                                          body: JSON.stringify({
+                                            customerId: order.customerId,
+                                            subtotal: calculatedSubtotal.toFixed(2),
+                                            tax: taxAmount.toFixed(2),
+                                            total: finalTotal.toFixed(2),
+                                            status: 'open',
+                                            notes: `Order group for Order #${order.id}`
+                                          }),
+                                        });
+
+                                        if (!response.ok) {
+                                          const errorData = await response.text();
+                                          console.error('Order group creation failed:', errorData);
+                                          throw new Error(`Failed to create order group: ${response.status}`);
+                                        }
+
+                                        const responseData = await response.json();
+                                        console.log('Order group created:', responseData);
+
+                                        const newOrderGroup = responseData.orderGroup || responseData;
+
+                                        // Update the order with the new orderGroupId
+                                        const updateResponse = await fetch(`/api/orders/${order.id}`, {
+                                          method: 'PATCH',
+                                          headers: {
+                                            'Content-Type': 'application/json',
+                                          },
+                                          body: JSON.stringify({
+                                            orderGroupId: newOrderGroup.id
+                                          }),
+                                        });
+
+                                        if (!updateResponse.ok) {
+                                          const updateErrorData = await updateResponse.text();
+                                          console.error('Order update failed:', updateErrorData);
+                                          throw new Error(`Failed to update order: ${updateResponse.status}`);
+                                        }
+
+                                        console.log(`Order ${order.id} updated with orderGroupId: ${newOrderGroup.id}`);
+
+                                        // Refresh the orders data
+                                        queryClient.invalidateQueries({ queryKey: ['/api/orders'] });
+                                        queryClient.invalidateQueries({ queryKey: ['/api/order-groups'] });
+
+                                        // Navigate to checkout
+                                        setLocation(`/checkout/${newOrderGroup.id}`);
+
+                                      } catch (error) {
+                                        console.error('Detailed checkout error:', error);
+                                        toast({
+                                          title: "Checkout Error",
+                                          description: `Failed to create checkout session: ${error instanceof Error ? error.message : 'Unknown error'}`,
+                                          variant: "destructive",
+                                        });
+                                      }
+                                    }}
+                                  >
+                                    💳 Checkout
+                                  </Button>
+                                </>
+                              )}
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                className="border-2 border-purple-600 text-purple-700 hover:bg-purple-600 hover:text-white font-bold"
+                                onClick={() => setSelectedOrderForPayment(order)}
+                              >
+                                📱 Send Payment Link
+                              </Button>
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                className="border-2 border-blue-600 text-blue-700 hover:bg-blue-600 hover:text-white font-semibold"
+                                onClick={() => handleSendUpdate(order.id)}
+                                disabled={sendUpdateMutation.isPending}
+                              >
+                                📧 Send Update
+                              </Button>
+                            </div>
+                            <div className="flex gap-2">
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                className="border-2 border-purple-600 text-purple-700 hover:bg-purple-600 hover:text-white font-semibold"
+                                onClick={() => openWholesaleDialog(order)}
+                              >
+                                📦 Materials
+                              </Button>
+                              <Button 
+                                variant="secondary" 
+                                size="sm"
+                                className="bg-gray-700 text-white hover:bg-gray-800 font-semibold"
+                                onClick={() => setLocation(`/order-progress/${order.id}`)}
+                              >
+                                📊 Progress
+                              </Button>
+                              <Button 
+                                variant="default" 
+                                size="sm"
+                                className="bg-blue-600 hover:bg-blue-700 text-white font-semibold"
+                                onClick={() => setLocation(`/orders/${order.id}`)}
+                              >
+                                <Eye className="h-4 w-4 mr-1" /> Details
+                              </Button>
+                            </div>
                           </div>
                         </TableCell>
                       </TableRow>
@@ -233,69 +836,127 @@ export default function Orders() {
                 </TableBody>
               </Table>
             </div>
-          </CardContent>
-        </Card>
-      </div>
+          )}
+        </CardContent>
+      </Card>
 
-      {/* Wholesale Dialog */}
+      {/* Wholesale Order Dialog */}
       <Dialog open={isWholesaleDialogOpen} onOpenChange={setIsWholesaleDialogOpen}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent>
           <DialogHeader>
-            <DialogTitle>Wholesale Order Details</DialogTitle>
+            <DialogTitle>Create Wholesale Order</DialogTitle>
+            <DialogDescription>
+              Order materials needed for Order #{selectedOrder?.id}
+            </DialogDescription>
           </DialogHeader>
+
           {selectedOrder && (
-            <div className="space-y-4">
+            <div className="space-y-4 py-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-sm font-medium">Customer</label>
-                  <p>{getCustomerName(selectedOrder.customerId)}</p>
+                  <h4 className="text-sm font-medium mb-1">Frame</h4>
+                  <p className="text-sm">{getFrameName(selectedOrder.frameId)}</p>
                 </div>
                 <div>
-                  <label className="text-sm font-medium">Order Total</label>
-                  <p className="text-lg font-semibold">{formatCurrency(parseFloat(selectedOrder.total))}</p>
+                  <h4 className="text-sm font-medium mb-1">Mat</h4>
+                  <p className="text-sm">{getMatColorName(selectedOrder.matColorId)}</p>
+                </div>
+                <div>
+                  <h4 className="text-sm font-medium mb-1">Glass</h4>
+                  <p className="text-sm">{getGlassOptionName(selectedOrder.glassOptionId)}</p>
+                </div>
+                <div>
+                  <h4 className="text-sm font-medium mb-1">Size</h4>
+                  <p className="text-sm">{`${selectedOrder.artworkWidth}" × ${selectedOrder.artworkHeight}"`}</p>
                 </div>
               </div>
-              <div>
-                <label className="text-sm font-medium">Artwork Description</label>
-                <p>{selectedOrder.artworkDescription}</p>
-              </div>
-              <div className="flex justify-end space-x-2">
-                <Button variant="outline" onClick={() => setIsWholesaleDialogOpen(false)}>
-                  Close
-                </Button>
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
 
-      {/* Payment Dialog */}
-      <Dialog open={!!selectedOrderForPayment} onOpenChange={() => setSelectedOrderForPayment(null)}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Send Payment Link</DialogTitle>
-          </DialogHeader>
-          {selectedOrderForPayment && (
-            <div className="space-y-4">
-              <p>Send payment link to {getCustomerName(selectedOrderForPayment.customerId)}?</p>
-              <p className="text-sm text-gray-600">
-                Order #{selectedOrderForPayment.id} - {formatCurrency(parseFloat(selectedOrderForPayment.total))}
-              </p>
-              <div className="flex justify-end space-x-2">
-                <Button variant="outline" onClick={() => setSelectedOrderForPayment(null)}>
+              <div className="border rounded-md p-3 bg-gray-50 dark:bg-gray-900">
+                <h4 className="text-sm font-medium mb-2">Materials to Order</h4>
+                <ul className="space-y-1 text-sm">
+                  <li className="flex justify-between">
+                    <span>Frame length needed:</span>
+                    <span className="font-medium">
+                      {Math.ceil((2 * (Number(selectedOrder.artworkWidth) + Number(selectedOrder.artworkHeight)) / 12) + 1)} ft
+                    </span>
+                  </li>
+                  <li className="flex justify-between">
+                    <span>Mat board needed:</span>
+                    <span className="font-medium">
+                      {Math.ceil(Number(selectedOrder.artworkWidth) + (Number(selectedOrder.matWidth) * 2) + 4)}" × 
+                      {Math.ceil(Number(selectedOrder.artworkHeight) + (Number(selectedOrder.matWidth) * 2) + 4)}"
+                    </span>
+                  </li>
+                  <li className="flex justify-between">
+                    <span>Glass needed:</span>
+                    <span className="font-medium">
+                      {Math.ceil(Number(selectedOrder.artworkWidth) + (Number(selectedOrder.matWidth) * 2))}" × 
+                      {Math.ceil(Number(selectedOrder.artworkHeight) + (Number(selectedOrder.matWidth) * 2))}"
+                    </span>
+                  </li>
+                </ul>
+              </div>
+
+              <div className="flex justify-end space-x-2 pt-2">
+                <Button 
+                  variant="outline" 
+                  onClick={() => setIsWholesaleDialogOpen(false)}
+                >
                   Cancel
                 </Button>
                 <Button 
-                  onClick={() => handleSendUpdate(selectedOrderForPayment)}
-                  disabled={sendUpdateMutation.isPending}
+                  onClick={handleCreateWholesaleOrder}
+                  disabled={createWholesaleOrderMutation.isPending}
                 >
-                  {sendUpdateMutation.isPending ? "Sending..." : "Send Payment Link"}
+                  {createWholesaleOrderMutation.isPending ? "Creating..." : "Create Wholesale Order"}
                 </Button>
               </div>
             </div>
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Send Payment Link Dialog */}
+      {selectedOrderForPayment && (
+        <Dialog open={true} onOpenChange={() => setSelectedOrderForPayment(null)}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Send Payment Link - Order #{selectedOrderForPayment.id}</DialogTitle>
+              <DialogDescription>
+                Create and send a payment link for {getCustomerName(selectedOrderForPayment.customerId)}
+              </DialogDescription>
+            </DialogHeader>
+            <SendPaymentLink 
+              order={{
+                id: selectedOrderForPayment.id,
+                customerName: getCustomerName(selectedOrderForPayment.customerId),
+                total: (() => {
+                  const quantity = selectedOrderForPayment.quantity || 1;
+                  const unitPrice = parseFloat(selectedOrderForPayment.subtotal) || 0;
+                  const calculatedSubtotal = unitPrice * quantity;
+                  const taxAmount = calculatedSubtotal * 0.08;
+                  const finalTotal = calculatedSubtotal + taxAmount;
+                  return finalTotal.toFixed(2);
+                })(),
+                orderNumber: selectedOrderForPayment.id.toString()
+              }}
+              customerId={selectedOrderForPayment.customerId}
+              onSuccess={() => {
+                setSelectedOrderForPayment(null);
+                toast({
+                  title: "✅ Payment Link Sent!",
+                  description: "The payment link has been sent to your customer.",
+                });
+              }}
+            />
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Intuitive Performance Monitor Overlay */}
+      <IntuitivePerformanceMonitor compact={true} updateInterval={4000} />
     </div>
   );
-}
+};
+
+export default Orders;
