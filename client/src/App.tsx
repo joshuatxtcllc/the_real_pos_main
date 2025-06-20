@@ -42,6 +42,7 @@ import LarsonOptimizerPage from './pages/LarsonOptimizerPage';
 import { notificationService } from '@/lib/notificationService';
 import NotFound from '@/pages/not-found';
 import { AppHealthCheck } from './components/AppHealthCheck';
+import TestPage from './TestPage';
 
 function App() {
   const [darkMode, setDarkMode] = useState(false);
@@ -107,19 +108,20 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <TooltipProvider>
-          <div className="min-h-screen bg-white text-black">
-            <div className="p-8 bg-blue-500 text-white text-center text-xl font-bold">
+          <div style={{ minHeight: '100vh', backgroundColor: 'white', color: 'black' }}>
+            <div style={{ padding: '32px', backgroundColor: '#3b82f6', color: 'white', textAlign: 'center', fontSize: '20px', fontWeight: 'bold' }}>
               Jay's Frames POS System - Application Running
             </div>
             <AppHealthCheck />
             <MobileNavMenu />
             <Header darkMode={darkMode} toggleTheme={toggleTheme} />
-            <main className="container pt-4 pb-10 px-3 lg:px-4">
-              <div className="p-4 bg-green-100 text-green-800 mb-4 rounded border">
+            <main style={{ padding: '16px', maxWidth: '1200px', margin: '0 auto' }}>
+              <div style={{ padding: '16px', backgroundColor: '#dcfce7', color: '#166534', marginBottom: '16px', borderRadius: '8px', border: '1px solid #bbf7d0' }}>
                 ✓ Payment System Ready - Backend Connected - All Systems Operational
               </div>
               <Switch>
-                <Route path="/" component={PosSystem} />
+                <Route path="/" component={TestPage} />
+                <Route path="/pos" component={PosSystem} />
                 <Route path="/orders" component={Orders} />
                 <Route path="/checkout" component={lazy(() => import('./pages/Checkout'))} />
                 <Route path="/dashboard" component={Dashboard} />
