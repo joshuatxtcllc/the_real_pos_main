@@ -1664,7 +1664,7 @@ const PosSystem = () => {
                   {selectedMatboards.map((matItem, index) => (
                     <div key={matItem.matboard.id + '-' + matItem.position} className={index > 0 ? 'mt-3 pt-3 border-t border-light-border dark:border-dark-border' : ''}>
                       <h4 className="text-xs font-medium mb-1">
-                        {matItem.position === 1 ? 'Top' : matItem.position === 2```python
+                        {matItem.position === 1 ? 'Top' : matItem.position === 2
  ? 'Middle' : 'Bottom'} Mat
                         {useMultipleMats ? ` (Position ${matItem.position})` : ''}
                       </h4>
