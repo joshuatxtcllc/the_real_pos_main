@@ -34,28 +34,26 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Order, Customer, Frame, MatColor, GlassOption, WholesaleOrder, OrderGroup } from '@shared/schema';
 import { generateOrderQrCode, generateMaterialQrCode } from '@/services/qrCodeService';
 import { IntuitivePerformanceMonitor } from '@/components/IntuitivePerformanceMonitor';
-import { SendPaymentLink } from '@/components/SendPaymentLink';
-import { Loader2 } from 'lucide-react';
 
 // Status badge component
 const StatusBadge = ({ status }: { status: string }) => {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'pending':
-        return 'bg-yellow-600 text-white shadow-md';
+        return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200';
       case 'in_progress':
-        return 'bg-blue-600 text-white shadow-md';
+        return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200';
       case 'completed':
-        return 'bg-green-600 text-white shadow-md';
+        return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
       case 'cancelled':
-        return 'bg-red-600 text-white shadow-md';
+        return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200';
       default:
-        return 'bg-gray-600 text-white shadow-md';
+        return 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200';
     }
   };
 
   return (
-    <span className={`px-2 py-1 rounded-full text-xs font-bold ${getStatusColor(status)}`}>
+    <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(status)}`}>
       {status.charAt(0).toUpperCase() + status.slice(1)}
     </span>
   );
@@ -66,10 +64,10 @@ const PaymentStatusBadge = ({ orderGroup, total }: { orderGroup: OrderGroup | nu
   if (!orderGroup) {
     return (
       <div className="flex items-center space-x-2">
-        <span className="px-3 py-1 rounded-full text-xs font-bold bg-red-600 text-white border-2 border-red-700 animate-pulse shadow-lg">
+        <span className="px-3 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800 border-2 border-red-300 animate-pulse">
           🚨 PAYMENT REQUIRED
         </span>
-        <span className="text-sm font-bold text-red-800 dark:text-red-400">${total}</span>
+        <span className="text-sm font-medium text-red-600">${total}</span>
       </div>
     );
   }
@@ -77,32 +75,32 @@ const PaymentStatusBadge = ({ orderGroup, total }: { orderGroup: OrderGroup | nu
   const getPaymentBadge = () => {
     const totalAmount = parseFloat(orderGroup.total || '0');
     const paidAmount = parseFloat(orderGroup.cashAmount || '0');
-
+    
     if (orderGroup.status === 'paid') {
       return (
-        <span className="px-2 py-1 rounded-full text-xs font-bold bg-green-600 text-white shadow-md">
+        <span className="px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
           ✅ PAID
         </span>
       );
     }
-
+    
     if (paidAmount > 0 && paidAmount < totalAmount) {
       const remaining = totalAmount - paidAmount;
       return (
         <div className="flex items-center space-x-2">
-          <span className="px-3 py-1 rounded-full text-xs font-bold bg-orange-600 text-white border-2 border-orange-700 animate-pulse shadow-lg">
+          <span className="px-3 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800 border-2 border-orange-300 animate-pulse">
             🔔 PARTIAL: ${remaining.toFixed(2)} DUE
           </span>
         </div>
       );
     }
-
+    
     return (
       <div className="flex items-center space-x-2">
-        <span className="px-3 py-1 rounded-full text-xs font-bold bg-red-600 text-white border-2 border-red-700 animate-pulse">
+        <span className="px-3 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800 border-2 border-red-300 animate-pulse">
           🚨 PAYMENT REQUIRED
         </span>
-        <span className="text-sm font-bold text-red-800 dark:text-red-400">${totalAmount.toFixed(2)}</span>
+        <span className="text-sm font-medium text-red-600">${totalAmount.toFixed(2)}</span>
       </div>
     );
   };
@@ -116,34 +114,19 @@ const Orders = () => {
   const [statusFilter, setStatusFilter] = useState('all');
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [isWholesaleDialogOpen, setIsWholesaleDialogOpen] = useState(false);
-  const [selectedOrderForPayment, setSelectedOrderForPayment] = useState<Order | null>(null);
   const [_, setLocation] = useLocation();
-  const [isCheckingOut, setIsCheckingOut] = useState(false);
 
-  // Fetch orders with aggressive caching to prevent form clearing
+  // Fetch orders
   const { data: orders, isLoading: ordersLoading, isError: ordersError } = useQuery({
     queryKey: ['/api/orders'],
-    staleTime: 5 * 60 * 1000, // 5 minutes - much longer to prevent refreshes
-    cacheTime: 10 * 60 * 1000, // 10 minutes cache
-    refetchOnWindowFocus: false,
-    refetchOnReconnect: false,
-    refetchOnMount: false, // Don't refetch when component mounts
-    retry: false, // Don't retry failed requests automatically
+    staleTime: 30000, // 30 seconds
   });
 
-  // Fetch order groups with aggressive caching
+  // Fetch order groups
   const { data: orderGroups, isLoading: orderGroupsLoading, isError: orderGroupsError } = useQuery({
     queryKey: ['/api/order-groups'],
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    cacheTime: 10 * 60 * 1000, // 10 minutes cache
-    refetchOnWindowFocus: false,
-    refetchOnReconnect: false,
-    refetchOnMount: false,
-    retry: false,
+    staleTime: 30000, // 30 seconds
   });
-
-  // Debug logging for order groups
-  console.log('Order groups response:', orderGroups);
 
   // Fetch customers for reference
   const { data: customers } = useQuery({
@@ -177,7 +160,7 @@ const Orders = () => {
         description: "Order status has been updated successfully",
       });
     },
-    onError: (error: any) => {
+    onError: (error) => {
       toast({
         title: "Update Failed",
         description: error.message || "Failed to update order status",
@@ -200,7 +183,7 @@ const Orders = () => {
         description: "Wholesale order has been created successfully",
       });
     },
-    onError: (error: any) => {
+    onError: (error) => {
       toast({
         title: "Creation Failed",
         description: error.message || "Failed to create wholesale order",
@@ -264,7 +247,7 @@ const Orders = () => {
         description: "Customer has been notified of the current order status",
       });
     },
-    onError: (error: any) => {
+    onError: (error) => {
       toast({
         title: "Send Failed",
         description: error.message || "Failed to send customer update",
@@ -284,106 +267,46 @@ const Orders = () => {
     setIsWholesaleDialogOpen(true);
   };
 
-  // Helper function to find order group for an order
+  // Check if any order has orderGroupId that matches
   const findOrderGroupForOrder = (orderId: number) => {
     if (!orderGroups) return null;
-    return orderGroups.find((og: OrderGroup) => og.id === orderId) || null;
+
+    // Find the order group by matching orders with the given order ID
+    // We need to get orders that have the orderGroupId matching the group ID
+    const targetOrders = ordersArray.filter((order: Order) => 
+      order.id === orderId && order.orderGroupId !== null
+    );
+
+    if (targetOrders.length > 0) {
+      const orderGroupId = targetOrders[0].orderGroupId;
+      const orderGroupArray = orderGroups as any[];
+      return orderGroupArray.find(group => group.id === orderGroupId && group.status === 'pending');
+    }
+
+    return null;
   };
 
   // Handle proceeding to checkout for an order
   const handleProceedToCheckout = (orderGroupId: number) => {
-    // Store the current order state to prevent form clearing
-    sessionStorage.setItem('currentOrderCheckout', JSON.stringify({
-      orderGroupId,
-      timestamp: Date.now()
-    }));
-    
     setLocation(`/checkout/${orderGroupId}`);
   };
 
   // Extract orders array from API response and filter based on search term and status
-  let ordersArray: Order[] = [];
-
-  try {
-    if (Array.isArray(orders)) {
-      ordersArray = orders;
-    } else if (orders && typeof orders === 'object' && 'orders' in orders) {
-      ordersArray = (orders as any).orders || [];
-    }
-  } catch (error) {
-    console.error('Error parsing orders:', error);
-    ordersArray = [];
-  }
-
+  const ordersArray = orders?.orders || orders || [];
+  
   console.log('Orders response:', orders);
   console.log('Orders array:', ordersArray);
-
+  
   const filteredOrders = Array.isArray(ordersArray) ? ordersArray.filter((order: Order) => {
-    try {
-      const customerName = getCustomerName(order.customerId);
-      const matchesSearch = 
-        customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        order.id.toString().includes(searchTerm);
-      const matchesStatus = statusFilter === 'all' || order.status === statusFilter;
-      return matchesSearch && matchesStatus;
-    } catch (error) {
-      console.error('Error filtering order:', order, error);
-      return false;
-    }
+    const matchesSearch = 
+      getCustomerName(order.customerId).toLowerCase().includes(searchTerm.toLowerCase()) ||
+      order.id.toString().includes(searchTerm);
+    const matchesStatus = statusFilter === 'all' || order.status === statusFilter;
+    return matchesSearch && matchesStatus;
   }) : [];
 
   const isLoading = ordersLoading || orderGroupsLoading;
   const isError = ordersError || orderGroupsError;
-
-  // Handle checkout
-  const handleCheckout = async (orderId: number) => {
-    try {
-      setIsCheckingOut(true);
-
-      console.log(`Creating checkout session for order ${orderId}`);
-
-      // Call the payment link API to create a checkout session
-      const response = await fetch(`/api/payment-links/${orderId}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          orderId: orderId,
-          amount: parseFloat(orders.find(o => o.id === orderId)?.total || "0"),
-          description: `Order #${orderId} - Custom Framing`
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to create payment link');
-      }
-
-      const paymentData = await response.json();
-
-      if (paymentData.paymentUrl) {
-        // Redirect to payment processor
-        window.open(paymentData.paymentUrl, '_blank');
-
-        toast({
-          title: "Checkout Created",
-          description: "Payment window opened. Complete payment to process the order.",
-        });
-      } else {
-        throw new Error('No payment URL received');
-      }
-
-    } catch (error) {
-      console.error('Error during checkout:', error);
-      toast({
-        title: "Checkout Error",
-        description: "Failed to create checkout session. Please try again.",
-        variant: "destructive"
-      });
-    } finally {
-      setIsCheckingOut(false);
-    }
-  };
 
   if (isLoading) {
     return (
@@ -429,7 +352,7 @@ const Orders = () => {
             <div className="w-full sm:w-auto">
               <Input
                 placeholder="Search by customer or order #"
-                className="max-w-md text-black dark:text-white placeholder-gray-700 dark:placeholder-gray-300 bg-white dark:bg-gray-800 border-2 border-gray-400 dark:border-gray-600"
+                className="max-w-md"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
@@ -439,10 +362,10 @@ const Orders = () => {
                 value={statusFilter}
                 onValueChange={setStatusFilter}
               >
-                <SelectTrigger className="w-full sm:w-[180px] text-black dark:text-white bg-white dark:bg-gray-800 border-2 border-gray-400 dark:border-gray-600">
+                <SelectTrigger className="w-full sm:w-[180px]">
                   <SelectValue placeholder="Filter by status" />
                 </SelectTrigger>
-                <SelectContent className="text-black dark:text-white bg-white dark:bg-gray-800">
+                <SelectContent>
                   <SelectItem value="all">All Statuses</SelectItem>
                   <SelectItem value="pending">Pending</SelectItem>
                   <SelectItem value="in_progress">In Progress</SelectItem>
@@ -455,8 +378,8 @@ const Orders = () => {
 
           {filteredOrders.length === 0 ? (
             <div className="text-center py-12">
-              <div className="text-black dark:text-white text-xl mb-2 font-bold">No orders found</div>
-              <p className="text-black dark:text-white text-lg">
+              <div className="text-gray-400 dark:text-gray-500 text-lg mb-2">No orders found</div>
+              <p className="text-gray-500 dark:text-gray-400">
                 {searchTerm || statusFilter !== 'all' ? 
                   'Try changing your search filters' : 
                   'Start by creating your first order'}
@@ -467,54 +390,32 @@ const Orders = () => {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="text-black dark:text-white font-bold text-base bg-gray-100 dark:bg-gray-800">Order #</TableHead>
-                    <TableHead className="text-black dark:text-white font-bold text-base bg-gray-100 dark:bg-gray-800">Customer</TableHead>
-                    <TableHead className="text-black dark:text-white font-bold text-base bg-gray-100 dark:bg-gray-800">Payment Status</TableHead>
-                    <TableHead className="text-black dark:text-white font-bold text-base bg-gray-100 dark:bg-gray-800">Frame</TableHead>
-                    <TableHead className="text-black dark:text-white font-bold text-base bg-gray-100 dark:bg-gray-800">Size</TableHead>
-                    <TableHead className="text-black dark:text-white font-bold text-base bg-gray-100 dark:bg-gray-800">Qty</TableHead>
-                    <TableHead className="text-black dark:text-white font-bold text-base bg-gray-100 dark:bg-gray-800">Location</TableHead>
-                    <TableHead className="text-black dark:text-white font-bold text-base bg-gray-100 dark:bg-gray-800">Status</TableHead>
-                    <TableHead className="text-black dark:text-white font-bold text-base bg-gray-100 dark:bg-gray-800">Actions</TableHead>
+                    <TableHead>Order #</TableHead>
+                    <TableHead>Customer</TableHead>
+                    <TableHead>Payment Status</TableHead>
+                    <TableHead>Frame</TableHead>
+                    <TableHead>Size</TableHead>
+                    <TableHead>Location</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filteredOrders.map((order: Order) => {
                     const orderGroup = findOrderGroupForOrder(order.id);
                     return (
-                      <TableRow key={order.id} className={!orderGroup || orderGroup.status !== 'paid' ? 'bg-red-50 dark:bg-red-900/30 border-l-4 border-l-red-500' : 'bg-white dark:bg-gray-900'}>
-                        <TableCell className="font-bold text-black dark:text-white text-base">{order.id}</TableCell>
-                        <TableCell className="font-bold text-black dark:text-white text-base">{getCustomerName(order.customerId)}</TableCell>
+                      <TableRow key={order.id} className={!orderGroup || orderGroup.status !== 'paid' ? 'bg-red-50 border-l-4 border-l-red-500' : ''}>
+                        <TableCell className="font-medium">{order.id}</TableCell>
+                        <TableCell className="font-medium">{getCustomerName(order.customerId)}</TableCell>
                         <TableCell>
-                          <div className="space-y-1">
-                            {(() => {
-                              // Calculate correct totals
-                              const quantity = order.quantity || 1;
-                              const unitPrice = parseFloat(order.subtotal) || 0;
-                              const calculatedTotal = unitPrice * quantity;
-                              const taxAmount = calculatedTotal * 0.08; // 8% tax
-                              const finalTotal = calculatedTotal + taxAmount;
-
-                              return (
-                                <>
-                                  <PaymentStatusBadge orderGroup={orderGroup} total={finalTotal.toFixed(2)} />
-                                  <div className="text-sm text-black dark:text-white">
-                                    <div className="font-bold">Unit: ${unitPrice.toFixed(2)}</div>
-                                    <div className="font-bold text-red-600 dark:text-red-400">Subtotal: ${calculatedTotal.toFixed(2)} (×{quantity})</div>
-                                    <div className="font-bold text-black dark:text-white">Total w/Tax: ${finalTotal.toFixed(2)}</div>
-                                  </div>
-                                </>
-                              );
-                            })()}
-                          </div>
+                          <PaymentStatusBadge orderGroup={orderGroup} total={order.total} />
                         </TableCell>
-                        <TableCell className="text-black dark:text-white font-semibold">{getFrameName(order.frameId)}</TableCell>
-                        <TableCell className="text-black dark:text-white font-semibold">{`${order.artworkWidth}" × ${order.artworkHeight}"`}</TableCell>
-                        <TableCell className="text-center font-bold text-xl bg-yellow-200 dark:bg-yellow-800 border-2 border-yellow-400 dark:border-yellow-600 text-black dark:text-white">{order.quantity || 1}</TableCell>
+                        <TableCell>{getFrameName(order.frameId)}</TableCell>
+                        <TableCell>{`${order.artworkWidth}" × ${order.artworkHeight}"`}</TableCell>
                         <TableCell className="text-sm">
-                          <div className="text-black dark:text-white">
-                            <div><strong className="text-black dark:text-white">Art:</strong> {order.artworkLocation || 'Not specified'}</div>
-                            <div><strong className="text-black dark:text-white">Materials:</strong> Workshop - Bay A</div>
+                          <div>
+                            <div><strong>Art:</strong> {order.artworkLocation || 'Not specified'}</div>
+                            <div><strong>Materials:</strong> Workshop - Bay A</div>
                           </div>
                         </TableCell>
                         <TableCell>
@@ -524,216 +425,28 @@ const Orders = () => {
                           <div className="flex flex-col space-y-2">
                             <div className="flex gap-2">
                               {(!orderGroup || orderGroup.status !== 'paid') && (
-                                <>
-                                  <Button 
-                                    variant="default" 
-                                    size="sm"
-                                    className="bg-green-600 hover:bg-green-700 text-white font-bold"
-                                    onClick={async () => {
-                                      try {
-                                        // Calculate proper totals first
-                                        const quantity = order.quantity || 1;
-                                        const unitPrice = parseFloat(order.subtotal) || 0;
-                                        const calculatedSubtotal = unitPrice * quantity;
-                                        const taxAmount = calculatedSubtotal * 0.08; // 8% tax
-                                        const finalTotal = calculatedSubtotal + taxAmount;
-
-                                        console.log(`Creating INSTANT payment link for order ${order.id}`);
-
-                                        // Store current form state
-                                        const currentFormState = {
-                                          orderId: order.id,
-                                          customerName: getCustomerName(order.customerId),
-                                          amount: finalTotal,
-                                          timestamp: Date.now()
-                                        };
-                                        sessionStorage.setItem('currentPaymentLink', JSON.stringify(currentFormState));
-
-                                        // Show loading state
-                                        toast({
-                                          title: "🔄 Creating Payment Link...",
-                                          description: "Please wait while we generate your payment link.",
-                                        });
-
-                                        // Create payment link directly
-                                        const response = await fetch('/api/payment-links', {
-                                          method: 'POST',
-                                          headers: {
-                                            'Content-Type': 'application/json',
-                                          },
-                                          body: JSON.stringify({
-                                            amount: finalTotal,
-                                            customerId: order.customerId,
-                                            description: `Payment for Order #${order.id} - ${getCustomerName(order.customerId)}`,
-                                            expiresInDays: 7,
-                                            sendNotification: false // We'll copy the link manually
-                                          }),
-                                        });
-
-                                        if (!response.ok) {
-                                          const errorText = await response.text();
-                                          throw new Error(`Failed to create payment link: ${errorText}`);
-                                        }
-
-                                        const paymentData = await response.json();
-                                        console.log('Payment link created:', paymentData);
-
-                                        if (paymentData.paymentLink && paymentData.paymentLink.token) {
-                                          const baseUrl = window.location.origin;
-                                          const paymentUrl = `${baseUrl}/payment/${paymentData.paymentLink.token}`;
-
-                                          // Try to copy to clipboard with fallback
-                                          try {
-                                            await navigator.clipboard.writeText(paymentUrl);
-                                          } catch (clipboardError) {
-                                            console.warn('Clipboard access failed:', clipboardError);
-                                          }
-
-                                          // Open the link in new tab
-                                          window.open(paymentUrl, '_blank');
-
-                                          // Show success with prominent display
-                                          toast({
-                                            title: "💰 PAYMENT LINK CREATED!",
-                                            description: (
-                                              <div className="space-y-2">
-                                                <div className="font-bold text-green-800">✅ Link opened in new tab and copied to clipboard!</div>
-                                                <div className="text-sm bg-white p-2 rounded border break-all">
-                                                  {paymentUrl}
-                                                </div>
-                                                <div className="text-xs text-gray-600">
-                                                  Amount: ${finalTotal.toFixed(2)} | Customer: {getCustomerName(order.customerId)}
-                                                </div>
-                                              </div>
-                                            ),
-                                            duration: 15000,
-                                          });
-
-                                          // Also log to console for easy access
-                                          console.log('🔗 PAYMENT LINK READY:', paymentUrl);
-                                        } else {
-                                          throw new Error('No payment token in response');
-                                        }
-
-                                      } catch (error) {
-                                        console.error('Payment link creation error:', error);
-                                        toast({
-                                          title: "❌ Payment Link Failed",
-                                          description: `Error: ${error instanceof Error ? error.message : 'Unknown error'}. Check console for details.`,
-                                          variant: "destructive",
-                                          duration: 10000,
-                                        });
-                                      }
-                                    }}
-                                  >
-                                    💰 INSTANT PAY LINK
-                                  </Button>
-                                  <Button 
-                                    variant="default" 
-                                    size="sm"
-                                    className="bg-green-600 hover:bg-green-700"
-                                    onClick={async () => {
-                                      try {
-                                        // Check if order already has a group
-                                        if (order.orderGroupId) {
-                                          console.log(`Order ${order.id} already has orderGroupId: ${order.orderGroupId}`);
-                                          setLocation(`/checkout/${order.orderGroupId}`);
-                                          return;
-                                        }
-
-                                        // Create order group for checkout
-                                        toast({
-                                          title: "Creating checkout session...",
-                                          description: "Setting up payment for this order.",
-                                        });
-
-                                        console.log('Creating order group for order:', order.id);
-
-                                        // Calculate proper totals
-                                        const quantity = order.quantity || 1;
-                                        const unitPrice = parseFloat(order.subtotal) || 0;
-                                        const calculatedSubtotal = unitPrice * quantity;
-                                        const taxAmount = calculatedSubtotal * 0.08; // 8% tax
-                                        const finalTotal = calculatedSubtotal + taxAmount;
-
-                                        const response = await fetch('/api/order-groups', {
-                                          method: 'POST',
-                                          headers: {
-                                            'Content-Type': 'application/json',
-                                          },
-                                          body: JSON.stringify({
-                                            customerId: order.customerId,
-                                            subtotal: calculatedSubtotal.toFixed(2),
-                                            tax: taxAmount.toFixed(2),
-                                            total: finalTotal.toFixed(2),
-                                            status: 'open',
-                                            notes: `Order group for Order #${order.id}`
-                                          }),
-                                        });
-
-                                        if (!response.ok) {
-                                          const errorData = await response.text();
-                                          console.error('Order group creation failed:', errorData);
-                                          throw new Error(`Failed to create order group: ${response.status}`);
-                                        }
-
-                                        const responseData = await response.json();
-                                        console.log('Order group created:', responseData);
-
-                                        const newOrderGroup = responseData.orderGroup || responseData;
-
-                                        // Update the order with the new orderGroupId
-                                        const updateResponse = await fetch(`/api/orders/${order.id}`, {
-                                          method: 'PATCH',
-                                          headers: {
-                                            'Content-Type': 'application/json',
-                                          },
-                                          body: JSON.stringify({
-                                            orderGroupId: newOrderGroup.id
-                                          }),
-                                        });
-
-                                        if (!updateResponse.ok) {
-                                          const updateErrorData = await updateResponse.text();
-                                          console.error('Order update failed:', updateErrorData);
-                                          throw new Error(`Failed to update order: ${updateResponse.status}`);
-                                        }
-
-                                        console.log(`Order ${order.id} updated with orderGroupId: ${newOrderGroup.id}`);
-
-                                        // Refresh the orders data
-                                        queryClient.invalidateQueries({ queryKey: ['/api/orders'] });
-                                        queryClient.invalidateQueries({ queryKey: ['/api/order-groups'] });
-
-                                        // Navigate to checkout
-                                        setLocation(`/checkout/${newOrderGroup.id}`);
-
-                                      } catch (error) {
-                                        console.error('Detailed checkout error:', error);
-                                        toast({
-                                          title: "Checkout Error",
-                                          description: `Failed to create checkout session: ${error instanceof Error ? error.message : 'Unknown error'}`,
-                                          variant: "destructive",
-                                        });
-                                      }
-                                    }}
-                                  >
-                                    💳 Checkout
-                                  </Button>
-                                </>
+                                <Button 
+                                  variant="default" 
+                                  size="sm"
+                                  className="bg-green-600 hover:bg-green-700"
+                                  onClick={() => {
+                                    if (orderGroup) {
+                                      handleProceedToCheckout(orderGroup.id);
+                                    } else {
+                                      // Create order group for checkout
+                                      toast({
+                                        title: "Creating checkout session...",
+                                        description: "Setting up payment for this order.",
+                                      });
+                                    }
+                                  }}
+                                >
+                                  💳 Checkout
+                                </Button>
                               )}
                               <Button 
                                 variant="outline" 
                                 size="sm"
-                                className="border-2 border-purple-600 text-purple-700 hover:bg-purple-600 hover:text-white font-bold"
-                                onClick={() => setSelectedOrderForPayment(order)}
-                              >
-                                📱 Send Payment Link
-                              </Button>
-                              <Button 
-                                variant="outline" 
-                                size="sm"
-                                className="border-2 border-blue-600 text-blue-700 hover:bg-blue-600 hover:text-white font-semibold"
                                 onClick={() => handleSendUpdate(order.id)}
                                 disabled={sendUpdateMutation.isPending}
                               >
@@ -744,7 +457,6 @@ const Orders = () => {
                               <Button 
                                 variant="outline" 
                                 size="sm"
-                                className="border-2 border-purple-600 text-purple-700 hover:bg-purple-600 hover:text-white font-semibold"
                                 onClick={() => openWholesaleDialog(order)}
                               >
                                 📦 Materials
@@ -752,7 +464,6 @@ const Orders = () => {
                               <Button 
                                 variant="secondary" 
                                 size="sm"
-                                className="bg-gray-700 text-white hover:bg-gray-800 font-semibold"
                                 onClick={() => setLocation(`/order-progress/${order.id}`)}
                               >
                                 📊 Progress
@@ -760,7 +471,6 @@ const Orders = () => {
                               <Button 
                                 variant="default" 
                                 size="sm"
-                                className="bg-blue-600 hover:bg-blue-700 text-white font-semibold"
                                 onClick={() => setLocation(`/orders/${order.id}`)}
                               >
                                 <Eye className="h-4 w-4 mr-1" /> Details
@@ -853,43 +563,6 @@ const Orders = () => {
           )}
         </DialogContent>
       </Dialog>
-
-      {/* Send Payment Link Dialog */}
-      {selectedOrderForPayment && (
-        <Dialog open={true} onOpenChange={() => setSelectedOrderForPayment(null)}>
-          <DialogContent className="max-w-md">
-            <DialogHeader>
-              <DialogTitle>Send Payment Link - Order #{selectedOrderForPayment.id}</DialogTitle>
-              <DialogDescription>
-                Create and send a payment link for {getCustomerName(selectedOrderForPayment.customerId)}
-              </DialogDescription>
-            </DialogHeader>
-            <SendPaymentLink 
-              order={{
-                id: selectedOrderForPayment.id,
-                customerName: getCustomerName(selectedOrderForPayment.customerId),
-                total: (() => {
-                  const quantity = selectedOrderForPayment.quantity || 1;
-                  const unitPrice = parseFloat(selectedOrderForPayment.subtotal) || 0;
-                  const calculatedSubtotal = unitPrice * quantity;
-                  const taxAmount = calculatedSubtotal * 0.08;
-                  const finalTotal = calculatedSubtotal + taxAmount;
-                  return finalTotal.toFixed(2);
-                })(),
-                orderNumber: selectedOrderForPayment.id.toString()
-              }}
-              customerId={selectedOrderForPayment.customerId}
-              onSuccess={() => {
-                setSelectedOrderForPayment(null);
-                toast({
-                  title: "✅ Payment Link Sent!",
-                  description: "The payment link has been sent to your customer.",
-                });
-              }}
-            />
-          </DialogContent>
-        </Dialog>
-      )}
 
       {/* Intuitive Performance Monitor Overlay */}
       <IntuitivePerformanceMonitor compact={true} updateInterval={4000} />

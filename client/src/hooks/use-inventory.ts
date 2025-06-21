@@ -1,5 +1,4 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useCallback, useState, useEffect } from "react";
 import * as inventoryService from "@/services/inventoryService";
 import { toast } from "@/hooks/use-toast";
 import type { 

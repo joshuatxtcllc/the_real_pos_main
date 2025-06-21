@@ -1,73 +1,106 @@
-import { useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { useLocation } from 'wouter';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useStripe } from '@stripe/react-stripe-js';
+import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { CheckCircle, XCircle } from 'lucide-react';
+import { Loader2, CheckCircle, XCircle } from 'lucide-react';
 
-export default function PaymentStatus() {
-  const [, setLocation] = useLocation();
-  
-  // Get URL parameters
-  const urlParams = new URLSearchParams(window.location.search);
-  const success = urlParams.get('success') === 'true';
-  const orderId = urlParams.get('orderId');
+/**
+ * PaymentStatus component to handle payment success/failure status
+ * This page is typically accessed after a Stripe redirect
+ */
+const PaymentStatus = () => {
+  const stripe = useStripe();
+  const [location, setLocation] = useLocation();
+  const [status, setStatus] = React.useState<'loading' | 'success' | 'failed'>('loading');
+  const [message, setMessage] = React.useState<string>('');
 
   useEffect(() => {
-    // Auto redirect after 5 seconds
-    const timer = setTimeout(() => {
-      setLocation('/orders');
-    }, 5000);
+    if (!stripe) {
+      return;
+    }
 
-    return () => clearTimeout(timer);
-  }, [setLocation]);
+    // Extract the client secret from URL query parameters
+    const clientSecret = new URLSearchParams(window.location.search).get('payment_intent_client_secret');
+
+    if (clientSecret) {
+      stripe.retrievePaymentIntent(clientSecret).then(({ paymentIntent }) => {
+        if (!paymentIntent) {
+          setStatus('failed');
+          setMessage('Unable to retrieve payment information.');
+          return;
+        }
+
+        switch (paymentIntent.status) {
+          case 'succeeded':
+            setStatus('success');
+            setMessage('Your payment was successful! Your framing order has been submitted.');
+            break;
+          case 'processing':
+            setStatus('loading');
+            setMessage('Your payment is processing. We will notify you when it is complete.');
+            break;
+          case 'requires_payment_method':
+            setStatus('failed');
+            setMessage('Your payment was not successful, please try again.');
+            break;
+          default:
+            setStatus('failed');
+            setMessage('Something went wrong with your payment.');
+            break;
+        }
+      });
+    } else {
+      // No client secret in URL, likely direct navigation to this page
+      setStatus('failed');
+      setMessage('No payment information found.');
+    }
+  }, [stripe]);
 
   return (
-    <div className="container mx-auto py-8">
-      <Card className="max-w-md mx-auto text-center">
-        <CardHeader>
-          <div className="flex justify-center mb-4">
-            {success ? (
-              <CheckCircle className="w-16 h-16 text-green-600" />
-            ) : (
-              <XCircle className="w-16 h-16 text-red-600" />
+    <div className="container mx-auto px-4 py-8">
+      <div className="max-w-md mx-auto">
+        <Card>
+          <CardHeader>
+            <CardTitle>
+              {status === 'loading' && 'Processing Payment'}
+              {status === 'success' && 'Payment Successful'}
+              {status === 'failed' && 'Payment Failed'}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col items-center justify-center py-8">
+            {status === 'loading' && (
+              <Loader2 className="h-16 w-16 text-primary animate-spin mb-4" />
             )}
-          </div>
-          <CardTitle className={success ? 'text-green-600' : 'text-red-600'}>
-            {success ? 'Payment Successful!' : 'Payment Failed'}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <p className="text-gray-600">
-            {success 
-              ? `Your payment has been processed successfully${orderId ? ` for Order #${orderId}` : ''}.`
-              : 'There was an issue processing your payment. Please try again.'
-            }
-          </p>
-          
-          <div className="space-y-2">
-            <Button 
-              onClick={() => setLocation('/orders')}
-              className="w-full"
-            >
-              View Orders
-            </Button>
-            
-            {!success && (
-              <Button 
-                variant="outline"
-                onClick={() => window.history.back()}
-                className="w-full"
-              >
+            {status === 'success' && (
+              <CheckCircle className="h-16 w-16 text-green-500 mb-4" />
+            )}
+            {status === 'failed' && (
+              <XCircle className="h-16 w-16 text-red-500 mb-4" />
+            )}
+            <p className="text-center">{message}</p>
+          </CardContent>
+          <CardFooter className="flex justify-center">
+            {status === 'success' && (
+              <Button onClick={() => setLocation('/orders')}>
+                View Your Orders
+              </Button>
+            )}
+            {status === 'failed' && (
+              <Button onClick={() => window.history.back()}>
                 Try Again
               </Button>
             )}
-          </div>
-          
-          <p className="text-xs text-gray-500">
-            You will be redirected to orders in 5 seconds...
-          </p>
-        </CardContent>
-      </Card>
+            {status === 'loading' && (
+              <Button variant="outline" disabled>
+                Please Wait...
+              </Button>
+            )}
+          </CardFooter>
+        </Card>
+      </div>
     </div>
   );
-}
+};
+
+export default PaymentStatus;

@@ -1,5 +1,4 @@
 import * as React from "react"
-const { useCallback } = React;
 import useEmblaCarousel, {
   type UseEmblaCarouselType,
 } from "embla-carousel-react"

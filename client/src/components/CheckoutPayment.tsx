@@ -238,24 +238,15 @@ const CheckoutPayment: React.FC<CheckoutPaymentProps> = ({
   orderGroupId,
   onPaymentComplete 
 }) => {
-  // Initialize with saved state if available
-  const [paymentMethod, setPaymentMethod] = useState<'card' | 'cash' | 'check' | 'partial' | 'deferred'>(() => {
-    const saved = sessionStorage.getItem(`checkout_payment_method_${orderGroupId}`);
-    return saved ? JSON.parse(saved) : 'card';
-  });
+  const [paymentMethod, setPaymentMethod] = useState<'card' | 'cash' | 'check' | 'partial' | 'deferred'>('card');
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [paymentComplete, setPaymentComplete] = useState(false);
   const [showInvoice, setShowInvoice] = useState(false);
   const [emailSending, setEmailSending] = useState(false);
-
-  // Save payment method selection
-  useEffect(() => {
-    sessionStorage.setItem(`checkout_payment_method_${orderGroupId}`, JSON.stringify(paymentMethod));
-  }, [paymentMethod, orderGroupId]);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Fetch order group with persistence
+  // Fetch order group
   const { data: orderGroup, isLoading } = useQuery({
     queryKey: [`/api/order-groups/${orderGroupId}`],
     queryFn: async () => {
@@ -264,19 +255,6 @@ const CheckoutPayment: React.FC<CheckoutPaymentProps> = ({
         throw new Error('Failed to fetch order group');
       }
       return response.json();
-    },
-    staleTime: 5 * 60 * 1000, // Don't refetch for 5 minutes
-    cacheTime: 10 * 60 * 1000,
-    refetchOnWindowFocus: false,
-    onSuccess: () => {
-      // Notify user that form is ready
-      if (!paymentComplete) {
-        toast({
-          title: "✅ Form Ready!",
-          description: "You can now safely fill out the payment form. Your progress will be saved.",
-          duration: 3000,
-        });
-      }
     }
   });
 

@@ -873,14 +873,13 @@ export class DatabaseStorage implements IStorage {
   async getAllOrders(): Promise<Order[]> {
     try {
       console.log('Fetching orders from database...');
-      const dbOrders = await db.select().from(orders).orderBy(desc(orders.createdAt));
+      const dbOrders = await db.select().from(orders);
 
       console.log(`Found ${dbOrders?.length || 0} orders in database`);
       return dbOrders || [];
     } catch (error) {
       console.error('Error in getAllOrders:', error);
-      // Return empty array instead of throwing to prevent app crashes
-      return [];
+      throw error;
     }
   }
 
@@ -892,19 +891,10 @@ export class DatabaseStorage implements IStorage {
         order.artworkImage = 'placeholder-image.jpg';
       }
 
-      // Ensure required fields have defaults
-      const orderData = {
-        ...order,
-        createdAt: order.createdAt || new Date(),
-        status: order.status || 'pending',
-        productionStatus: order.productionStatus || 'order_processed',
-        lastStatusChange: order.lastStatusChange || new Date()
-      };
-
-      console.log('DatabaseStorage.createOrder - Inserting order with data:', orderData);
+      console.log('DatabaseStorage.createOrder - Inserting order with data:', order);
       const [newOrder] = await db
         .insert(orders)
-        .values(orderData)
+        .values([order])
         .returning();
       console.log('DatabaseStorage.createOrder - Order created successfully:', newOrder);
 
@@ -917,6 +907,8 @@ export class DatabaseStorage implements IStorage {
         console.error('Error creating material orders:', materialError);
         // Don't fail the order creation if material orders fail
       }
+
+      // Email notification would be sent here if email service is configured
 
       return newOrder;
     } catch (error) {

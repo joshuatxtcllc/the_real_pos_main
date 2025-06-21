@@ -24,7 +24,6 @@ import PricingPage from "./pages/PricingPage";
 import VendorSettings from "./pages/VendorSettings";
 import OrderDetailsPage from "./pages/OrderDetailsPage";
 import PaymentLinks from "./pages/PaymentLinks";
-import PaymentLinkManager from "./pages/PaymentLinkManager";
 import Payment from "./pages/Payment";
 import MatBorderDemo from "./pages/MatBorderDemo";
 import SystemHealthPage from "@/pages/SystemHealthPage";
@@ -42,7 +41,6 @@ import LarsonOptimizerPage from './pages/LarsonOptimizerPage';
 import { notificationService } from '@/lib/notificationService';
 import NotFound from '@/pages/not-found';
 import { AppHealthCheck } from './components/AppHealthCheck';
-import TestPage from './TestPage';
 
 function App() {
   const [darkMode, setDarkMode] = useState(false);
@@ -108,22 +106,14 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <TooltipProvider>
-          <div style={{ minHeight: '100vh', backgroundColor: 'white', color: 'black' }}>
-            <div style={{ padding: '32px', backgroundColor: '#3b82f6', color: 'white', textAlign: 'center', fontSize: '20px', fontWeight: 'bold' }}>
-              Jay's Frames POS System - Application Running
-            </div>
+          <div className={`min-h-screen ${darkMode ? 'dark' : ''}`}>
             <AppHealthCheck />
             <MobileNavMenu />
             <Header darkMode={darkMode} toggleTheme={toggleTheme} />
-            <main style={{ padding: '16px', maxWidth: '1200px', margin: '0 auto' }}>
-              <div style={{ padding: '16px', backgroundColor: '#dcfce7', color: '#166534', marginBottom: '16px', borderRadius: '8px', border: '1px solid #bbf7d0' }}>
-                ✓ Payment System Ready - Backend Connected - All Systems Operational
-              </div>
+            <main className="container pt-16 lg:pt-24 pb-10 px-3 lg:px-4">
               <Switch>
-                <Route path="/" component={TestPage} />
-                <Route path="/pos" component={PosSystem} />
+                <Route path="/" component={PosSystem} />
                 <Route path="/orders" component={Orders} />
-                <Route path="/checkout" component={lazy(() => import('./pages/Checkout'))} />
                 <Route path="/dashboard" component={Dashboard} />
                 <Route path="/production" component={ProductionPage} />
                 <Route path="/orders/:orderId" component={OrderDetailsPage} />
@@ -144,7 +134,6 @@ function App() {
                 <Route path="/customers/:id" component={CustomerManagement} />
                 <Route path="/customers" component={Customers} />
                 <Route path="/payment-links" component={PaymentLinks} />
-                <Route path="/payment-link-manager" component={lazy(() => import('./pages/PaymentLinkManager'))} />
                 <Route path="/payment/:token" component={Payment} />
                 <Route path="/frame-education" component={FrameEducationPage} />
                 <Route path="/webhook-integration" component={WebhookIntegrationPage} />
