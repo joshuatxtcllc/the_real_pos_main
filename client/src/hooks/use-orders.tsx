@@ -10,15 +10,21 @@ export function useOrders() {
   const ordersQuery = useQuery({
     queryKey: ['/api/orders'],
     queryFn: async () => {
+      console.log('Fetching orders from API...');
       const res = await fetch('/api/orders');
       if (!res.ok) {
-        throw new Error('Failed to fetch orders');
+        throw new Error(`Failed to fetch orders: ${res.status} ${res.statusText}`);
       }
       const data = await res.json();
       console.log('Orders API response:', data);
-      // Return the orders array directly for consistent handling
-      return data.orders || data || [];
+      
+      // Always return the orders array, even if empty
+      const orders = data.orders || [];
+      console.log('Processed orders:', orders);
+      return orders;
     },
+    staleTime: 10000, // 10 seconds
+    refetchInterval: 30000, // Refetch every 30 seconds
   });
 
   // Get a specific order
@@ -39,22 +45,26 @@ export function useOrders() {
   // Create order mutation
   const createOrderMutation = useMutation({
     mutationFn: async (orderData: any) => {
+      console.log('Creating order with data:', orderData);
       const res = await apiRequest('POST', '/api/orders', orderData);
+      console.log('Order creation response:', res);
       return res;
     },
     onSuccess: (response) => {
+      console.log('Order created successfully:', response);
       toast({
         title: 'Order created successfully! 🎉',
         description: `Order #${response.order?.id || response.orderId} has been created`,
       });
-      // Invalidate relevant queries to refresh the data
+      // Invalidate and refetch queries to refresh the data immediately
       queryClient.invalidateQueries({ queryKey: ['/api/orders'] });
       queryClient.invalidateQueries({ queryKey: ['/api/production/kanban'] });
       queryClient.invalidateQueries({ queryKey: ['/api/order-groups'] });
-      // Force refetch to ensure orders appear immediately
+      // Force immediate refetch
       queryClient.refetchQueries({ queryKey: ['/api/orders'] });
     },
     onError: (error: Error) => {
+      console.error('Order creation failed:', error);
       toast({
         title: 'Failed to create order',
         description: error.message,

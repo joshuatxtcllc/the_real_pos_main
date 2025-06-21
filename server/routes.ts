@@ -1,7 +1,6 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { WebSocketServer, WebSocket } from "ws";
-import Stripe from "stripe";
 import { artLocationController } from "./controllers/artLocationController";
 import { frameDesignController } from "./controllers/frameDesignController";
 import { healthController } from "./controllers/healthController";
@@ -28,6 +27,19 @@ import customerNotificationRoutes from './routes/customerNotificationRoutes';
 import { Request, Response, NextFunction } from 'express';
 import { log } from './utils/logger';
 import testEmailRoutes from './routes/testEmailRoutes.js';
+import { 
+  getAllOrders, 
+  getOrderById, 
+  createOrder, 
+  updateOrder, 
+  deleteOrder, 
+  updateOrderStatus, 
+  testKanbanSync, 
+  getKanbanStatus,
+  getStorageDebug,
+  getAllOrderGroups,
+  createOrderGroup
+} from './controllers/ordersController';
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Art Location routes
@@ -43,75 +55,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Pricing monitor routes (commented out temporarily)
   // app.use('/api/pricing-monitor', pricingMonitorRoutes);
-
-  // Initialize Stripe
-  if (!process.env.STRIPE_SECRET_KEY) {
-    throw new Error('Missing required Stripe secret: STRIPE_SECRET_KEY');
-  }
-  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-    apiVersion: "2023-10-16",
-  });
-
-  // Stripe payment intent route for checkout
-  app.post("/api/create-payment-intent", async (req, res) => {
-    try {
-      const { amount, orderId, orderGroupId } = req.body;
-      const paymentIntent = await stripe.paymentIntents.create({
-        amount: Math.round(amount * 100), // Convert to cents
-        currency: "usd",
-        metadata: {
-          orderId: orderId || '',
-          orderGroupId: orderGroupId || '',
-        },
-      });
-      res.json({ clientSecret: paymentIntent.client_secret });
-    } catch (error: any) {
-      res.status(500).json({ message: "Error creating payment intent: " + error.message });
-    }
-  });
-
-  // Create payment link for sending to customers
-  app.post("/api/create-payment-link", async (req, res) => {
-    try {
-      const { amount, description, customerEmail, orderId } = req.body;
-      
-      // Create a product first
-      const product = await stripe.products.create({
-        name: description || `Order Payment - #${orderId}`,
-      });
-
-      // Create a price for the product
-      const price = await stripe.prices.create({
-        unit_amount: Math.round(amount * 100), // Convert to cents
-        currency: 'usd',
-        product: product.id,
-      });
-
-      const paymentLink = await stripe.paymentLinks.create({
-        line_items: [
-          {
-            price: price.id,
-            quantity: 1,
-          },
-        ],
-        metadata: {
-          orderId: orderId || '',
-          customerEmail: customerEmail || '',
-        },
-      });
-      
-      res.json({ 
-        success: true, 
-        paymentLink: paymentLink.url,
-        id: paymentLink.id 
-      });
-    } catch (error: any) {
-      res.status(500).json({ 
-        success: false, 
-        message: "Error creating payment link: " + error.message 
-      });
-    }
-  });
 
   // Health check endpoint
   app.get('/api/health', (req, res) => {
@@ -494,11 +437,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/kanban/external/test-connection', async (req, res) => {
     try {
       const { externalKanbanService } = await import('./services/externalKanbanService');
-      
+
       // Check configuration
       const hasUrl = !!process.env.EXTERNAL_KANBAN_URL;
       const hasApiKey = !!process.env.EXTERNAL_KANBAN_API_KEY;
-      
+
       if (!hasUrl || !hasApiKey) {
         return res.status(400).json({
           success: false,
@@ -513,10 +456,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Test health check
       const health = await externalKanbanService.healthCheck();
-      
+
       // Test fetching orders
       const ordersResult = await externalKanbanService.fetchOrders();
-      
+
       res.json({
         success: health.connected,
         health,
@@ -741,12 +684,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/materials/purchase-order', createPurchaseOrder);
   app.get('/api/materials/types', getMaterialTypes);
   app.get('/api/materials/suppliers', getMaterialSuppliers);
-  
+
   // Enhanced materials ordering routes with failsafe mechanisms
   app.post('/api/materials/bulk-update', async (req, res) => {
     try {
       const { materialIds, status, adminApproval } = req.body;
-      
+
       if (!materialIds || !Array.isArray(materialIds) || materialIds.length === 0) {
         return res.status(400).json({ error: "Material IDs are required" });
       }
@@ -761,7 +704,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const alreadyOrdered = selectedMaterials.filter(m => 
         m.status === 'ordered' || m.status === 'arrived' || m.status === 'completed'
       );
-      
+
       if (alreadyOrdered.length > 0 && !adminApproval) {
         return res.status(409).json({
           error: 'DOUBLE_ORDER_PREVENTION',
@@ -769,7 +712,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           alreadyOrderedMaterials: alreadyOrdered
         });
       }
-      
+
       // Update materials status
       const updatedMaterials = [];
       for (const materialId of materialIds) {
@@ -833,7 +776,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/orders/:orderId/generate-materials', async (req, res) => {
     try {
       const orderId = parseInt(req.params.orderId);
-      
+
       if (!orderId || isNaN(orderId)) {
         return res.status(400).json({ error: 'Valid order ID is required' });
       }
@@ -848,7 +791,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log(`Found order:`, order);
 
       const materialOrders = await storage.createMaterialOrdersFromOrder(order);
-      
+
       console.log(`Generated ${materialOrders.length} material orders`);
 
       res.json({ 
@@ -894,6 +837,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: error.message });
     }
   });
+
+  // Order routes
+  app.get('/api/orders', getAllOrders);
+  app.get('/api/orders/:id', getOrderById);
+  app.post('/api/orders', createOrder);
+  app.patch('/api/orders/:id', updateOrder);
+  app.delete('/api/orders/:id', deleteOrder);
+  app.patch('/api/orders/:id/status', updateOrderStatus);
+  app.get('/api/orders/:orderId/kanban-sync', testKanbanSync);
+  app.get('/api/kanban/status', getKanbanStatus);
+  app.get('/api/debug/storage', getStorageDebug);
 
   // Create HTTP server
   const httpServer = createServer(app);

@@ -106,7 +106,23 @@ async function fetchOrdersFromKanban() {
 
 export async function getAllOrders(req: Request, res: Response) {
   try {
-    // Try to fetch from Kanban app first
+    console.log('getAllOrders called');
+    
+    // Always try local storage first for reliability
+    const localOrders = await storage.getAllOrders();
+    console.log('Local orders found:', localOrders.length);
+    
+    if (localOrders && localOrders.length > 0) {
+      res.json({ 
+        success: true, 
+        orders: localOrders,
+        source: 'local',
+        count: localOrders.length
+      });
+      return;
+    }
+
+    // Try to fetch from Kanban app as fallback
     const kanbanOrders = await fetchOrdersFromKanban();
 
     if (kanbanOrders && kanbanOrders.length > 0) {
@@ -115,24 +131,20 @@ export async function getAllOrders(req: Request, res: Response) {
       // Transform Kanban orders to our format
       const transformedOrders = kanbanOrders.map((order: any) => ({
         id: order.orderId || order.id,
+        customerId: order.customerId || null,
         customerName: order.customerName,
         customerPhone: order.customerPhone || '',
         customerEmail: order.customerEmail || '',
-        artworkTitle: order.artworkTitle,
+        artworkDescription: order.artworkTitle,
         artworkWidth: order.frameSize ? parseFloat(order.frameSize.split('x')[0]) : order.artworkWidth,
         artworkHeight: order.frameSize ? parseFloat(order.frameSize.split('x')[1]) : order.artworkHeight,
         frameId: order.materials?.frameType || order.frameId,
-        matId: order.materials?.matColor || order.matId,
-        glassType: order.materials?.glass || order.glassType || 'Museum Glass',
-        productionStatus: order.status || 'pending',
-        stage: order.stage || 'material_prep',
-        totalPrice: order.totalPrice || 0,
+        matColorId: order.materials?.matColor || order.matColorId,
+        glassOptionId: order.materials?.glass || order.glassOptionId,
+        status: order.status || 'pending',
+        total: order.totalPrice || 0,
         createdAt: order.createdAt,
-        scheduledDate: order.dueDate || order.scheduledDate,
-        estimatedCompletion: order.estimatedCompletion,
-        priority: order.priority || 'standard',
-        qrCode: order.qrCode || '',
-        notes: order.notes || ''
+        quantity: order.quantity || 1
       }));
 
       res.json({ 
@@ -144,15 +156,12 @@ export async function getAllOrders(req: Request, res: Response) {
       return;
     }
 
-    // Fallback to local storage
-    console.log('Falling back to local storage for orders');
-    const localOrders = await storage.getAllOrders();
-    console.log('Local orders found:', localOrders.length);
+    // Return empty array if no orders found
     res.json({ 
       success: true, 
-      orders: localOrders,
+      orders: [],
       source: 'local',
-      count: localOrders.length
+      count: 0
     });
 
   } catch (error: any) {
@@ -202,12 +211,6 @@ export async function createOrder(req: Request, res: Response) {
       });
     }
 
-    // Make artwork image optional for now to allow order creation
-    if (!orderData.artworkImage) {
-      console.log('Warning: Order created without artwork image');
-      orderData.artworkImage = 'placeholder-image.jpg'; // Provide a default
-    }
-
     // Ensure all required numeric fields are present
     if (!orderData.artworkWidth || !orderData.artworkHeight) {
       return res.status(400).json({ 
@@ -218,15 +221,24 @@ export async function createOrder(req: Request, res: Response) {
 
     // Ensure mat width is provided
     if (!orderData.matWidth) {
-      orderData.matWidth = '2'; // Default mat width
+      orderData.matWidth = 2; // Default mat width as number
+    }
+
+    // Make artwork image optional
+    if (!orderData.artworkImagePath) {
+      orderData.artworkImagePath = null;
     }
 
     console.log('Processing order creation...');
     const order = await storage.createOrder(orderData);
     console.log('Order created successfully:', order);
     
-    // Sync new order to Kanban app
-    await syncOrderToKanban(order);
+    // Sync new order to Kanban app (but don't fail if this fails)
+    try {
+      await syncOrderToKanban(order);
+    } catch (kanbanError) {
+      console.warn('Kanban sync failed, but order was created:', kanbanError);
+    }
     
     res.status(201).json({ 
       success: true, 
@@ -391,6 +403,29 @@ export async function getKanbanStatus(req: Request, res: Response) {
     res.status(500).json({
       success: false,
       error: error.message || 'Failed to get Kanban status'
+    });
+  }
+}
+
+// Debug endpoint to check storage state
+export async function getStorageDebug(req: Request, res: Response) {
+  try {
+    const allOrders = await storage.getAllOrders();
+    const allCustomers = await storage.getAllCustomers();
+    
+    res.json({
+      success: true,
+      debug: {
+        ordersCount: allOrders.length,
+        customersCount: allCustomers.length,
+        orders: allOrders,
+        storageFilePath: './storage.json'
+      }
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to get storage debug info'
     });
   }
 }
