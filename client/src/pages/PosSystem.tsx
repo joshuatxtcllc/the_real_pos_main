@@ -30,8 +30,9 @@ import { useMatboards } from '@/hooks/use-matboards';
 import { useFrames } from '@/hooks/use-frames';
 import { DualPreviewSystem } from '@/components/DualPreviewSystem';
 import { ArtworkSizeDetector } from '@/components/ArtworkSizeDetector';
-import { ArtworkDimensions } from '@/lib/artworkSizeDetector';
 import { IntuitivePerformanceMonitor } from '@/components/IntuitivePerformanceMonitor';
+import FrameDesigner from '@/components/inventory/FrameDesigner';
+import { ArtworkDimensions } from '@/lib/artworkSizeDetector';
 
 const PosSystem = () => {
   const { toast } = useToast();
@@ -857,8 +858,6 @@ const PosSystem = () => {
         ? miscCharges.map(charge => `${charge.description}: $${charge.amount.toFixed(2)}`).join('; ')
         : '';
 
-
-
       const orderData: InsertOrder = {
         customerId: customerResponse.id,
         frameId: useManualFrame ? 'manual' : (primaryFrame ? primaryFrame.id : ''),
@@ -890,7 +889,7 @@ const PosSystem = () => {
       // Show success message
       toast({
         title: "Order Created Successfully! 🎉",
-        description: `Order #${orderResponse.order?.id || orderResponse.orderId} has been created for ${customerName}`,
+        description: `Order #${orderResponse.order?.id || orderResponse.orderId} has been created for ${customer.name}`,
         duration: 5000,
       });
 
@@ -1128,801 +1127,974 @@ const PosSystem = () => {
       <div className="grid grid-cols-1 lg:grid-cols-7 gap-4 lg:gap-6">
         {/* Left side - Frame selection, Mat selection, Glass options */}
         <div className="lg:col-span-3 space-y-4 lg:space-y-6">
-        {/* Order Information Section */}
-        <div className="bg-white dark:bg-dark-cardBg rounded-lg shadow-md p-4 lg:p-6">
-          <h2 className="text-lg lg:text-xl font-semibold mb-3 lg:mb-4 header-underline">Order Information</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 lg:gap-4">
-            <div>
-              <label className="block text-sm font-medium text-light-textSecondary dark:text-dark-textSecondary mb-1">
-                Customer Name
-              </label>
-              <input 
-                type="text" 
-                className="w-full p-3 text-base border border-light-border dark:border-dark-border rounded-md bg-light-bg dark:bg-dark-bg touch-manipulation" 
-                placeholder="Enter customer name"
-                value={customer.name}
-                onChange={(e) => setCustomer({...customer, name: e.target.value})}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-light-textSecondary dark:text-dark-textSecondary mb-1">
-                Order Date
-              </label>
-              <input 
-                type="date" 
-                className="w-full p-3 text-base border border-light-border dark:border-dark-border rounded-md bg-light-bg dark:bg-dark-bg touch-manipulation"
-                value={new Date().toISOString().split('T')[0]}
-                readOnly
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-light-textSecondary dark:text-dark-textSecondary mb-1">
-                Phone
-              </label>
-              <input 
-                type="tel" 
-                className="w-full p-3 text-base border border-light-border dark:border-dark-border rounded-md bg-light-bg dark:bg-dark-bg touch-manipulation" 
-                placeholder="(555) 123-4567"
-                value={customer.phone || ''}
-                onChange={(e) => setCustomer({...customer, phone: e.target.value})}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-light-textSecondary dark:text-dark-textSecondary mb-1">
-                Email
-              </label>
-              <input 
-                type="email" 
-                className="w-full p-3 text-base border border-light-border dark:border-dark-border rounded-md bg-light-bg dark:bg-dark-bg touch-manipulation" 
-                placeholder="customer@example.com"
-                value={customer.email || ''}
-                onChange={(e) => setCustomer({...customer, email: e.target.value})}
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Artwork Details Section */}
-        <div className="bg-white dark:bg-dark-cardBg rounded-lg shadow-md p-4 lg:p-6">
-          <h2 className="text-lg lg:text-xl font-semibold mb-3 lg:mb-4 header-underline">Artwork Details</h2>
-
-          {/* Size Warnings */}
-{parseFloat(artworkWidth) > 32 || parseFloat(artworkHeight) > 40 ? (
-            <div className={`mb-4 p-3 rounded-lg border-l-4 ${
-              parseFloat(artworkWidth) > 40 || parseFloat(artworkHeight) > 60 
-                ? 'bg-red-50 border-red-400 text-red-800' 
-                : 'bg-yellow-50 border-yellow-400 text-yellow-800'
-            }`}>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center">
-                  <span className="font-semibold mr-2">
-                    {parseFloat(artworkWidth) > 40 || parseFloat(artworkHeight) > 60 ? '⚠️ Large Size Alert:' : '⚠️ Size Notice:'}
-                  </span>
-                  <span>
-                    {parseFloat(artworkWidth) > 40 || parseFloat(artworkHeight) > 60 
-                      ? 'Artwork over 40"×60" requires special handling and extended processing time.'
-                      : 'Artwork over 32"×40" may have additional costs and longer processing time.'}
-                  </span>
-                </div>
-                <div className="font-bold text-lg">
-                  +${getSizeSurcharge()}
-                </div>
+          {/* Order Information Section */}
+          <div className="bg-white dark:bg-dark-cardBg rounded-lg shadow-md p-4 lg:p-6">
+            <h2 className="text-lg lg:text-xl font-semibold mb-3 lg:mb-4 header-underline">Order Information</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 lg:gap-4">
+              <div>
+                <label className="block text-sm font-medium text-light-textSecondary dark:text-dark-textSecondary mb-1">
+                  Customer Name
+                </label>
+                <input 
+                  type="text" 
+                  className="w-full p-3 text-base border border-light-border dark:border-dark-border rounded-md bg-light-bg dark:bg-dark-bg touch-manipulation" 
+                  placeholder="Enter customer name"
+                  value={customer.name}
+                  onChange={(e) => setCustomer({...customer, name: e.target.value})}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-light-textSecondary dark:text-dark-textSecondary mb-1">
+                  Order Date
+                </label>
+                <input 
+                  type="date" 
+                  className="w-full p-3 text-base border border-light-border dark:border-dark-border rounded-md bg-light-bg dark:bg-dark-bg touch-manipulation"
+                  value={new Date().toISOString().split('T')[0]}
+                  readOnly
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-light-textSecondary dark:text-dark-textSecondary mb-1">
+                  Phone
+                </label>
+                <input 
+                  type="tel" 
+                  className="w-full p-3 text-base border border-light-border dark:border-dark-border rounded-md bg-light-bg dark:bg-dark-bg touch-manipulation" 
+                  placeholder="(555) 123-4567"
+                  value={customer.phone || ''}
+                  onChange={(e) => setCustomer({...customer, phone: e.target.value})}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-light-textSecondary dark:text-dark-textSecondary mb-1">
+                  Email
+                </label>
+                <input 
+                  type="email" 
+                  className="w-full p-3 text-base border border-light-border dark:border-dark-border rounded-md bg-light-bg dark:bg-dark-bg touch-manipulation" 
+                  placeholder="customer@example.com"
+                  value={customer.email || ''}
+                  onChange={(e) => setCustomer({...customer, email: e.target.value})}
+                />
               </div>
             </div>
-          ) : null}
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 lg:gap-4 mb-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-800 mb-1">
-                Width (inches)
-              </label>
-              <input 
-                type="number" 
-                className="w-full p-3 text-base border border-gray-300 rounded-md bg-white text-gray-800 touch-manipulation" 
-                step="0.125"
-                min="0.125"
-                value={artworkWidth}
-                onChange={(e) => handleDimensionChange('width', e.target.value)}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-800 mb-1">
-                Height (inches)
-              </label>
-              <input 
-                type="number" 
-                className="w-full p-3 text-base border border-gray-300 rounded-md bg-white text-gray-800 touch-manipulation" 
-                step="0.125"
-                min="0.125"
-                value={artworkHeight}
-                onChange={(e) => handleDimensionChange('height', e.target.value)}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-800 mb-1">
-                Art Type
-              </label>
-              <select
-                className="w-full p-3 text-base border border-gray-300 rounded-md bg-white text-gray-800 touch-manipulation"
-                value={artworkType}
-                onChange={(e) => setArtworkType(e.target.value)}
-              >
-                <option value="print">Print</option>
-                <option value="original">Original Artwork</option>
-                <option value="photo">Photograph</option>
-                <option value="document">Certificate/Document</option>
-                <option value="poster">Poster</option>
-                <option value="memorabilia">Memorabilia</option>
-                <option value="other">Other</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-800 mb-1">
-                Description
-              </label>
-              <input 
-                type="text" 
-                className="w-full p-3 text-base border border-gray-300 rounded-md bg-white text-gray-800 touch-manipulation" 
-                placeholder="Enter artwork description"
-                value={artworkDescription}
-                onChange={(e) => setArtworkDescription(e.target.value)}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-800 mb-1">
-                Physical Storage Location
-              </label>
-              <input 
-                type="text" 
-                className="w-full p-3 text-base border border-gray-300 rounded-md bg-white text-gray-800 touch-manipulation" 
-                placeholder="Enter physical storage location at shop"
-                value={artworkLocation}
-                onChange={(e) => setArtworkLocation(e.target.value)}
-              />
-            </div>
           </div>
 
+          {/* Artwork Details Section */}
+          <div className="bg-white dark:bg-dark-cardBg rounded-lg shadow-md p-4 lg:p-6">
+            <h2 className="text-lg lg:text-xl font-semibold mb-3 lg:mb-4 header-underline">Artwork Details</h2>
 
-        </div>
+            {/* Size Warnings */}
+            {parseFloat(artworkWidth) > 32 || parseFloat(artworkHeight) > 40 ? (
+              <div className={`mb-4 p-3 rounded-lg border-l-4 ${
+                parseFloat(artworkWidth) > 40 || parseFloat(artworkHeight) > 60 
+                  ? 'bg-red-50 border-red-400 text-red-800' 
+                  : 'bg-yellow-50 border-yellow-400 text-yellow-800'
+              }`}>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    <span className="font-semibold mr-2">
+                      {parseFloat(artworkWidth) > 40 || parseFloat(artworkHeight) > 60 ? '⚠️ Large Size Alert:' : '⚠️ Size Notice:'}
+                    </span>
+                    <span>
+                      {parseFloat(artworkWidth) > 40 || parseFloat(artworkHeight) > 60 
+                        ? 'Artwork over 40"×60" requires special handling and extended processing time.'
+                        : 'Artwork over 32"×40" may have additional costs and longer processing time.'}
+                    </span>
+                  </div>
+                  <div className="font-bold text-lg">
+                    +${getSizeSurcharge()}
+                  </div>
+                </div>
+              </div>
+            ) : null}
 
-        {/* Frame Customization Section */}
-        <div className="bg-white dark:bg-dark-cardBg rounded-lg shadow-md p-6">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-semibold header-underline">Frame Selection</h2>
-          </div>
-
-          {/* Frame Search */}
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-light-textSecondary dark:text-dark-textSecondary mb-1">
-              Search Frame by Item # or Name
-            </label>
-            <div className="relative">
-              <input
-                type="text"
-                className="w-full p-2 pl-8 border border-light-border dark:border-dark-border rounded-md bg-light-bg dark:bg-dark-bg"
-                placeholder="Enter frame item # (e.g. '4512') or name..."
-                value={frameSearch}
-                onChange={(e) => setFrameSearch(e.target.value)}
-              />
-              <svg 
-                xmlns="http://www.w3.org/2000/svg" 
-                className="h-4 w-4 absolute left-2 top-3 text-gray-400" 
-                fill="none" 
-                viewBox="0 0 24 24" 
-                stroke="currentColor"
-              >
-                <path 
-                  strokeLinecap="round" 
-                  strokeLinejoin="round" 
-                  strokeWidth={2} 
-                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" 
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 lg:gap-4 mb-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-800 mb-1">
+                  Width (inches)
+                </label>
+                <input 
+                  type="number" 
+                  className="w-full p-3 text-base border border-gray-300 rounded-md bg-white text-gray-800 touch-manipulation" 
+                  step="0.125"
+                  min="0.125"
+                  value={artworkWidth}
+                  onChange={(e) => handleDimensionChange('width', e.target.value)}
                 />
-              </svg>
-              {frameSearch && (
-                <button
-                  className="absolute right-2 top-2.5 text-gray-400 hover:text-gray-600"
-                  onClick={() => setFrameSearch('')}
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-800 mb-1">
+                  Height (inches)
+                </label>
+                <input 
+                  type="number" 
+                  className="w-full p-3 text-base border border-gray-300 rounded-md bg-white text-gray-800 touch-manipulation" 
+                  step="0.125"
+                  min="0.125"
+                  value={artworkHeight}
+                  onChange={(e) => handleDimensionChange('height', e.target.value)}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-800 mb-1">
+                  Art Type
+                </label>
+                <select
+                  className="w-full p-3 text-base border border-gray-300 rounded-md bg-white text-gray-800 touch-manipulation"
+                  value={artworkType}
+                  onChange={(e) => setArtworkType(e.target.value)}
                 >
-                  <svg 
-                    xmlns="http://www.w3.org/2000/svg" 
-                    className="h-4 w-4" 
-                    fill="none" 
-                    viewBox="0 0 24 24" 
-                    stroke="currentColor"
-                  >
-                    <path 
-                      strokeLinecap="round" 
-                      strokeLinejoin="round" 
-                      strokeWidth={2} 
-                      d="M6 18L18 6M6 6l12 12" 
+                  <option value="print">Print</option>
+                  <option value="original">Original Artwork</option>
+                  <option value="photo">Photograph</option>
+                  <option value="document">Certificate/Document</option>
+                  <option value="poster">Poster</option>
+                  <option value="memorabilia">Memorabilia</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-800 mb-1">
+                  Description
+                </label>
+                <input 
+                  type="text" 
+                  className="w-full p-3 text-base border border-gray-300 rounded-md bg-white text-gray-800 touch-manipulation" 
+                  placeholder="Enter artwork description"
+                  value={artworkDescription}
+                  onChange={(e) => setArtworkDescription(e.target.value)}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-800 mb-1">
+                  Physical Storage Location
+                </label>
+                <input 
+                  type="text" 
+                  className="w-full p-3 text-base border border-gray-300 rounded-md bg-white text-gray-800 touch-manipulation" 
+                  placeholder="Enter physical storage location at shop"
+                  value={artworkLocation}
+                  onChange={(e) => setArtworkLocation(e.target.value)}
+                />
+              </div>
+            </div>
+
+            {/* Artwork Upload Section */}
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-800 mb-2">
+                Artwork Image
+              </label>
+
+              {/* Upload area */}
+              <div 
+                className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors ${
+                  dragActive 
+                    ? 'border-primary bg-primary/10' 
+                    : 'border-gray-300 hover:border-gray-400'
+                }`}
+                onDragEnter={handleDrag}
+                onDragLeave={handleDrag}
+                onDragOver={handleDrag}
+                onDrop={handleDrop}
+                onClick={handleButtonClick}
+              >
+                <input 
+                  ref={fileInputRef}
+                  type="file" 
+                  accept="image/*" 
+                  onChange={handleFileInputChange}
+                  className="hidden"
+                />
+
+                {artworkImage ? (
+                  <div className="space-y-3">
+                    <img 
+                      src={artworkImage} 
+                      alt="Uploaded artwork" 
+                      className="max-w-full max-h-48 mx-auto rounded-lg shadow-sm"
                     />
+                    <p className="text-sm text-green-600 font-medium">
+                      ✓ Artwork image uploaded successfully
+                    </p>
+                    <button
+                      type="button"
+                      className="text-sm text-primary hover:underline"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setArtworkImage(null);
+                      }}
+                    >
+                      Remove image
+                    </button>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    <div className="text-gray-400">
+                      <svg className="mx-auto h-12 w-12" stroke="currentColor" fill="none" viewBox="0 0 48 48">
+                        <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    </div>
+                    <div>
+                      <p className="text-lg font-medium text-gray-900">Upload artwork image</p>
+                      <p className="text-sm text-gray-500">Drag and drop or click to browse</p>
+                      <p className="text-xs text-gray-400 mt-1">
+                        Supports: JPG, PNG, GIF (max 10MB)
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Webcam option */}
+              <div className="mt-3 flex justify-center">
+                <button
+                  type="button"
+                  className="text-sm text-primary hover:underline flex items-center gap-2"
+                  onClick={handleWebcamToggle}
+                >
+                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 10l4.55-2.3a1 1 0 011.45.9v6.8a1 1 0 01-1.45.9L15 14v-4zM5 12h8v6H5V12z" />
                   </svg>
+                  {showWebcam ? 'Cancel webcam' : 'Use webcam instead'}
                 </button>
+              </div>
+
+              {/* Webcam view */}
+              {showWebcam && (
+                <div className="mt-4 text-center">
+                  <video
+                    ref={webcamRef}
+                    autoPlay
+                    playsInline
+                    muted
+                    className="max-w-full h-64 mx-auto rounded-lg shadow-sm bg-gray-100"
+                  />
+                  <div className="mt-3">
+                    <button
+                      type="button"
+                      className="bg-primary text-white px-4 py-2 rounded-md hover:bg-primary/90 transition-colors"
+                      onClick={captureImage}
+                    >
+                      Capture Photo
+                    </button>
+                  </div>
+                </div>
               )}
+
+              {/* Hidden canvas for webcam capture */}
+              <canvas ref={canvasRef} className="hidden" />
             </div>
           </div>
 
-          {/* Vendor Catalog Search */}
-          <div className="mb-4">
-            <VendorFrameSearch 
-              onSelectFrame={(frame, pricingMethod) => {
-                handleSelectFrame(frame, activeFramePosition, pricingMethod || 'length');
+          {/* Frame Designer Component */}
+          <div className="bg-white dark:bg-dark-cardBg rounded-lg shadow-md p-4 lg:p-6">
+            <h2 className="text-lg lg:text-xl font-semibold mb-3 lg:mb-4 header-underline">Frame Designer</h2>
+            <FrameDesigner
+              initialImage={artworkImage}
+              onAddToCart={(designData) => {
+                // Handle frame design data
+                console.log('Frame design data:', designData);
+
+                // Update artwork dimensions if provided
+                if (designData.dimensions) {
+                  setArtworkWidth(designData.dimensions.width.toString());
+                  setArtworkHeight(designData.dimensions.height.toString());
+                }
+
+                // Update selected frame if provided
+                if (designData.frame) {
+                  const frameData: Frame = {
+                    id: designData.frame.id,
+                    name: designData.frame.name,
+                    manufacturer: 'Designer',
+                    material: 'Mixed',
+                    width: designData.frame.width.toString(),
+                    depth: '1',
+                    price: designData.frame.price.toString(),
+                    catalogImage: '',
+                    edgeTexture: null,
+                    corner: null,
+                    color: designData.frame.color
+                  };
+                  handleSelectFrame(frameData, 1, 'chop');
+                }
+
+                // Update selected mat if provided
+                if (designData.mat) {
+                  const matData: MatColor = {
+                    id: designData.mat.id,
+                    name: designData.mat.name,
+                    manufacturer: 'Designer',
+                    category: 'Custom',
+                    color: designData.mat.color,
+                    price: designData.mat.price.toString(),
+                    code: ''
+                  };
+                  setSelectedMatboards([{
+                    matboard: matData,
+                    position: 1,
+                    width: designData.dimensions?.matWidth || 2,
+                    offset: 0
+                  }]);
+                }
+
+                // Update artwork image if provided
+                if (designData.image) {
+                  setArtworkImage(designData.image);
+                }
+
+                toast({
+                  title: "Design Applied",
+                  description: "Frame design has been applied to your order.",
+                });
               }}
-              position={activeFramePosition}
+              showAddToCart={false}
             />
           </div>
 
-          {/* Frame filters */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4 mb-4">
-            <div>
-              <label className="block text-sm font-medium text-light-textSecondary dark:text-dark-textSecondary mb-1">
-                Material
-              </label>
-              <select 
-                className="w-full p-3 text-base border border-light-border dark:border-dark-border rounded-md bg-light-bg dark:bg-dark-bg touch-manipulation"
-                value={materialFilter}
-                onChange={(e) => setMaterialFilter(e.target.value)}
-              >
-                {materials.map(material => (
-                  <option key={material} value={material}>
-                    {material === 'all' ? 'All Materials' : material.charAt(0).toUpperCase() + material.slice(1)}
-                  </option>
-                ))}
-              </select>
+          {/* Continue with rest of components... */}
+          {/* Frame Customization Section */}
+          <div className="bg-white dark:bg-dark-cardBg rounded-lg shadow-md p-6">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-semibold header-underline">Frame Selection</h2>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-light-textSecondary dark:text-dark-textSecondary mb-1">
-                Manufacturer
-              </label>
-              <select 
-                className="w-full p-3 text-base border border-light-border dark:border-dark-border rounded-md bg-light-bg dark:bg-dark-bg touch-manipulation"
-                value={manufacturerFilter}
-                onChange={(e) => setManufacturerFilter(e.target.value)}
-              >
-                {manufacturers.map(manufacturer => (
-                  <option key={manufacturer} value={manufacturer}>
-                    {manufacturer === 'all' ? 'All Manufacturers' : manufacturer}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-light-textSecondary dark:text-dark-textSecondary mb-1">
-                Width Range
-              </label>
-              <select 
-                className="w-full p-3 text-base border border-light-border dark:border-dark-border rounded-md bg-light-bg dark:bg-dark-bg touch-manipulation"
-                value={widthFilter}
-                onChange={(e) => setWidthFilter(e.target.value)}
-              >
-                <option value="all">All Widths</option>
-                <option value="narrow">Narrow (0-1.5 in)</option>
-                <option value="medium">Medium (1.5-2.5 in)</option>
-                <option value="wide">Wide (2.5+ in)</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-light-textSecondary dark:text-dark-textSecondary mb-1">
-                Price Range
-              </label>
-              <select 
-                className="w-full p-2 border border-light-border dark:border-dark-border rounded-md bg-light-bg dark:bg-dark-bg"
-                value={priceFilter}
-                onChange={(e) => setPriceFilter(e.target.value)}
-              >
-                <option value="all">All Prices</option>
-                <option value="economy">Economy ($5-9/ft)</option>
-                <option value="standard">Standard ($10-14/ft)</option>
-                <option value="premium">Premium ($15+/ft)</option>
-              </select>
-            </div>
-          </div>
 
-          {/* Frame Position Selector */}
-          <div className="mb-4">
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex space-x-2">
-                <button
-                  type="button"
-                  className={`px-3 py-1 text-sm rounded-md ${activeFramePosition === 1 ? 'bg-primary text-white' : 'bg-gray-200 dark:bg-dark-cardBg'}`}
-                  onClick={() => setActiveFramePosition(1)}
+            {/* Frame Search */}
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-light-textSecondary dark:text-dark-textSecondary mb-1">
+                Search Frame by Item # or Name
+              </label>
+              <div className="relative">
+                <input
+                  type="text"
+                  className="w-full p-2 pl-8 border border-light-border dark:border-dark-border rounded-md bg-light-bg dark:bg-dark-bg"
+                  placeholder="Enter frame item # (e.g. '4512') or name..."
+                  value={frameSearch}
+                  onChange={(e) => setFrameSearch(e.target.value)}
+                />
+                <svg 
+                  xmlns="http://www.w3.org/2000/svg" 
+                  className="h-4 w-4 absolute left-2 top-3 text-gray-400" 
+                  fill="none" 
+                  viewBox="0 0 24 24" 
+                  stroke="currentColor"
                 >
-                  Inner Frame
-                </button>
-                {useMultipleFrames && (
+                  <path 
+                    strokeLinecap="round" 
+                    strokeLinejoin="round" 
+                    strokeWidth={2} 
+                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" 
+                  />
+                </svg>
+                {frameSearch && (
                   <button
-                    type="button"
-                    className={`px-3 py-1 text-sm rounded-md ${activeFramePosition === 2 ? 'bg-primary text-white' : 'bg-gray-200 dark:bg-dark-cardBg'}`}
-                    onClick={() => setActiveFramePosition(2)}
+                    className="absolute right-2 top-2.5 text-gray-400 hover:text-gray-600"
+                    onClick={() => setFrameSearch('')}
                   >
-                    Outer Frame
+                    <svg 
+                      xmlns="http://www.w3.org/2000/svg" 
+                      className="h-4 w-4" 
+                      fill="none" 
+                      viewBox="0 0 24 24" 
+                      stroke="currentColor"
+                    >
+                      <path 
+                        strokeLinecap="round" 
+                        strokeLinejoin="round" 
+                        strokeWidth={2} 
+                        d="M6 18L18 6M6 6l12 12" 
+                      />
+                    </svg>
                   </button>
                 )}
               </div>
-              <div className="flex items-center">
-                <input
-                  type="checkbox"
-                  id="useMultipleFrames"
-                  checked={useMultipleFrames}
-                  onChange={() => setUseMultipleFrames(!useMultipleFrames)}
-                  className="mr-2"
-                />
-                <label htmlFor="useMultipleFrames" className="text-sm">Use Multiple Frames</label>
+            </div>
+
+            {/* Vendor Catalog Search */}
+            <div className="mb-4">
+              <VendorFrameSearch 
+                onSelectFrame={(frame, pricingMethod) => {
+                  handleSelectFrame(frame, activeFramePosition, pricingMethod || 'length');
+                }}
+                position={activeFramePosition}
+              />
+            </div>
+
+            {/* Frame filters */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4 mb-4">
+              <div>
+                <label className="block text-sm font-medium text-light-textSecondary dark:text-dark-textSecondary mb-1">
+                  Material
+                </label>
+                <select 
+                  className="w-full p-3 text-base border border-light-border dark:border-dark-border rounded-md bg-light-bg dark:bg-dark-bg touch-manipulation"
+                  value={materialFilter}
+                  onChange={(e) => setMaterialFilter(e.target.value)}
+                >
+                  <option value="all">All Materials</option>
+                  {materials.map(material => (
+                    <option key={material} value={material}>
+                      {material === 'all' ? 'All Materials' : material.charAt(0).toUpperCase() + material.slice(1)}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-light-textSecondary dark:text-dark-textSecondary mb-1">
+                  Manufacturer
+                </label>
+                <select 
+                  className="w-full p-3 text-base border border-light-border dark:border-dark-border rounded-md bg-light-bg dark:bg-dark-bg touch-manipulation"
+                  value={manufacturerFilter}
+                  onChange={(e) => setManufacturerFilter(e.target.value)}
+                >
+                  <option value="all">All Manufacturers</option>
+                  {manufacturers.map(manufacturer => (
+                    <option key={manufacturer} value={manufacturer}>
+                      {manufacturer === 'all' ? 'All Manufacturers' : manufacturer}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-light-textSecondary dark:text-dark-textSecondary mb-1">
+                  Width Range
+                </label>
+                <select 
+                  className="w-full p-3 text-base border border-light-border dark:border-dark-border rounded-md bg-light-bg dark:bg-dark-bg touch-manipulation"
+                  value={widthFilter}
+                  onChange={(e) => setWidthFilter(e.target.value)}
+                >
+                  <option value="all">All Widths</option>
+                  <option value="narrow">Narrow (0-1.5 in)</option>
+                  <option value="medium">Medium (1.5-2.5 in)</option>
+                  <option value="wide">Wide (2.5+ in)</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-light-textSecondary dark:text-dark-textSecondary mb-1">
+                  Price Range
+                </label>
+                <select 
+                  className="w-full p-2 border border-light-border dark:border-dark-border rounded-md bg-light-bg dark:bg-dark-bg"
+                  value={priceFilter}
+                  onChange={(e) => setPriceFilter(e.target.value)}
+                >
+                  <option value="all">All Prices</option>
+                  <option value="economy">Economy ($5-9/ft)</option>
+                  <option value="standard">Standard ($10-14/ft)</option>
+                  <option value="premium">Premium ($15+/ft)</option>
+                </select>
               </div>
             </div>
-          </div>
 
-          {/* Frame Catalog */}
-          <div className="h-64 overflow-y-auto p-2 border border-light-border dark:border-dark-border rounded-lg mb-4">
-            {framesLoading ? (
-              <div className="flex justify-center items-center h-full">
-                <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" aria-label="Loading"/>
-                <span className="ml-3 text-gray-500">Loading frames...</span>
+            {/* Frame Position Selector */}
+            <div className="mb-4">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex space-x-2">
+                  <button
+                    type="button"
+                    className={`px-3 py-1 text-sm rounded-md ${activeFramePosition === 1 ? 'bg-primary text-white' : 'bg-gray-200 dark:bg-dark-cardBg'}`}
+                    onClick={() => setActiveFramePosition(1)}
+                  >
+                    Inner Frame
+                  </button>
+                  {useMultipleFrames && (
+                    <button
+                      type="button"
+                      className={`px-3 py-1 text-sm rounded-md ${activeFramePosition === 2 ? 'bg-primary text-white' : 'bg-gray-200 dark:bg-dark-cardBg'}`}
+                      onClick={() => setActiveFramePosition(2)}
+                    >
+                      Outer Frame
+                    </button>
+                  )}
+                </div>
+                <div className="flex items-center">
+                  <input
+                    type="checkbox"
+                    id="useMultipleFrames"
+                    checked={useMultipleFrames}
+                    onChange={() => setUseMultipleFrames(!useMultipleFrames)}
+                    className="mr-2"
+                  />
+                  <label htmlFor="useMultipleFrames" className="text-sm">Use Multiple Frames</label>
+                </div>
               </div>
-            ) : filteredFrames.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-full text-gray-500">
-                <p>No frames match your filter criteria.</p>
-                <button 
-                  className="mt-2 text-primary hover:underline"
-                  onClick={() => {
-                    setMaterialFilter('all');
-                    setManufacturerFilter('all');
-                    setWidthFilter('all');
-                    setPriceFilter('all');
-                  }}
-                >
-                  Reset filters
-                </button>
-              </div>
-            ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-                {filteredFrames.map(frame => (
-                <div 
-                  key={frame.id}
-                  className={`cursor-pointer hover:scale-105 transform transition-transform duration-200 relative rounded overflow-hidden frame-option ${selectedFrames.some(f => f.frame.id === frame.id) ? 'border-2 border-primary' : ''}`}
-                  onClick={() => {
-                    handleSelectFrame(frame, activeFramePosition, 'length'); // Default pricing method
-                  }}
-                >
-                  <div 
-                    className="w-full h-24 bg-gradient-to-r from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-800 flex items-center justify-center"
-                    style={{
-                      backgroundColor: frame.color || '#8B4513',
-                      backgroundImage: `repeating-linear-gradient(45deg, rgba(255,255,255,0.1), rgba(255,255,255,0.1) 2px, transparent 2px, transparent 8px)`
+            </div>
+
+            {/* Frame Catalog */}
+            <div className="h-64 overflow-y-auto p-2 border border-light-border dark:border-dark-border rounded-lg mb-4">
+              {framesLoading ? (
+                <div className="flex justify-center items-center h-full">
+                  <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" aria-label="Loading"/>
+                  <span className="ml-3 text-gray-500">Loading frames...</span>
+                </div>
+              ) : filteredFrames.length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-full text-gray-500">
+                  <p>No frames match your filter criteria.</p>
+                  <button 
+                    className="mt-2 text-primary hover:underline"
+                    onClick={() => {
+                      setMaterialFilter('all');
+                      setManufacturerFilter('all');
+                      setWidthFilter('all');
+                      setPriceFilter('all');
                     }}
                   >
-                    <span className="text-white text-xs font-mono tracking-tight opacity-70">
-                      {frame.manufacturer.split('-')[0]} #{frame.id.split('-')[1]}
-                    </span>
-                  </div>
-                  <div className="bg-black/70 text-white text-xs p-1 absolute bottom-0 left-0 right-0">
-                    <div className="font-medium truncate">{frame.name}</div>
-                    <div className="flex justify-between">
-                      <span>{frame.material}</span>
-                      <span>${frame.price}/ft</span>
+                    Reset filters
+                  </button>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                  {filteredFrames.map(frame => (
+                  <div 
+                    key={frame.id}
+                    className={`cursor-pointer hover:scale-105 transform transition-transform duration-200 relative rounded overflow-hidden frame-option ${selectedFrames.some(f => f.frame.id === frame.id) ? 'border-2 border-primary' : ''}`}
+                    onClick={() => {
+                      handleSelectFrame(frame, activeFramePosition, 'length'); // Default pricing method
+                    }}
+                  >
+                    <div 
+                      className="w-full h-24 bg-gradient-to-r from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-800 flex items-center justify-center"
+                      style={{
+                        backgroundColor: frame.color || '#8B4513',
+                        backgroundImage: `repeating-linear-gradient(45deg, rgba(255,255,255,0.1), rgba(255,255,255,0.1) 2px, transparent 2px, transparent 8px)`
+                      }}
+                    >
+                      <span className="text-white text-xs font-mono tracking-tight opacity-70">
+                        {frame.manufacturer.split('-')[0]} #{frame.id.split('-')[1]}
+                      </span>
                     </div>
-                  </div>
-                  {selectedFrames.some(f => f.frame.id === frame.id) && (
-                    <div className="absolute top-2 right-2 bg-primary text-white rounded-full w-5 h-5 flex items-center justify-center">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <div className="bg-black/70 text-white text-xs p-1 absolute bottom-0 left-0 right-0">
+                      <div className="font-medium truncate">{frame.name}</div>
+                      <div className="flex justify-between">
+                        <span>{frame.material}</span>
+                        <span>${frame.price}/ft</span>
+                      </div>
+                    </div>
+                    {selectedFrames.some(f => f.frame.id === frame.id) && (
+                      <div className="absolute top-2 right-2 bg-primary text-white rounded-full w-5 h-5 flex items-center justify-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" />
                       </svg>
                     </div>
                   )}
                 </div>
               ))}
-              </div>
-            )}
-          </div>
-
-          {/* Mat Options */}
-          <h3 className="text-lg font-medium mb-3">Mat Options</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-            <div>
-              <div className="flex justify-between items-center mb-2">
-                <label className="block text-sm font-medium text-light-textSecondary dark:text-dark-textSecondary">
-                  Mat Color
-                </label>
-                <div className="flex items-center">
-                  <input
-                    type="checkbox"
-                    id="useMultipleMats"
-                    checked={useMultipleMats}
-                    onChange={() => setUseMultipleMats(!useMultipleMats)}
-                    className="mr-2"
-                  />
-                  <label htmlFor="useMultipleMats" className="text-sm">Use Multiple Mats</label>
-                </div>
-              </div>
-
-              {/* Mat Position Selector */}
-              <div className="flex space-x-2 mb-3">
-                <button
-                  type="button"
-                  className={`px-3 py-1 text-sm rounded-md ${activeMatPosition === 1 ? 'bg-primary text-white' : 'bg-gray-200 dark:bg-dark-cardBg'}`}
-                  onClick={() => setActiveMatPosition(1)}
-                >
-                  Top Mat
-                </button>
-                {useMultipleMats && (
-                  <>
-                    <button
-                      type="button"
-                      className={`px-3 py-1 text-sm rounded-md ${activeMatPosition === 2 ? 'bg-primary text-white' : 'bg-gray-200 dark:bg-dark-cardBg'}`}
-                      onClick={() => setActiveMatPosition(2)}
-                    >
-                      Middle Mat
-                    </button>
-                    <button
-                      type="button"
-                      className={`px-3 py-1 text-sm rounded-md ${activeMatPosition === 3 ? 'bg-primary text-white' : 'bg-gray-200 dark:bg-dark-cardBg'}`}
-                      onClick={() => setActiveMatPosition(3)}
-                    >
-                      Bottom Mat
-                    </button>
-                  </>
-                )}
-              </div>
-
-              {/* Mat color filter tabs */}
-              <div className="flex mb-2 border-b border-light-border dark:border-dark-border">
-                <button 
-                  className={`px-3 py-1 text-sm ${matManufacturerFilter === 'all' ? 'font-medium border-b-2 border-primary' : ''}`}
-                  onClick={() => setMatManufacturerFilter('all')}
-                >
-                  All Matboards
-                </button>
-                <button 
-                  className={`px-3 py-1 text-sm ${matManufacturerFilter === 'Crescent' ? 'font-medium border-b-2 border-primary' : ''}`}
-                  onClick={() => setMatManufacturerFilter('Crescent')}
-                >
-                  By Category
-                </button>
-              </div>
-
-              {/* Category sections for Crescent matboards */}
-              {matManufacturerFilter === 'Crescent' && (
-                <div className="mb-2 max-h-40 overflow-y-auto pr-2">
-                  {matboardsLoading ? (
-                    <div className="flex justify-center items-center py-6">
-                      <div className="animate-spin w-6 h-6 border-4 border-primary border-t-transparent rounded-full" aria-label="Loading"/>
-                      <span className="ml-3 text-gray-500">Loading matboards...</span>
-                    </div>
-                  ) : (
-                    <>
-                      {getUniqueMatCategories().map(category => (
-                        <div key={category} className="mb-2">
-                          <h4 className="text-xs text-light-textSecondary dark:text-dark-textSecondary font-medium mb-1">{category}</h4>
-                          <div className="grid grid-cols-5 gap-1">
-                            {getMatColorsByCategory(category).map(matColor => (
-                              <div
-                                key={matColor.id}
-                                className={`mat-color-option ${selectedMatboards.some(m => m.matboard.id === matColor.id) ? 'border-2 border-primary' : 'border border-gray-400'} rounded-full h-6 w-6 cursor-pointer hover:scale-110 transition-transform overflow-hidden`}
-                                onClick={() => handleMatColorChange(matColor.id)}
-                                title={`${matColor.name} (${matColor.code})`}
-                              >
-                                <div 
-                                  className="w-full h-full" 
-                                  style={{ 
-                                    backgroundColor: matColor.color || '#FFFFFF',
-                                    border: '2px solid transparent'
-                                  }}
-                                ></div>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      ))}
-                    </>
-                  )}
-                </div>
-              )}
-
-              {/* Simple grid for All matboards view */}
-              {matManufacturerFilter === 'all' && (
-                <div className="grid grid-cols-4 gap-2">
-                  {matboardsLoading ? (
-                    <div className="flex justify-center items-center py-6 col-span-4">
-                      <div className="animate-spin w-6 h-6 border-4 border-primary border-t-transparent rounded-full" aria-label="Loading"/>
-                      <span className="ml-3 text-gray-500">Loading matboards...</span>
-                    </div>
-                  ) : (
-                    <>
-                      {/* No Mat Option */}
-                      <div
-                        className={`mat-color-option ${selectedMatboards.length === 0 ? 'border-2 border-primary' : 'border border-gray-400'} rounded-md h-8 w-8 cursor-pointer hover:scale-110 transition-transform overflow-hidden bg-gray-100 dark:bg-gray-800 flex items-center justify-center`}
-                        onClick={() => handleMatColorChange('none')}
-                        title="No Mat"
-                      >
-                        <span className="text-xs text-gray-500">✕</span>
-                      </div>
-                      {(matManufacturerFilter === 'all' ? matboards : crescentMatboards).map(matColor => (
-                        <div
-                          key={matColor.id}
-                          className={`mat-color-option ${selectedMatboards.some(m => m.matboard.id === matColor.id) ? 'border-2 border-primary' : 'border border-gray-400'} rounded-full h-8 w-8 cursor-pointer hover:scale-110 transition-transform overflow-hidden`}
-                          onClick={() => handleMatColorChange(matColor.id)}
-                          title={matColor.name}
-                        >
-                          <div 
-                            className="w-full h-full" 
-                            style={{ 
-                              backgroundColor: matColor.color || '#FFFFFF',
-                              border: '2px solid transparent'
-                            }}
-                          ></div>
-                        </div>
-                      ))}
-                    </>
-                  )}
-                </div>
-              )}
-
-              {/* Selected mat color details */}
-              {selectedMatboards.length > 0 && (
-                <div className="mt-4 text-sm">
-                  <h3 className="font-medium mb-2">Selected Mats</h3>
-                  {selectedMatboards.map((matItem, index) => (
-                    <div key={matItem.matboard.id + '-' + matItem.position} className={index > 0 ? 'mt-3 pt-3 border-t border-light-border dark:border-dark-border' : ''}>
-                      <h4 className="text-xs font-medium mb-1">
-                        {matItem.position === 1 ? 'Top' : matItem.position === 2
- ? 'Middle' : 'Bottom'} Mat
-                        {useMultipleMats ? ` (Position ${matItem.position})` : ''}
-                      </h4>
-                      <div className="flex items-center gap-3">
-                        <div 
-                          className="w-10 h-10 rounded-md inline-block border border-gray-300 shadow-sm" 
-                          style={{ backgroundColor: matItem.matboard.color || '#FFFFFF' }}
-                        ></div>
-                        <div>
-                          <p className="font-semibold text-sm">
-                            {matItem.matboard.name}
-                            {matItem.matboard.code && <span className="ml-1 text-light-textSecondary dark:text-dark-textSecondary text-xs">({matItem.matboard.code})</span>}
-                          </p>
-                          {matItem.matboard.manufacturer && matItem.matboard.manufacturer !== 'Basic' && (
-                            <p className="text-light-textSecondary dark:text-dark-textSecondary text-xs">{matItem.matboard.manufacturer}</p>
-                          )}
-                          {matItem.matboard.category && (
-                            <p className="text-light-textSecondary dark:text-dark-textSecondary text-xs">{matItem.matboard.category}</p>
-                          )}
-                          <p className="text-xs mt-1">Width: {matItem.width}"</p>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+            </div>
               )}
             </div>
-            <div>
-              <label className="block text-sm font-medium text-light-textSecondary dark:text-dark-textSecondary mb-1">
-                Mat Width (inches)
-              </label>
-              <div className="flex items-center">
-                <input 
-                  type="range" 
-                  min="0" 
-                  max="6" 
-                  step="0.25" 
-                  value={selectedMatboards.find(m => m.position === activeMatPosition)?.width || 2} 
-                  onChange={handleMatWidthChange}
-                  className="w-full h-2 bg-gray-200 dark:bg-dark-border rounded-lg appearance-none cursor-pointer"
-                />
-                <span className="ml-2 min-w-[40px] text-center">
-                  {selectedMatboards.find(m => m.position === activeMatPosition)?.width || 2}"
-                </span>
-              </div>
-              {useMultipleMats && (
-                <div className="mt-2 text-xs text-light-textSecondary dark:text-dark-textSecondary">
-                  Adjusting width for {activeMatPosition === 1 ? 'Top' : activeMatPosition === 2 ? 'Middle' : 'Bottom'} Mat (Position {activeMatPosition})
-                </div>
-              )}
-            </div>
-          </div>
 
-          {/* Glass Options */}
-          <h3 className="text-lg font-medium mb-3">Glass Options</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 lg:gap-4 mb-6">
-            {/* Using static glass options catalog for now, will be replaced with API data */}
-            {glassOptionCatalog.map(glassOption => (
-              <div 
-                key={glassOption.id}
-                className={`border ${selectedGlassOption.id === glassOption.id ? 'border-primary' : 'border-light-border dark:border-dark-border'} rounded-lg p-3 cursor-pointer hover:border-primary transition-colors bg-white dark:bg-dark-bg`}
-                onClick={() => handleGlassOptionChange(glassOption.id)}
-              >
-                <div className="flex justify-between items-start">
-                  <div>
-                    <h4 className="font-medium">{glassOption.name}</h4>
-                    <p className="text-sm text-light-textSecondary dark:text-dark-textSecondary">
-                      {glassOption.description}
-                    </p>
+            {/* Mat Options */}
+            <h3 className="text-lg font-medium mb-3">Mat Options</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+              <div>
+                <div className="flex justify-between items-center mb-2">
+                  <label className="block text-sm font-medium text-light-textSecondary dark:text-dark-textSecondary">
+                    Mat Color
+                  </label>
+                  <div className="flex items-center">
+                    <input
+                      type="checkbox"
+                      id="useMultipleMats"
+                      checked={useMultipleMats}
+                      onChange={() => setUseMultipleMats(!useMultipleMats)}
+                      className="mr-2"
+                    />
+                    <label htmlFor="useMultipleMats" className="text-sm">Use Multiple Mats</label>
                   </div>
-                  <div className={`flex h-5 w-5 ${selectedGlassOption.id === glassOption.id ? 'border border-primary' : 'border border-gray-300 dark:border-dark-border'} rounded-full items-center justify-center`}>
-                    {selectedGlassOption.id === glassOption.id && (
-                      <div className="h-3 w-3 bg-primary rounded-full"></div>
+                </div>
+
+                {/* Mat Position Selector */}
+                <div className="flex space-x-2 mb-3">
+                  <button
+                    type="button"
+                    className={`px-3 py-1 text-sm rounded-md ${activeMatPosition === 1 ? 'bg-primary text-white' : 'bg-gray-200 dark:bg-dark-cardBg'}`}
+                    onClick={() => setActiveMatPosition(1)}
+                  >
+                    Top Mat
+                  </button>
+                  {useMultipleMats && (
+                    <>
+                      <button
+                        type="button"
+                        className={`px-3 py-1 text-sm rounded-md ${activeMatPosition === 2 ? 'bg-primary text-white' : 'bg-gray-200 dark:bg-dark-cardBg'}`}
+                        onClick={() => setActiveMatPosition(2)}
+                      >
+                        Middle Mat
+                      </button>
+                      <button
+                        type="button"
+                        className={`px-3 py-1 text-sm rounded-md ${activeMatPosition === 3 ? 'bg-primary text-white' : 'bg-gray-200 dark:bg-dark-cardBg'}`}
+                        onClick={() => setActiveMatPosition(3)}
+                      >
+                        Bottom Mat
+                      </button>
+                    </>
+                  )}
+                </div>
+
+                {/* Mat color filter tabs */}
+                <div className="flex mb-2 border-b border-light-border dark:border-dark-border">
+                  <button 
+                    className={`px-3 py-1 text-sm ${matManufacturerFilter === 'all' ? 'font-medium border-b-2 border-primary' : ''}`}
+                    onClick={() => setMatManufacturerFilter('all')}
+                  >
+                    All Matboards
+                  </button>
+                  <button 
+                    className={`px-3 py-1 text-sm ${matManufacturerFilter === 'Crescent' ? 'font-medium border-b-2 border-primary' : ''}`}
+                    onClick={() => setMatManufacturerFilter('Crescent')}
+                  >
+                    By Category
+                  </button>
+                </div>
+
+                {/* Category sections for Crescent matboards */}
+                {matManufacturerFilter === 'Crescent' && (
+                  <div className="mb-2 max-h-40 overflow-y-auto pr-2">
+                    {matboardsLoading ? (
+                      <div className="flex justify-center items-center py-6">
+                        <div className="animate-spin w-6 h-6 border-4 border-primary border-t-transparent rounded-full" aria-label="Loading"/>
+                        <span className="ml-3 text-gray-500">Loading matboards...</span>
+                      </div>
+                    ) : (
+                      <>
+                        {getUniqueMatCategories().map(category => (
+                          <div key={category} className="mb-2">
+                            <h4 className="text-xs text-light-textSecondary dark:text-dark-textSecondary font-medium mb-1">{category}</h4>
+                            <div className="grid grid-cols-5 gap-1">
+                              {getMatColorsByCategory(category).map(matColor => (
+                                <div
+                                  key={matColor.id}
+                                  className={`mat-color-option ${selectedMatboards.some(m => m.matboard.id === matColor.id) ? 'border-2 border-primary' : 'border border-gray-400'} rounded-full h-6 w-6 cursor-pointer hover:scale-110 transition-transform overflow-hidden`}
+                                  onClick={() => handleMatColorChange(matColor.id)}
+                                  title={`${matColor.name} (${matColor.code})`}
+                                >
+                                  <div 
+                                    className="w-full h-full" 
+                                    style={{ 
+                                      backgroundColor: matColor.color || '#FFFFFF',
+                                      border: '2px solid transparent'
+                                    }}
+                                  ></div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        ))}
+                      </>
                     )}
                   </div>
-                </div>
-                <div className="mt-2 text-sm text-right">
-                  ${parseFloat(String(glassOption.price)) * 100}/sq ft
-                </div>
+                )}
+
+                {/* Simple grid for All matboards view */}
+                {matManufacturerFilter === 'all' && (
+                  <div className="grid grid-cols-4 gap-2">
+                    {matboardsLoading ? (
+                      <div className="flex justify-center items-center py-6 col-span-4">
+                        <div className="animate-spin w-6 h-6 border-4 border-primary border-t-transparent rounded-full" aria-label="Loading"/>
+                        <span className="ml-3 text-gray-500">Loading matboards...</span>
+                      </div>
+                    ) : (
+                      <>
+                        {/* No Mat Option */}
+                        <div
+                          className={`mat-color-option ${selectedMatboards.length === 0 ? 'border-2 border-primary' : 'border border-gray-400'} rounded-md h-8 w-8 cursor-pointer hover:scale-110 transition-transform overflow-hidden bg-gray-100 dark:bg-gray-800 flex items-center justify-center`}
+                          onClick={() => handleMatColorChange('none')}
+                          title="No Mat"
+                        >
+                          <span className="text-xs text-gray-500">✕</span>
+                        </div>
+                        {(matManufacturerFilter === 'all' ? matboards : crescentMatboards).map(matColor => (
+                          <div
+                            key={matColor.id}
+                            className={`mat-color-option ${selectedMatboards.some(m => m.matboard.id === matColor.id) ? 'border-2 border-primary' : 'border border-gray-400'} rounded-full h-8 w-8 cursor-pointer hover:scale-110 transition-transform overflow-hidden`}
+                            onClick={() => handleMatColorChange(matColor.id)}
+                            title={matColor.name}
+                          >
+                            <div 
+                              className="w-full h-full" 
+                              style={{ 
+                                backgroundColor: matColor.color || '#FFFFFF',
+                                border: '2px solid transparent'
+                              }}
+                            ></div>
+                          </div>
+                        ))}
+                      </>
+                    )}
+                  </div>
+                )}
+
+                {/* Selected mat color details */}
+                {selectedMatboards.length > 0 && (
+                  <div className="mt-4 text-sm">
+                    <h3 className="font-medium mb-2">Selected Mats</h3>
+                    {selectedMatboards.map((matItem, index) => (
+                      <div key={matItem.matboard.id + '-' + matItem.position} className={index > 0 ? 'mt-3 pt-3 border-t border-light-border dark:border-dark-border' : ''}>
+                        <h4 className="text-xs font-medium mb-1">
+                          {matItem.position === 1 ? 'Top' : matItem.position === 2
+                        ? 'Middle' : 'Bottom'} Mat
+                          {useMultipleMats ? ` (Position ${matItem.position})` : ''}
+                        </h4>
+                        <div className="flex items-center gap-3">
+                          <div 
+                            className="w-10 h-10 rounded-md inline-block border border-gray-300 shadow-sm" 
+                            style={{ backgroundColor: matItem.matboard.color || '#FFFFFF' }}
+                          ></div>
+                          <div>
+                            <p className="font-semibold text-sm">
+                              {matItem.matboard.name}
+                              {matItem.matboard.code && <span className="ml-1 text-light-textSecondary dark:text-dark-textSecondary text-xs">({matItem.matboard.code})</span>}
+                            </p>
+                            {matItem.matboard.manufacturer && matItem.matboard.manufacturer !== 'Basic' && (
+                              <p className="text-light-textSecondary dark:text-dark-textSecondary text-xs">{matItem.matboard.manufacturer}</p>
+                            )}
+                            {matItem.matboard.category && (
+                              <p className="text-light-textSecondary dark:text-dark-textSecondary text-xs">{matItem.matboard.category}</p>
+                            )}
+                            <p className="text-xs mt-1">Width: {matItem.width}"</p>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
-            ))}
-          </div>
-        </div>
+              <div>
+                <label className="block text-sm font-medium text-light-textSecondary dark:text-dark-textSecondary mb-1">
+                  Mat Width (inches)
+                </label>
+                <div className="flex items-center">
+                  <input 
+                    type="range" 
+                    min="0" 
+                    max="6" 
+                    step="0.25" 
+                    value={selectedMatboards.find(m => m.position === activeMatPosition)?.width || 2} 
+                    onChange={handleMatWidthChange}
+                    className="w-full h-2 bg-gray-200 dark:bg-dark-border rounded-lg appearance-none cursor-pointer"
+                  />
+                  <span className="ml-2 min-w-[40px] text-center">
+                    {selectedMatboards.find(m => m.position === activeMatPosition)?.width || 2}"
+                  </span>
+                </div>
+                {useMultipleMats && (
+                  <div className="mt-2 text-xs text-light-textSecondary dark:text-dark-textSecondary">
+                    Adjusting width for {activeMatPosition === 1 ? 'Top' : activeMatPosition === 2 ? 'Middle' : 'Bottom'} Mat (Position {activeMatPosition})
+                  </div>
+                )}
+              </div>
+            </div>
 
-        {/* Manual Frame Entry Section */}
-        <ManualFrameEntry
-          onFrameAdd={(frame) => {
-            // Add manual frame to selected frames
-            const manualFrame = {
-              frame: {
-                id: 'manual',
-                name: frame.name,
-                manufacturer: frame.manufacturer,
-                material: frame.material,
-                width: frame.width.toString(),
-                depth: frame.depth.toString(),
-                price: frame.price.toString(),
-                catalogImage: '',
-                edgeTexture: null,
-                corner: null,
-                color: frame.color
-              },
-              distance: 0,
-              position: selectedFrames.length + 1,
-              pricingMethod: 'chop'
-            };
-            setSelectedFrames([...selectedFrames, manualFrame]);
-          }}
-          useManualFrame={useManualFrame}
-          onToggleManualFrame={setUseManualFrame}
-          frameName={manualFrameName}
-          onFrameNameChange={setManualFrameName}
-          frameCost={manualFrameCost}
-          onFrameCostChange={setManualFrameCost}
-        />
-
-        {/* Special Services Section */}
-        <SpecialServices 
-          selectedServices={selectedServices}
-          onChange={setSelectedServices}
-        />
-
-        {/* Miscellaneous Charges Section */}
-        <MiscellaneousCharges
-          charges={miscCharges}
-          onChange={setMiscCharges}
-        />
-      </div>
-
-      {/* Right side - Visualizer and Order Summary */}
-      <div className="lg:col-span-4 space-y-4 lg:space-y-6">
-        {/* Unified Artwork Detection and Dual Preview */}
-        <div className="bg-white dark:bg-dark-cardBg rounded-lg shadow-md p-4 lg:p-6">
-          <ArtworkSizeDetector 
-            defaultWidth={parseFloat(artworkWidth)}
-            defaultHeight={parseFloat(artworkHeight)}
-            frames={selectedFrames}
-            mats={selectedMatboards}
-            useMultipleFrames={useMultipleFrames}
-            useMultipleMats={useMultipleMats}
-            onDimensionsDetected={(dimensions, imageDataUrl) => {
-              // Update dimensions in the parent component
-              setArtworkWidth(dimensions.width.toString());
-              setArtworkHeight(dimensions.height.toString());
-              setAspectRatio(dimensions.width / dimensions.height);
-              setArtworkImage(imageDataUrl);
-
-              console.log('Dimensions detected:', dimensions);
-              toast({
-                title: "Artwork Dimensions Detected",
-                description: `Width: ${dimensions.width}", Height: ${dimensions.height}"`,
-              });
-            }}
-            onFrameImageCaptured={setFrameDesignImage}
-          />
-        </div>
-
-        {/* Dual Preview System */}
-        <div className="bg-white dark:bg-dark-cardBg rounded-lg shadow-md p-4 lg:p-6">
-          <DualPreviewSystem
-            primaryDesign={currentFrameDesign}
-            comparisonDesign={savedFrameDesign}
-            onDesignSelect={(design: any) => {
-              if (design.id === currentFrameDesign?.id) {
-                toast({
-                  title: "Design Selected",
-                  description: "Using current frame design configuration",
-                });
-              } else {
-                setCurrentFrameDesign(design);
-                toast({
-                  title: "Design Updated",
-                  description: "Applied comparison design to current order",
-                });
-              }
-            }}
-            onCompareToggle={(enabled: boolean) => {
-              if (enabled && !savedFrameDesign && currentFrameDesign) {
-                setSavedFrameDesign(currentFrameDesign);
-                toast({
-                  title: "Comparison Mode",
-                  description: "Current design saved for comparison",
-                });
-              }
-            }}
-          />
-        </div>
-
-        {/* Frame Details */}
-        {selectedFrames.length > 0 && (
-          <div className="bg-white dark:bg-dark-cardBg rounded-lg shadow-md p-6">
-            <div className="mt-4">
-              <h3 className="text-lg font-medium mb-2">Selected Frame Details</h3>
-              {selectedFrames.map((frameItem, index) => (
-                <div key={frameItem.frame.id + '-' + frameItem.position} className={index > 0 ? 'mt-4 pt-4 border-t border-light-border dark:border-dark-border' : ''}>
-                  <h4 className="text-md font-medium mb-2">
-                    {frameItem.position === 1 ? 'Inner Frame' : 'Outer Frame'} 
-                    {useMultipleFrames ? ` (Position ${frameItem.position})` : ''}
-                  </h4>
-                  <table className="w-full text-sm">
-                    <tbody>
-                      <tr>
-                        <td className="py-1 text-light-textSecondary dark:text-dark-textSecondary">Name:</td>
-                        <td className="py-1 font-medium">{frameItem.frame.name}</td>
-                      </tr>
-                      <tr>
-                        <td className="py-1 text-light-textSecondary dark:text-dark-textSecondary">Material:</td>
-                        <td className="py-1">{frameItem.frame.material}</td>
-                      </tr>
-                      <tr>
-                        <td className="py-1 text-light-textSecondary dark:text-dark-textSecondary">Width:</td>
-                        <td className="py-1">{frameItem.frame.width} inches</td>
-                      </tr>
-                      <tr>
-                        <td className="py-1 text-light-textSecondary dark:text-dark-textSecondary">Depth:</td>
-                        <td className="py-1">{frameItem.frame.depth} inches</td>
-                      </tr>
-                      <tr>
-                        <td className="py-1 text-light-textSecondary dark:text-dark-textSecondary">Wholesale Price:</td>
-                        <td className="py-1">${frameItem.frame.price} per foot</td>
-                      </tr>
-                      <tr>
-                        <td className="py-1 text-light-textSecondary dark:text-dark-textSecondary">Pricing Method:</td>
-                        <td className="py-1">{frameItem.pricingMethod}</td>
-                      </tr>
-                    </tbody>
-                  </table>
+            {/* Glass Options */}
+            <h3 className="text-lg font-medium mb-3">Glass Options</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 lg:gap-4 mb-6">
+              {/* Using static glass options catalog for now, will be replaced with API data */}
+              {glassOptionCatalog.map(glassOption => (
+                <div 
+                  key={glassOption.id}
+                  className={`border ${selectedGlassOption.id === glassOption.id ? 'border-primary' : 'border-light-border dark:border-dark-border'} rounded-lg p-3 cursor-pointer hover:border-primary transition-colors bg-white dark:bg-dark-bg`}
+                  onClick={() => handleGlassOptionChange(glassOption.id)}
+                >
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h4 className="font-medium">{glassOption.name}</h4>
+                      <p className="text-sm text-light-textSecondary dark:text-dark-textSecondary">
+                        {glassOption.description}
+                      </p>
+                    </div>
+                    <div className={`flex h-5 w-5 ${selectedGlassOption.id === glassOption.id ? 'border border-primary' : 'border border-gray-300 dark:border-dark-border'} rounded-full items-center justify-center`}>
+                      {selectedGlassOption.id === glassOption.id && (
+                        <div className="h-3 w-3 bg-primary rounded-full"></div>
+                      )}
+                    </div>
+                  </div>
+                  <div className="mt-2 text-sm text-right">
+                    ${parseFloat(String(glassOption.price)) * 100}/sq ft
+                  </div>
                 </div>
               ))}
             </div>
           </div>
-        )}
 
-        {/* Order Summary */}
-        <OrderSummary
-          frames={selectedFrames}
-          mats={selectedMatboards}
-          glassOption={selectedGlassOption}
-          artworkWidth={parseFloat(artworkWidth)}
-          artworkHeight={parseFloat(artworkHeight)}
-          artworkLocation={artworkLocation}
-          primaryMatWidth={primaryMatWidth}
-          specialServices={selectedServices}
-          onCreateOrder={handleCreateOrder}
-          onSaveQuote={handleSaveQuote}
-          onCreateWholesaleOrder={handleCreateWholesaleOrder}
-          useMultipleMats={useMultipleMats}
-          useMultipleFrames={useMultipleFrames}
-          addToWholesaleOrder={addToWholesaleOrder}
-          setAddToWholesaleOrder={setAddToWholesaleOrder}
-          orderId={1} // Temporary ID for testing - will be replaced with actual order ID after creation
-          sizeSurcharge={getSizeSurcharge()}
-          useManualFrame={useManualFrame}
-          manualFrameName={manualFrameName}
-          manualFrameCost={manualFrameCost}
-          miscCharges={miscCharges}
-        />
-      </div>
+          {/* Manual Frame Entry Section */}
+          <ManualFrameEntry
+            onFrameAdd={(frame) => {
+              // Add manual frame to selected frames
+              const manualFrame = {
+                frame: {
+                  id: 'manual',
+                  name: frame.name,
+                  manufacturer: frame.manufacturer,
+                  material: frame.material,
+                  width: frame.width.toString(),
+                  depth: frame.depth.toString(),
+                  price: frame.price.toString(),
+                  catalogImage: '',
+                  edgeTexture: null,
+                  corner: null,
+                  color: frame.color
+                },
+                distance: 0,
+                position: selectedFrames.length + 1,
+                pricingMethod: 'chop'
+              };
+              setSelectedFrames([...selectedFrames, manualFrame]);
+            }}
+            useManualFrame={useManualFrame}
+            onToggleManualFrame={setUseManualFrame}
+            frameName={manualFrameName}
+            onFrameNameChange={setManualFrameName}
+            frameCost={manualFrameCost}
+            onFrameCostChange={setManualFrameCost}
+          />
+
+          {/* Special Services Section */}
+          <SpecialServices 
+            selectedServices={selectedServices}
+            onChange={setSelectedServices}
+          />
+
+          {/* Miscellaneous Charges Section */}
+          <MiscellaneousCharges
+            charges={miscCharges}
+            onChange={setMiscCharges}
+          />
+        </div>
+
+        {/* Right side - Visualizer and Order Summary */}
+        <div className="lg:col-span-4 space-y-4 lg:space-y-6">
+          {/* Unified Artwork Detection and Dual Preview */}
+          <div className="bg-white dark:bg-dark-cardBg rounded-lg shadow-md p-4 lg:p-6">
+            <ArtworkSizeDetector 
+              defaultWidth={parseFloat(artworkWidth)}
+              defaultHeight={parseFloat(artworkHeight)}
+              frames={selectedFrames}
+              mats={selectedMatboards}
+              useMultipleFrames={useMultipleFrames}
+              useMultipleMats={useMultipleMats}
+              onDimensionsDetected={(dimensions, imageDataUrl) => {
+                // Update dimensions in the parent component
+                setArtworkWidth(dimensions.width.toString());
+                setArtworkHeight(dimensions.height.toString());
+                setAspectRatio(dimensions.width / dimensions.height);
+                setArtworkImage(imageDataUrl);
+
+                console.log('Dimensions detected:', dimensions);
+                toast({
+                  title: "Artwork Dimensions Detected",
+                  description: `Width: ${dimensions.width}", Height: ${dimensions.height}"`,
+                });
+              }}
+              onFrameImageCaptured={setFrameDesignImage}
+            />
+          </div>
+
+          {/* Dual Preview System */}
+          <div className="bg-white dark:bg-dark-cardBg rounded-lg shadow-md p-4 lg:p-6">
+            <DualPreviewSystem
+              primaryDesign={currentFrameDesign}
+              comparisonDesign={savedFrameDesign}
+              onDesignSelect={(design: any) => {
+                if (design.id === currentFrameDesign?.id) {
+                  toast({
+                    title: "Design Selected",
+                    description: "Using current frame design configuration",
+                  });
+                } else {
+                  setCurrentFrameDesign(design);
+                  toast({
+                    title: "Design Updated",
+                    description: "Applied comparison design to current order",
+                  });
+                }
+              }}
+              onCompareToggle={(enabled: boolean) => {
+                if (enabled && !savedFrameDesign && currentFrameDesign) {
+                  setSavedFrameDesign(currentFrameDesign);
+                  toast({
+                    title: "Comparison Mode",
+                    description: "Current design saved for comparison",
+                  });
+                }
+              }}
+            />
+          </div>
+
+          {/* Frame Details */}
+          {selectedFrames.length > 0 && (
+            <div className="bg-white dark:bg-dark-cardBg rounded-lg shadow-md p-6">
+              <div className="mt-4">
+                <h3 className="text-lg font-medium mb-2">Selected Frame Details</h3>
+                {selectedFrames.map((frameItem, index) => (
+                  <div key={frameItem.frame.id + '-' + frameItem.position} className={index > 0 ? 'mt-4 pt-4 border-t border-light-border dark:border-dark-border' : ''}>
+                    <h4 className="text-md font-medium mb-2">
+                      {frameItem.position === 1 ? 'Inner Frame' : 'Outer Frame'} 
+                      {useMultipleFrames ? ` (Position ${frameItem.position})` : ''}
+                    </h4>
+                    <table className="w-full text-sm">
+                      <tbody>
+                        <tr>
+                          <td className="py-1 text-light-textSecondary dark:text-dark-textSecondary">Name:</td>
+                          <td className="py-1 font-medium">{frameItem.frame.name}</td>
+                        </tr>
+                        <tr>
+                          <td className="py-1 text-light-textSecondary dark:text-dark-textSecondary">Material:</td>
+                          <td className="py-1">{frameItem.frame.material}</td>
+                        </tr>
+                        <tr>
+                          <td className="py-1 text-light-textSecondary dark:text-dark-textSecondary">Width:</td>
+                          <td className="py-1">{frameItem.frame.width} inches</td>
+                        </tr>
+                        <tr>
+                          <td className="py-1 text-light-textSecondary dark:text-dark-textSecondary">Depth:</td>
+                          <td className="py-1">{frameItem.frame.depth} inches</td>
+                        </tr>
+                        <tr>
+                          <td className="py-1 text-light-textSecondary dark:text-dark-textSecondary">Wholesale Price:</td>
+                          <td className="py-1">${frameItem.frame.price} per foot</td>
+                        </tr>
+                        <tr>
+                          <td className="py-1 text-light-textSecondary dark:text-dark-textSecondary">Pricing Method:</td>
+                          <td className="py-1">{frameItem.pricingMethod}</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Order Summary */}
+          <OrderSummary
+            frames={selectedFrames}
+            mats={selectedMatboards}
+            glassOption={selectedGlassOption}
+            artworkWidth={parseFloat(artworkWidth)}
+            artworkHeight={parseFloat(artworkHeight)}
+            artworkLocation={artworkLocation}
+            primaryMatWidth={primaryMatWidth}
+            specialServices={selectedServices}
+            onCreateOrder={handleCreateOrder}
+            onSaveQuote={handleSaveQuote}
+            onCreateWholesaleOrder={handleCreateWholesaleOrder}
+            useMultipleMats={useMultipleMats}
+            useMultipleFrames={useMultipleFrames}
+            addToWholesaleOrder={addToWholesaleOrder}
+            setAddToWholesaleOrder={setAddToWholesaleOrder}
+            orderId={1} // Temporary ID for testing - will be replaced with actual order ID after creation
+            sizeSurcharge={getSizeSurcharge()}
+            useManualFrame={useManualFrame}
+            manualFrameName={manualFrameName}
+            manualFrameCost={manualFrameCost}
+            miscCharges={miscCharges}
+          />
+        </div>
       </div>
 
       {/* Intuitive Performance Monitor Overlay */}
