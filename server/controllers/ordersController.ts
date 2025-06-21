@@ -110,65 +110,22 @@ export async function getAllOrders(req: Request, res: Response) {
     
     // Always try local storage first for reliability
     const localOrders = await storage.getAllOrders();
-    console.log('Local orders found:', localOrders.length);
+    console.log('Local orders found:', localOrders?.length || 0);
     
-    if (localOrders && localOrders.length > 0) {
-      res.json({ 
-        success: true, 
-        orders: localOrders,
-        source: 'local',
-        count: localOrders.length
-      });
-      return;
-    }
-
-    // Try to fetch from Kanban app as fallback
-    const kanbanOrders = await fetchOrdersFromKanban();
-
-    if (kanbanOrders && kanbanOrders.length > 0) {
-      console.log(`Fetched ${kanbanOrders.length} orders from Kanban app`);
-
-      // Transform Kanban orders to our format
-      const transformedOrders = kanbanOrders.map((order: any) => ({
-        id: order.orderId || order.id,
-        customerId: order.customerId || null,
-        customerName: order.customerName,
-        customerPhone: order.customerPhone || '',
-        customerEmail: order.customerEmail || '',
-        artworkDescription: order.artworkTitle,
-        artworkWidth: order.frameSize ? parseFloat(order.frameSize.split('x')[0]) : order.artworkWidth,
-        artworkHeight: order.frameSize ? parseFloat(order.frameSize.split('x')[1]) : order.artworkHeight,
-        frameId: order.materials?.frameType || order.frameId,
-        matColorId: order.materials?.matColor || order.matColorId,
-        glassOptionId: order.materials?.glass || order.glassOptionId,
-        status: order.status || 'pending',
-        total: order.totalPrice || 0,
-        createdAt: order.createdAt,
-        quantity: order.quantity || 1
-      }));
-
-      res.json({ 
-        success: true, 
-        orders: transformedOrders,
-        source: 'kanban',
-        count: transformedOrders.length
-      });
-      return;
-    }
-
-    // Return empty array if no orders found
+    // Always return the orders array, even if empty
     res.json({ 
       success: true, 
-      orders: [],
+      orders: localOrders || [],
       source: 'local',
-      count: 0
+      count: localOrders?.length || 0
     });
 
   } catch (error: any) {
     console.error('Error fetching orders:', error);
     res.status(500).json({ 
       success: false, 
-      error: error.message || 'Failed to fetch orders' 
+      error: error.message || 'Failed to fetch orders',
+      orders: []
     });
   }
 }

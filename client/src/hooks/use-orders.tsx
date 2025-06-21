@@ -11,20 +11,28 @@ export function useOrders() {
     queryKey: ['/api/orders'],
     queryFn: async () => {
       console.log('Fetching orders from API...');
-      const res = await fetch('/api/orders');
-      if (!res.ok) {
-        throw new Error(`Failed to fetch orders: ${res.status} ${res.statusText}`);
+      try {
+        const res = await fetch('/api/orders');
+        if (!res.ok) {
+          throw new Error(`Failed to fetch orders: ${res.status} ${res.statusText}`);
+        }
+        const data = await res.json();
+        console.log('Orders API response:', data);
+        
+        // Always return the orders array, even if empty
+        const orders = data.orders || [];
+        console.log('Processed orders:', orders);
+        return orders;
+      } catch (error) {
+        console.error('Error fetching orders:', error);
+        // Return empty array on error to prevent UI crashes
+        return [];
       }
-      const data = await res.json();
-      console.log('Orders API response:', data);
-      
-      // Always return the orders array, even if empty
-      const orders = data.orders || [];
-      console.log('Processed orders:', orders);
-      return orders;
     },
-    staleTime: 10000, // 10 seconds
-    refetchInterval: 30000, // Refetch every 30 seconds
+    staleTime: 5000, // 5 seconds
+    refetchInterval: 15000, // Refetch every 15 seconds
+    retry: 3,
+    retryDelay: 1000,
   });
 
   // Get a specific order

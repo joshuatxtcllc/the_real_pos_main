@@ -875,13 +875,14 @@ where(eq(specialServices.id, id));
   async getAllOrders(): Promise<Order[]> {
     try {
       console.log('Fetching orders from database...');
-      const dbOrders = await db.select().from(orders);
+      const dbOrders = await db.select().from(orders).orderBy(desc(orders.createdAt));
 
       console.log(`Found ${dbOrders?.length || 0} orders in database`);
       return dbOrders || [];
     } catch (error) {
       console.error('Error in getAllOrders:', error);
-      throw error;
+      // Return empty array instead of throwing to prevent app crashes
+      return [];
     }
   }
 
@@ -893,10 +894,19 @@ where(eq(specialServices.id, id));
         order.artworkImage = 'placeholder-image.jpg';
       }
 
-      console.log('DatabaseStorage.createOrder - Inserting order with data:', order);
+      // Ensure required fields have defaults
+      const orderData = {
+        ...order,
+        createdAt: order.createdAt || new Date(),
+        status: order.status || 'pending',
+        productionStatus: order.productionStatus || 'order_processed',
+        lastStatusChange: order.lastStatusChange || new Date()
+      };
+
+      console.log('DatabaseStorage.createOrder - Inserting order with data:', orderData);
       const [newOrder] = await db
         .insert(orders)
-        .values([order])
+        .values(orderData)
         .returning();
       console.log('DatabaseStorage.createOrder - Order created successfully:', newOrder);
 
@@ -909,8 +919,6 @@ where(eq(specialServices.id, id));
         console.error('Error creating material orders:', materialError);
         // Don't fail the order creation if material orders fail
       }
-
-      // Email notification would be sent here if email service is configured
 
       return newOrder;
     } catch (error) {
