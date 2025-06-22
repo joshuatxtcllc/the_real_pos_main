@@ -38,16 +38,28 @@ export default function VoiceCallManager() {
   // Check if voice calling is configured
   const { data: configStatus, isLoading: configLoading } = useQuery({
     queryKey: ['/api/voice-calls/configuration'],
-    queryFn: () => apiRequest('/api/voice-calls/configuration')
+    queryFn: async () => {
+      const response = await fetch('/api/voice-calls/configuration');
+      if (!response.ok) {
+        throw new Error('Failed to fetch configuration');
+      }
+      return response.json();
+    }
   });
 
   // Make custom voice call
   const makeCustomCall = useMutation({
-    mutationFn: (data: { to: string; message: string; voice?: string }) =>
-      apiRequest('/api/voice-calls/make-call', {
+    mutationFn: async (data: { to: string; message: string; voice?: string }) => {
+      const response = await fetch('/api/voice-calls/make-call', {
         method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data)
-      }),
+      });
+      if (!response.ok) {
+        throw new Error('Failed to make call');
+      }
+      return response.json();
+    },
     onSuccess: (data) => {
       toast({
         title: "Call Initiated",
@@ -68,11 +80,17 @@ export default function VoiceCallManager() {
 
   // Order status call
   const orderStatusCall = useMutation({
-    mutationFn: (data: { to: string; orderNumber: string; status: string; estimatedCompletion?: string }) =>
-      apiRequest('/api/voice-calls/order-status', {
+    mutationFn: async (data: { to: string; orderNumber: string; status: string; estimatedCompletion?: string }) => {
+      const response = await fetch('/api/voice-calls/order-status', {
         method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data)
-      }),
+      });
+      if (!response.ok) {
+        throw new Error('Failed to make order status call');
+      }
+      return response.json();
+    },
     onSuccess: (data) => {
       toast({
         title: "Order Status Call Initiated",
@@ -91,11 +109,17 @@ export default function VoiceCallManager() {
 
   // Payment reminder call
   const paymentReminderCall = useMutation({
-    mutationFn: (data: { to: string; customerName: string; amount: number; orderNumber: string; dueDate?: string }) =>
-      apiRequest('/api/voice-calls/payment-reminder', {
+    mutationFn: async (data: { to: string; customerName: string; amount: number; orderNumber: string; dueDate?: string }) => {
+      const response = await fetch('/api/voice-calls/payment-reminder', {
         method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data)
-      }),
+      });
+      if (!response.ok) {
+        throw new Error('Failed to make payment reminder call');
+      }
+      return response.json();
+    },
     onSuccess: (data) => {
       toast({
         title: "Payment Reminder Call Initiated",
@@ -114,11 +138,17 @@ export default function VoiceCallManager() {
 
   // Pickup reminder call
   const pickupReminderCall = useMutation({
-    mutationFn: (data: { to: string; customerName: string; orderNumber: string; daysWaiting: number }) =>
-      apiRequest('/api/voice-calls/pickup-reminder', {
+    mutationFn: async (data: { to: string; customerName: string; orderNumber: string; daysWaiting: number }) => {
+      const response = await fetch('/api/voice-calls/pickup-reminder', {
         method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data)
-      }),
+      });
+      if (!response.ok) {
+        throw new Error('Failed to make pickup reminder call');
+      }
+      return response.json();
+    },
     onSuccess: (data) => {
       toast({
         title: "Pickup Reminder Call Initiated",
@@ -137,11 +167,17 @@ export default function VoiceCallManager() {
 
   // Order complete call
   const orderCompleteCall = useMutation({
-    mutationFn: (data: { to: string; customerName: string; orderNumber: string }) =>
-      apiRequest('/api/voice-calls/order-complete', {
+    mutationFn: async (data: { to: string; customerName: string; orderNumber: string }) => {
+      const response = await fetch('/api/voice-calls/order-complete', {
         method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data)
-      }),
+      });
+      if (!response.ok) {
+        throw new Error('Failed to make order complete call');
+      }
+      return response.json();
+    },
     onSuccess: (data) => {
       toast({
         title: "Order Complete Call Initiated",
