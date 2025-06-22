@@ -271,15 +271,17 @@ const Orders = () => {
   const findOrderGroupForOrder = (orderId: number) => {
     if (!orderGroups) return null;
 
+    // Extract orderGroups array from API response
+    const orderGroupArray = Array.isArray(orderGroups) ? orderGroups : ((orderGroups as any)?.orderGroups || []);
+    if (!Array.isArray(orderGroupArray)) return null;
+
     // Find the order group by matching orders with the given order ID
-    // We need to get orders that have the orderGroupId matching the group ID
     const targetOrders = ordersArray.filter((order: Order) => 
       order.id === orderId && order.orderGroupId !== null
     );
 
     if (targetOrders.length > 0) {
       const orderGroupId = targetOrders[0].orderGroupId;
-      const orderGroupArray = orderGroups as any[];
       return orderGroupArray.find(group => group.id === orderGroupId && group.status === 'pending');
     }
 
@@ -292,7 +294,7 @@ const Orders = () => {
   };
 
   // Extract orders array from API response and filter based on search term and status
-  const ordersArray = orders?.orders || orders || [];
+  const ordersArray = Array.isArray(orders) ? orders : ((orders as any)?.orders || []);
   
   console.log('Orders response:', orders);
   console.log('Orders array:', ordersArray);
