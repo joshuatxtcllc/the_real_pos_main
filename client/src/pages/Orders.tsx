@@ -551,9 +551,26 @@ const Orders = () => {
   const findOrderGroupForOrder = (orderId: number) => {
     if (!orderGroups) return null;
 
-    // Extract orderGroups array from API response
-    const orderGroupArray = Array.isArray(orderGroups) ? orderGroups : ((orderGroups as any)?.orderGroups || []);
-    if (!Array.isArray(orderGroupArray)) return null;
+    // Extract orderGroups array from API response with better error handling
+    let orderGroupArray: any[] = [];
+    
+    try {
+      if (Array.isArray(orderGroups)) {
+        orderGroupArray = orderGroups;
+      } else if (orderGroups && typeof orderGroups === 'object' && Array.isArray((orderGroups as any).orderGroups)) {
+        orderGroupArray = (orderGroups as any).orderGroups;
+      } else {
+        console.warn('orderGroups is not in expected format:', orderGroups);
+        return null;
+      }
+    } catch (error) {
+      console.error('Error processing orderGroups:', error);
+      return null;
+    }
+
+    if (!Array.isArray(orderGroupArray) || orderGroupArray.length === 0) {
+      return null;
+    }
 
     // Find the order group by matching orders with the given order ID
     const targetOrders = Array.isArray(ordersArray) ? ordersArray.filter((order: Order) => 
@@ -562,7 +579,12 @@ const Orders = () => {
 
     if (targetOrders.length > 0) {
       const orderGroupId = targetOrders[0].orderGroupId;
-      return orderGroupArray.find((group: any) => group.id === orderGroupId);
+      try {
+        return orderGroupArray.find((group: any) => group && group.id === orderGroupId);
+      } catch (error) {
+        console.error('Error finding order group:', error);
+        return null;
+      }
     }
 
     return null;
