@@ -75,7 +75,7 @@ const PaymentStatusBadge = ({ orderGroup, total }: { orderGroup: OrderGroup | nu
   const getPaymentBadge = () => {
     const totalAmount = parseFloat(orderGroup.total || '0');
     const paidAmount = parseFloat(orderGroup.cashAmount || '0');
-    
+
     if (orderGroup.status === 'paid') {
       return (
         <span className="px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
@@ -83,7 +83,7 @@ const PaymentStatusBadge = ({ orderGroup, total }: { orderGroup: OrderGroup | nu
         </span>
       );
     }
-    
+
     if (paidAmount > 0 && paidAmount < totalAmount) {
       const remaining = totalAmount - paidAmount;
       return (
@@ -94,7 +94,7 @@ const PaymentStatusBadge = ({ orderGroup, total }: { orderGroup: OrderGroup | nu
         </div>
       );
     }
-    
+
     return (
       <div className="flex items-center space-x-2">
         <span className="px-3 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800 border-2 border-red-300 animate-pulse">
@@ -243,7 +243,7 @@ const Orders = () => {
       if (!orderGroupId) {
         throw new Error('No invoice found for this order');
       }
-      
+
       const response = await fetch(`/api/invoices/${orderGroupId}`);
       if (!response.ok) {
         throw new Error('Failed to fetch invoice data');
@@ -304,7 +304,7 @@ const Orders = () => {
   // Generate invoice HTML for printing
   const generateInvoiceHTML = (invoiceData: any) => {
     const { orderGroup, orders, customer } = invoiceData;
-    
+
     return `
       <!DOCTYPE html>
       <html>
@@ -331,11 +331,11 @@ const Orders = () => {
           <p>Professional Custom Framing</p>
           <p>Phone: (555) 123-4567 | Email: info@jaysframes.com</p>
         </div>
-        
+
         <div class="header">
           <h2>INVOICE #${orderGroup.id}</h2>
         </div>
-        
+
         <div class="invoice-details">
           <div>
             <strong>Invoice Date:</strong> ${new Date(orderGroup.createdAt).toLocaleDateString()}<br>
@@ -401,7 +401,7 @@ const Orders = () => {
   // Generate work order HTML for printing
   const generateWorkOrderHTML = (order: any) => {
     const customer = customers?.find((c: Customer) => c.id === order.customerId);
-    
+
     return `
       <!DOCTYPE html>
       <html>
@@ -426,7 +426,7 @@ const Orders = () => {
           <h1>JAY'S FRAMES - WORK ORDER</h1>
           <h2>Order #${order.id}</h2>
         </div>
-        
+
         <div class="work-order-info">
           <div>
             <div class="section">
@@ -450,7 +450,7 @@ const Orders = () => {
               <div>${order.artworkLocation || 'Not specified'}</div>
             </div>
           </div>
-          
+
           <div>
             <div class="section">
               <div class="label">Frame:</div>
@@ -553,7 +553,7 @@ const Orders = () => {
 
     // Extract orderGroups array from API response with better error handling
     let orderGroupArray: any[] = [];
-    
+
     try {
       if (Array.isArray(orderGroups)) {
         orderGroupArray = orderGroups;
@@ -617,10 +617,10 @@ const Orders = () => {
 
   // Extract orders array from API response and filter based on search term and status
   const ordersArray = Array.isArray(orders) ? orders : ((orders as any)?.orders || []);
-  
+
   console.log('Orders response:', orders);
   console.log('Orders array:', ordersArray);
-  
+
   const filteredOrders = Array.isArray(ordersArray) ? ordersArray.filter((order: Order) => {
     const matchesSearch = 
       getCustomerName(order.customerId).toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -792,12 +792,24 @@ const Orders = () => {
                               >
                                 📊 Progress
                               </Button>
-                              <Button 
-                                variant="outline" 
-                                size="sm"
-                                onClick={() => pushToKanbanMutation.mutate(order.id)}
-                                disabled={pushToKanbanMutation.isPending}
-                              >
+                              {/* Push to Kanban Button */}
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              try {
+                                const orderGroup = findOrderGroupForOrder(order.id);
+                                if (orderGroup && orderGroup.status === 'pending') {
+                                console.log('Pushing order group to Kanban:', orderGroup);
+                                // TODO: Implement push to Kanban logic
+                              } else {
+                                console.log('Order group not found or not pending');
+                              }
+                              } catch (error) {
+                                console.error('Error in push to Kanban operation:', error);
+                              }
+                            }}
+                          >
                                 🚀 Push to Kanban
                               </Button>
                               <Button 
