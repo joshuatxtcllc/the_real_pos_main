@@ -70,6 +70,15 @@ const menuStructure = [
       { title: "Vendor Settings", path: "/vendor-settings" },
       { title: "System Health", path: "/system-health" },
     ]
+  },
+  {
+    title: "Communications",
+    path: "/voice-calls",
+    subItems: [
+      { title: "Voice Calls", path: "/voice-calls" },
+      { title: "Notifications", path: "/notifications" },
+      { title: "Customers", path: "/customers" },
+    ]
   }
 ];
 

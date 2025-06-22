@@ -29,6 +29,7 @@ import MatBorderDemo from "./pages/MatBorderDemo";
 import SystemHealthPage from "@/pages/SystemHealthPage";
 import NotificationCenterPage from '@/pages/NotificationCenterPage';
 import KanbanTestPage from './pages/KanbanTestPage';
+import VoiceCallManager from './pages/VoiceCallManager';
 import { TooltipProvider } from "@/components/ui/tooltip";
 import ChatWidget from "./components/ChatWidget";
 import FrameEducationPage from '@/pages/FrameEducationPage';
@@ -143,6 +144,7 @@ function App() {
                 <Route path="/larson-optimizer" component={LarsonOptimizerPage} />
                 <Route path="/notifications" component={NotificationCenterPage} />
                 <Route path="/kanban-test" component={KanbanTestPage} />
+                <Route path="/voice-calls" component={VoiceCallManager} />
                 <Route component={NotFound} />
               </Switch>
             </main>
