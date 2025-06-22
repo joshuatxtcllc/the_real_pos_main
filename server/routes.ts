@@ -28,6 +28,7 @@ import { Request, Response, NextFunction } from 'express';
 import { log } from './utils/logger';
 import testEmailRoutes from './routes/testEmailRoutes.js';
 import voiceCallRoutes from './routes/voiceCallRoutes.js';
+import twimlRoutes from './routes/twimlRoutes.js';
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Art Location routes
@@ -656,6 +657,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Voice call routes
   app.use('/api/voice-calls', voiceCallRoutes);
+  
+  // TwiML routes for dynamic voice content
+  app.use('/api/twiml', twimlRoutes);
 
 
   // Notification routes (Discord integration disabled)

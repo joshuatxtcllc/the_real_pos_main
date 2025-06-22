@@ -15,11 +15,17 @@ import {
  */
 export const makeCustomVoiceCall = async (req: Request, res: Response) => {
   try {
-    const { to, message, voice, language } = req.body;
+    const { to, message, voice, language, twiml, url, recordCall } = req.body;
 
-    if (!to || !message) {
+    if (!to) {
       return res.status(400).json({ 
-        error: 'Phone number and message are required' 
+        error: 'Phone number is required' 
+      });
+    }
+
+    if (!message && !twiml && !url) {
+      return res.status(400).json({ 
+        error: 'Must provide either message, twiml, or url parameter' 
       });
     }
 
@@ -33,7 +39,10 @@ export const makeCustomVoiceCall = async (req: Request, res: Response) => {
       to: formatPhoneNumber(to),
       message,
       voice,
-      language
+      language,
+      twiml,
+      url,
+      recordCall
     });
 
     if (result.success) {

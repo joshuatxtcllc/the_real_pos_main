@@ -10,9 +10,12 @@ if (process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN) {
 
 interface VoiceCallParams {
   to: string;
-  message: string;
-  voice?: 'man' | 'woman' | 'alice';
+  message?: string;
+  voice?: 'man' | 'woman' | 'alice' | 'Polly.Amy' | 'Polly.Brian' | 'Polly.Emma';
   language?: string;
+  twiml?: string;
+  url?: string;
+  recordCall?: boolean;
 }
 
 interface CallStatusParams {
@@ -31,8 +34,8 @@ interface PaymentReminderParams {
 }
 
 /**
- * Make a voice call using Twilio with TwiML
- * @param params Voice call parameters including to and message
+ * Make a voice call using Twilio with TwiML or URL
+ * @param params Voice call parameters including to, message, twiml, or url
  * @returns A promise that resolves when the call is initiated
  */
 export async function makeVoiceCall(params: VoiceCallParams): Promise<{success: boolean, sid?: string, error?: string}> {
@@ -53,6 +56,14 @@ export async function makeVoiceCall(params: VoiceCallParams): Promise<{success: 
     };
   }
 
+  // Validate that we have either message, twiml, or url
+  if (!params.message && !params.twiml && !params.url) {
+    return { 
+      success: false, 
+      error: 'Must provide either message, twiml, or url parameter.' 
+    };
+  }
+
   try {
     // Normalize phone number to E.164 format
     let phoneNumber = params.to;
@@ -61,18 +72,41 @@ export async function makeVoiceCall(params: VoiceCallParams): Promise<{success: 
       phoneNumber = '+1' + phoneNumber.replace(/\D/g, '');
     }
 
-    // Create TwiML with the message
-    const voice = params.voice || 'alice';
-    const language = params.language || 'en-US';
-    
-    const twiml = `<Response><Say voice="${voice}" language="${language}">${params.message}</Say></Response>`;
-
-    // Make the call
-    const call = await twilioClient.calls.create({
+    // Prepare call options
+    const callOptions: any = {
       to: phoneNumber,
       from: process.env.TWILIO_PHONE_NUMBER || '',
-      twiml: twiml,
-    });
+    };
+
+    // Add recording if requested
+    if (params.recordCall) {
+      callOptions.record = true;
+    }
+
+    // Use custom TwiML if provided
+    if (params.twiml) {
+      callOptions.twiml = params.twiml;
+    }
+    // Use URL if provided (takes precedence over message)
+    else if (params.url) {
+      callOptions.url = params.url;
+    }
+    // Create TwiML from message
+    else if (params.message) {
+      const voice = params.voice || 'alice';
+      const language = params.language || 'en-US';
+      
+      // Create proper TwiML XML
+      const twiml = `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+    <Say voice="${voice}" language="${language}">${escapeXml(params.message)}</Say>
+</Response>`;
+      
+      callOptions.twiml = twiml;
+    }
+
+    // Make the call
+    const call = await twilioClient.calls.create(callOptions);
     
     console.log(`Voice call initiated successfully to ${params.to}, SID: ${call.sid}`);
     return { 
@@ -86,6 +120,20 @@ export async function makeVoiceCall(params: VoiceCallParams): Promise<{success: 
       error: `Failed to make voice call: ${error.message}` 
     };
   }
+}
+
+/**
+ * Escape XML special characters for TwiML
+ * @param text Text to escape
+ * @returns Escaped text safe for XML
+ */
+function escapeXml(text: string): string {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;');
 }
 
 /**
