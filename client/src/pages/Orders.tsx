@@ -236,6 +236,286 @@ const Orders = () => {
     }
   };
 
+  // Print invoice mutation
+  const printInvoiceMutation = useMutation({
+    mutationFn: async (orderId: number) => {
+      const orderGroupId = findOrderGroupForOrder(orderId)?.id;
+      if (!orderGroupId) {
+        throw new Error('No invoice found for this order');
+      }
+      
+      const response = await fetch(`/api/invoices/${orderGroupId}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch invoice data');
+      }
+      return response.json();
+    },
+    onSuccess: (invoiceData) => {
+      // Open invoice in new window and print
+      const printWindow = window.open('', '_blank');
+      if (printWindow) {
+        printWindow.document.write(generateInvoiceHTML(invoiceData));
+        printWindow.document.close();
+        printWindow.focus();
+        setTimeout(() => {
+          printWindow.print();
+        }, 250);
+      }
+    },
+    onError: (error) => {
+      toast({
+        title: "Print Failed",
+        description: error.message || "Failed to print invoice",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Print work order mutation
+  const printWorkOrderMutation = useMutation({
+    mutationFn: async (orderId: number) => {
+      const response = await fetch(`/api/orders/${orderId}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch order data');
+      }
+      return response.json();
+    },
+    onSuccess: (orderData) => {
+      // Open work order in new window and print
+      const printWindow = window.open('', '_blank');
+      if (printWindow) {
+        printWindow.document.write(generateWorkOrderHTML(orderData.order));
+        printWindow.document.close();
+        printWindow.focus();
+        setTimeout(() => {
+          printWindow.print();
+        }, 250);
+      }
+    },
+    onError: (error) => {
+      toast({
+        title: "Print Failed",
+        description: error.message || "Failed to print work order",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Generate invoice HTML for printing
+  const generateInvoiceHTML = (invoiceData: any) => {
+    const { orderGroup, orders, customer } = invoiceData;
+    
+    return `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Invoice #${orderGroup.id}</title>
+        <style>
+          body { font-family: Arial, sans-serif; margin: 20px; line-height: 1.4; }
+          .header { text-align: center; border-bottom: 2px solid #000; padding-bottom: 15px; margin-bottom: 20px; }
+          .company-info { text-align: center; margin-bottom: 20px; }
+          .invoice-details { display: flex; justify-content: space-between; margin-bottom: 20px; }
+          .customer-info { margin-bottom: 20px; }
+          table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+          th, td { padding: 8px; text-align: left; border-bottom: 1px solid #ddd; }
+          th { background-color: #f5f5f5; font-weight: bold; }
+          .totals { text-align: right; margin-top: 20px; }
+          .total-line { display: flex; justify-content: space-between; padding: 5px 0; }
+          .total-final { font-weight: bold; font-size: 18px; border-top: 2px solid #000; padding-top: 10px; }
+          @media print { body { margin: 0; } }
+        </style>
+      </head>
+      <body>
+        <div class="company-info">
+          <h1>Jay's Frames</h1>
+          <p>Professional Custom Framing</p>
+          <p>Phone: (555) 123-4567 | Email: info@jaysframes.com</p>
+        </div>
+        
+        <div class="header">
+          <h2>INVOICE #${orderGroup.id}</h2>
+        </div>
+        
+        <div class="invoice-details">
+          <div>
+            <strong>Invoice Date:</strong> ${new Date(orderGroup.createdAt).toLocaleDateString()}<br>
+            <strong>Due Date:</strong> On Receipt<br>
+            <strong>Status:</strong> ${orderGroup.status || 'Pending'}
+          </div>
+          <div>
+            <strong>Customer:</strong><br>
+            ${customer.name}<br>
+            ${customer.email || ''}<br>
+            ${customer.phone || ''}
+          </div>
+        </div>
+
+        <table>
+          <thead>
+            <tr>
+              <th>Description</th>
+              <th>Qty</th>
+              <th>Price</th>
+              <th>Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${orders.map((order: any) => `
+              <tr>
+                <td>
+                  Custom Framing #${order.id}<br>
+                  <small>${order.artworkDescription || 'Custom Frame'}</small><br>
+                  <small>Size: ${order.artworkWidth}" × ${order.artworkHeight}"</small>
+                </td>
+                <td>${order.quantity}</td>
+                <td>$${parseFloat(order.subtotal).toFixed(2)}</td>
+                <td>$${parseFloat(order.total).toFixed(2)}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+
+        <div class="totals">
+          <div class="total-line">
+            <span>Subtotal:</span>
+            <span>$${parseFloat(orderGroup.subtotal).toFixed(2)}</span>
+          </div>
+          <div class="total-line">
+            <span>Tax:</span>
+            <span>$${parseFloat(orderGroup.tax).toFixed(2)}</span>
+          </div>
+          <div class="total-line total-final">
+            <span>Total:</span>
+            <span>$${parseFloat(orderGroup.total).toFixed(2)}</span>
+          </div>
+        </div>
+
+        <div style="margin-top: 40px; font-size: 12px; color: #666;">
+          <p>Thank you for your business! All custom framing sales are final.</p>
+        </div>
+      </body>
+      </html>
+    `;
+  };
+
+  // Generate work order HTML for printing
+  const generateWorkOrderHTML = (order: any) => {
+    const customer = customers?.find((c: Customer) => c.id === order.customerId);
+    
+    return `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Work Order #${order.id}</title>
+        <style>
+          body { font-family: Arial, sans-serif; margin: 20px; line-height: 1.4; }
+          .header { text-align: center; border-bottom: 2px solid #000; padding-bottom: 15px; margin-bottom: 20px; }
+          .work-order-info { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
+          .section { margin-bottom: 15px; }
+          .label { font-weight: bold; margin-bottom: 5px; }
+          .checklist { margin-top: 30px; }
+          .checklist-item { display: flex; align-items: center; margin-bottom: 10px; }
+          .checklist-item input { margin-right: 10px; }
+          .notes-section { margin-top: 30px; }
+          .notes-box { border: 1px solid #ccc; min-height: 100px; padding: 10px; margin-top: 10px; }
+          @media print { body { margin: 0; } }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <h1>JAY'S FRAMES - WORK ORDER</h1>
+          <h2>Order #${order.id}</h2>
+        </div>
+        
+        <div class="work-order-info">
+          <div>
+            <div class="section">
+              <div class="label">Customer:</div>
+              <div>${customer?.name || 'Unknown Customer'}</div>
+            </div>
+            <div class="section">
+              <div class="label">Artwork Dimensions:</div>
+              <div>${order.artworkWidth}" × ${order.artworkHeight}"</div>
+            </div>
+            <div class="section">
+              <div class="label">Artwork Description:</div>
+              <div>${order.artworkDescription || 'N/A'}</div>
+            </div>
+            <div class="section">
+              <div class="label">Artwork Type:</div>
+              <div>${order.artworkType || 'N/A'}</div>
+            </div>
+            <div class="section">
+              <div class="label">Artwork Location:</div>
+              <div>${order.artworkLocation || 'Not specified'}</div>
+            </div>
+          </div>
+          
+          <div>
+            <div class="section">
+              <div class="label">Frame:</div>
+              <div>${getFrameName(order.frameId)}</div>
+            </div>
+            <div class="section">
+              <div class="label">Mat:</div>
+              <div>${getMatColorName(order.matColorId)}</div>
+            </div>
+            <div class="section">
+              <div class="label">Glass:</div>
+              <div>${getGlassOptionName(order.glassOptionId)}</div>
+            </div>
+            <div class="section">
+              <div class="label">Due Date:</div>
+              <div>${order.dueDate ? new Date(order.dueDate).toLocaleDateString() : 'Not set'}</div>
+            </div>
+            <div class="section">
+              <div class="label">Order Total:</div>
+              <div style="font-size: 18px; font-weight: bold;">$${parseFloat(order.total).toFixed(2)}</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="checklist">
+          <div class="label">Production Checklist:</div>
+          <div class="checklist-item">
+            <input type="checkbox" id="frame-cut">
+            <label for="frame-cut">Frame cut and assembled</label>
+          </div>
+          <div class="checklist-item">
+            <input type="checkbox" id="mat-cut">
+            <label for="mat-cut">Mat cut and beveled</label>
+          </div>
+          <div class="checklist-item">
+            <input type="checkbox" id="glass-cut">
+            <label for="glass-cut">Glass cut and cleaned</label>
+          </div>
+          <div class="checklist-item">
+            <input type="checkbox" id="artwork-mounted">
+            <label for="artwork-mounted">Artwork mounted</label>
+          </div>
+          <div class="checklist-item">
+            <input type="checkbox" id="hardware">
+            <label for="hardware">Hardware attached</label>
+          </div>
+          <div class="checklist-item">
+            <input type="checkbox" id="inspection">
+            <label for="inspection">Final inspection</label>
+          </div>
+          <div class="checklist-item">
+            <input type="checkbox" id="ready">
+            <label for="ready">Ready for pickup</label>
+          </div>
+        </div>
+
+        <div class="notes-section">
+          <div class="label">Production Notes:</div>
+          <div class="notes-box"></div>
+        </div>
+      </body>
+      </html>
+    `;
+  };
+
   // Send customer update mutation
   const sendUpdateMutation = useMutation({
     mutationFn: async (orderId: number) => {
@@ -276,13 +556,13 @@ const Orders = () => {
     if (!Array.isArray(orderGroupArray)) return null;
 
     // Find the order group by matching orders with the given order ID
-    const targetOrders = ordersArray.filter((order: Order) => 
+    const targetOrders = Array.isArray(ordersArray) ? ordersArray.filter((order: Order) => 
       order.id === orderId && order.orderGroupId !== null
-    );
+    ) : [];
 
     if (targetOrders.length > 0) {
       const orderGroupId = targetOrders[0].orderGroupId;
-      return orderGroupArray.find(group => group.id === orderGroupId && group.status === 'pending');
+      return orderGroupArray.find((group: any) => group.id === orderGroupId);
     }
 
     return null;
@@ -476,6 +756,24 @@ const Orders = () => {
                                 onClick={() => setLocation(`/orders/${order.id}`)}
                               >
                                 <Eye className="h-4 w-4 mr-1" /> Details
+                              </Button>
+                            </div>
+                            <div className="flex gap-2">
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                onClick={() => printInvoiceMutation.mutate(order.id)}
+                                disabled={printInvoiceMutation.isPending}
+                              >
+                                🧾 Print Invoice
+                              </Button>
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                onClick={() => printWorkOrderMutation.mutate(order.id)}
+                                disabled={printWorkOrderMutation.isPending}
+                              >
+                                📋 Print Work Order
                               </Button>
                             </div>
                           </div>
