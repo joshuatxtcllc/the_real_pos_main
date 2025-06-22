@@ -432,3 +432,37 @@ export async function createOrderGroup(req: Request, res: Response) {
     });
   }
 }
+
+export async function pushOrderToKanban(req: Request, res: Response) {
+  try {
+    const { id } = req.params;
+    
+    // Get order from local database
+    const order = await storage.getOrder(parseInt(id));
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        error: 'Order not found'
+      });
+    }
+
+    // Force sync to Kanban
+    await syncOrderToKanban(order);
+    
+    res.json({
+      success: true,
+      message: `Order ${id} pushed to Kanban successfully`,
+      order: {
+        id: order.id,
+        status: order.productionStatus,
+        kanbanUrl: KANBAN_API_URL
+      }
+    });
+  } catch (error: any) {
+    console.error('Error pushing order to Kanban:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to push order to Kanban'
+    });
+  }
+}

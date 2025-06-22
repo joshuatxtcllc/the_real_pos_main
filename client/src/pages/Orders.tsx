@@ -595,6 +595,26 @@ const Orders = () => {
     setLocation(`/checkout/${orderGroupId}`);
   };
 
+  // Push order to Kanban mutation
+  const pushToKanbanMutation = useMutation({
+    mutationFn: async (orderId: number) => {
+      return apiRequest('POST', `/api/orders/${orderId}/push-to-kanban`, {});
+    },
+    onSuccess: () => {
+      toast({
+        title: "Pushed to Kanban",
+        description: "Order has been pushed to the production Kanban board",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Push Failed",
+        description: error.message || "Failed to push order to Kanban",
+        variant: "destructive",
+      });
+    },
+  });
+
   // Extract orders array from API response and filter based on search term and status
   const ordersArray = Array.isArray(orders) ? orders : ((orders as any)?.orders || []);
   
@@ -734,7 +754,7 @@ const Orders = () => {
                                   size="sm"
                                   className="bg-green-600 hover:bg-green-700"
                                   onClick={() => {
-                                    if (orderGroup) {
+                                    if (orderGroup && orderGroup.id) {
                                       handleProceedToCheckout(orderGroup.id);
                                     } else {
                                       // Create order group for checkout
@@ -771,6 +791,14 @@ const Orders = () => {
                                 onClick={() => setLocation(`/order-progress/${order.id}`)}
                               >
                                 📊 Progress
+                              </Button>
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                onClick={() => pushToKanbanMutation.mutate(order.id)}
+                                disabled={pushToKanbanMutation.isPending}
+                              >
+                                🚀 Push to Kanban
                               </Button>
                               <Button 
                                 variant="default" 

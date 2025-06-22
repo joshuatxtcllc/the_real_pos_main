@@ -424,11 +424,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/kanban/external/test-connection', async (req, res) => {
     try {
       const { externalKanbanService } = await import('./services/externalKanbanService');
-      
+
       // Check configuration
       const hasUrl = !!process.env.EXTERNAL_KANBAN_URL;
       const hasApiKey = !!process.env.EXTERNAL_KANBAN_API_KEY;
-      
+
       if (!hasUrl || !hasApiKey) {
         return res.status(400).json({
           success: false,
@@ -443,10 +443,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Test health check
       const health = await externalKanbanService.healthCheck();
-      
+
       // Test fetching orders
       const ordersResult = await externalKanbanService.fetchOrders();
-      
+
       res.json({
         success: health.connected,
         health,
@@ -671,12 +671,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/materials/purchase-order', createPurchaseOrder);
   app.get('/api/materials/types', getMaterialTypes);
   app.get('/api/materials/suppliers', getMaterialSuppliers);
-  
+
   // Enhanced materials ordering routes with failsafe mechanisms
   app.post('/api/materials/bulk-update', async (req, res) => {
     try {
       const { materialIds, status, adminApproval } = req.body;
-      
+
       if (!materialIds || !Array.isArray(materialIds) || materialIds.length === 0) {
         return res.status(400).json({ error: "Material IDs are required" });
       }
@@ -691,7 +691,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const alreadyOrdered = selectedMaterials.filter(m => 
         m.status === 'ordered' || m.status === 'arrived' || m.status === 'completed'
       );
-      
+
       if (alreadyOrdered.length > 0 && !adminApproval) {
         return res.status(409).json({
           error: 'DOUBLE_ORDER_PREVENTION',
@@ -699,7 +699,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           alreadyOrderedMaterials: alreadyOrdered
         });
       }
-      
+
       // Update materials status
       const updatedMaterials = [];
       for (const materialId of materialIds) {
@@ -763,7 +763,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/orders/:orderId/generate-materials', async (req, res) => {
     try {
       const orderId = parseInt(req.params.orderId);
-      
+
       if (!orderId || isNaN(orderId)) {
         return res.status(400).json({ error: 'Valid order ID is required' });
       }
@@ -778,7 +778,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log(`Found order:`, order);
 
       const materialOrders = await storage.createMaterialOrdersFromOrder(order);
-      
+
       console.log(`Generated ${materialOrders.length} material orders`);
 
       res.json({ 
