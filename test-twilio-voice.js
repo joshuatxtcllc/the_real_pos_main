@@ -1,7 +1,7 @@
 // Test Twilio Voice Call Integration
 // This script tests the voice call functionality with your configured Twilio credentials
 
-const fetch = require('node-fetch');
+import fetch from 'node-fetch';
 
 async function testTwilioVoiceCall() {
   console.log('Testing Twilio Voice Call Integration...\n');

@@ -119,6 +119,14 @@ The application uses a streamlined deployment process optimized for Replit:
 - WebSocket connections for real-time features require sticky sessions
 
 ## Changelog
+- June 22, 2025: Twilio Voice Calling System Integration
+  - Implemented comprehensive voice calling functionality using Node.js and Twilio
+  - Created voice call service with support for custom calls, order status updates, payment reminders, pickup notifications, and order completion calls
+  - Built voice call controller with REST API endpoints for all call types
+  - Added Voice Call Manager frontend interface with tabbed navigation for different call types
+  - Integrated voice calling into main application navigation under Communications menu
+  - Voice calling system ready for use once Twilio credentials are configured
+  - Created test script to verify Twilio integration functionality
 - June 18, 2025: Production deployment completed
   - Application successfully deployed and production-ready
   - All core systems operational: order management, customer tracking, Kanban integration
