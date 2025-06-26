@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { orderNotificationService, OrderEvent } from '../services/orderNotificationService';
+import { simpleOrderNotificationService, OrderEvent } from '../services/simpleOrderNotificationService';
 
 export class OrderNotificationController {
   
@@ -50,7 +50,7 @@ export class OrderNotificationController {
         metadata
       };
 
-      await orderNotificationService.handleOrderEvent(orderEvent);
+      await simpleOrderNotificationService.handleOrderEvent(orderEvent);
 
       res.json({
         success: true,
