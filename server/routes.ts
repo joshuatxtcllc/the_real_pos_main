@@ -654,10 +654,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use('/api/larson-optimizer', larsonOrderOptimizerRoutes);
     // Test email routes
   app.use('/api/test-email', testEmailRoutes);
-  
+
   // Voice call routes
   app.use('/api/voice-calls', voiceCallRoutes);
-  
+
   // TwiML routes for dynamic voice content
   app.use('/api/twiml', twimlRoutes);
 
@@ -830,6 +830,77 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error('Error generating materials for all orders:', error);
       res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Create payment intent
+  app.post('/api/create-payment-intent', async (req: Request, res: Response) => {
+    try {
+      const { orderGroupId, amount } = req.body;
+
+      // Validate required fields
+      if (!orderGroupId || !amount) {
+        return res.status(400).json({
+          success: false,
+          message: 'Order group ID and amount are required'
+        });
+      }
+
+      const amountInCents = Math.round(Number(amount) * 100);
+      if (isNaN(amountInCents) || amountInCents <= 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'Valid amount is required'
+        });
+      }
+
+      if (!process.env.STRIPE_SECRET_KEY) {
+        return res.status(500).json({
+          success: false,
+          message: 'Stripe is not configured. Please contact support.'
+        });
+      }
+
+      const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+
+      // Verify order group exists
+      // const [orderGroup] = await db
+      //   .select()
+      //   .from(orderGroups)
+      //   .where(eq(orderGroups.id, orderGroupId));
+
+      // if (!orderGroup) {
+      //   return res.status(404).json({
+      //     success: false,
+      //     message: 'Order group not found'
+      ////   });
+      // }
+
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount: amountInCents,
+        currency: 'usd',
+        automatic_payment_methods: {
+          enabled: true,
+        },
+        metadata: {
+          orderGroupId: orderGroupId.toString(),
+          businessName: "Jay's Frames"
+        },
+        description: `Order #${orderGroupId} - Jay's Frames`
+      });
+
+      res.json({
+        success: true,
+        clientSecret: paymentIntent.client_secret,
+        amount: amountInCents
+      });
+    } catch (error) {
+      console.error('Error creating payment intent:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to create payment intent',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
     }
   });
 

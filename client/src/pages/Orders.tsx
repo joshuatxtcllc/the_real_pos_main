@@ -549,45 +549,30 @@ const Orders = () => {
 
   // Check if any order has orderGroupId that matches
   const findOrderGroupForOrder = (orderId: number) => {
-    if (!orderGroups) return null;
+    if (!orderGroups || !ordersArray) return null;
 
-    // Extract orderGroups array from API response with better error handling
+    // Handle orderGroups data structure more robustly
     let orderGroupArray: any[] = [];
 
-    try {
-      if (Array.isArray(orderGroups)) {
-        orderGroupArray = orderGroups;
-      } else if (orderGroups && typeof orderGroups === 'object' && Array.isArray((orderGroups as any).orderGroups)) {
-        orderGroupArray = (orderGroups as any).orderGroups;
-      } else {
-        console.warn('orderGroups is not in expected format:', orderGroups);
-        return null;
-      }
-    } catch (error) {
-      console.error('Error processing orderGroups:', error);
+    if (Array.isArray(orderGroups)) {
+      orderGroupArray = orderGroups;
+    } else if (orderGroups && typeof orderGroups === 'object') {
+      // Handle nested structure like { orderGroups: [...] }
+      orderGroupArray = (orderGroups as any).orderGroups || [];
+    }
+
+    if (!Array.isArray(orderGroupArray)) {
+      console.warn('Could not extract order groups array:', orderGroups);
       return null;
     }
 
-    if (!Array.isArray(orderGroupArray) || orderGroupArray.length === 0) {
+    // Find order and its group
+    const targetOrder = ordersArray.find((order: Order) => order.id === orderId);
+    if (!targetOrder || !targetOrder.orderGroupId) {
       return null;
     }
 
-    // Find the order group by matching orders with the given order ID
-    const targetOrders = Array.isArray(ordersArray) ? ordersArray.filter((order: Order) => 
-      order.id === orderId && order.orderGroupId !== null
-    ) : [];
-
-    if (targetOrders.length > 0) {
-      const orderGroupId = targetOrders[0].orderGroupId;
-      try {
-        return orderGroupArray.find((group: any) => group && group.id === orderGroupId);
-      } catch (error) {
-        console.error('Error finding order group:', error);
-        return null;
-      }
-    }
-
-    return null;
+    return orderGroupArray.find((group: any) => group && group.id === targetOrder.orderGroupId) || null;
   };
 
   // Handle proceeding to checkout for an order

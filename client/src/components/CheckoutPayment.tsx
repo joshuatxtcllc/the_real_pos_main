@@ -345,10 +345,10 @@ const CheckoutPayment: React.FC<CheckoutPaymentProps> = ({
 
   // Initialize payment intent when payment method is selected
   useEffect(() => {
-    if (paymentMethod === 'card' && orderGroup && !clientSecret && !paymentComplete) {
+    if (paymentMethod === 'card' && orderGroup && !clientSecret && !paymentComplete && !createPaymentIntentMutation.isPending) {
       createPaymentIntentMutation.mutate();
     }
-  }, [paymentMethod, orderGroup, clientSecret, paymentComplete]);
+  }, [paymentMethod, orderGroup, clientSecret, paymentComplete, createPaymentIntentMutation.isPending]);
 
   const handleCardPaymentSuccess = () => {
     processPaymentMutation.mutate({ method: 'card' });
@@ -594,7 +594,8 @@ const CheckoutPayment: React.FC<CheckoutPaymentProps> = ({
             <>
               {!stripePromise && (
                 <div className="p-4 text-amber-600 bg-amber-50 rounded-md mb-4">
-                  <p>Stripe payment is not configured. Please set VITE_STRIPE_PUBLIC_KEY.</p>
+                  <p className="font-medium">Credit Card Payment Unavailable</p>
+                  <p className="text-sm">Stripe is not configured. Please use cash, check, or other payment methods.</p>
                 </div>
               )}
 
@@ -628,6 +629,50 @@ const CheckoutPayment: React.FC<CheckoutPaymentProps> = ({
               total={Number(orderGroup.total)} 
               onSubmit={handleCheckPayment} 
             />
+          )}
+
+          {paymentMethod === 'partial' && (
+            <div className="space-y-4">
+              <h4 className="font-medium">Partial Payment</h4>
+              <div className="p-4 bg-muted rounded-md">
+                <div className="flex justify-between font-semibold">
+                  <span>Total Due:</span>
+                  <span>{formatCurrency(Number(orderGroup.total))}</span>
+                </div>
+                <p className="text-sm text-muted-foreground mt-2">
+                  This will mark the order as partially paid. Remaining balance can be collected later.
+                </p>
+              </div>
+              <Button 
+                onClick={() => processPaymentMutation.mutate({ method: 'partial' })}
+                disabled={processPaymentMutation.isPending}
+                className="w-full"
+              >
+                {processPaymentMutation.isPending ? 'Processing...' : 'Mark as Partial Payment'}
+              </Button>
+            </div>
+          )}
+
+          {paymentMethod === 'deferred' && (
+            <div className="space-y-4">
+              <h4 className="font-medium">Pay Later</h4>
+              <div className="p-4 bg-muted rounded-md">
+                <div className="flex justify-between font-semibold">
+                  <span>Total Due:</span>
+                  <span>{formatCurrency(Number(orderGroup.total))}</span>
+                </div>
+                <p className="text-sm text-muted-foreground mt-2">
+                  This will save the order and allow payment to be collected later.
+                </p>
+              </div>
+              <Button 
+                onClick={() => processPaymentMutation.mutate({ method: 'deferred' })}
+                disabled={processPaymentMutation.isPending}
+                className="w-full"
+              >
+                {processPaymentMutation.isPending ? 'Processing...' : 'Save Order for Later Payment'}
+              </Button>
+            </div>
           )}
         </div>
       </CardContent>

@@ -168,7 +168,7 @@ export async function getOrderById(req: Request, res: Response) {
   try {
     const { id } = req.params;
     const order = await storage.getOrder(parseInt(id));
-    
+
     if (!order) {
       return res.status(404).json({ 
         success: false, 
@@ -224,10 +224,10 @@ export async function createOrder(req: Request, res: Response) {
     console.log('Processing order creation...');
     const order = await storage.createOrder(orderData);
     console.log('Order created successfully:', order);
-    
+
     // Sync new order to Kanban app
     await syncOrderToKanban(order);
-    
+
     res.status(201).json({ 
       success: true, 
       order,
@@ -248,14 +248,14 @@ export async function updateOrder(req: Request, res: Response) {
   try {
     const { id } = req.params;
     const updateData = req.body;
-    
+
     const order = await storage.updateOrder(parseInt(id), updateData);
-    
+
     // If production status changed, sync to Kanban
     if (updateData.productionStatus) {
       await updateKanbanOrderStatus(parseInt(id), updateData.productionStatus);
     }
-    
+
     res.json({ 
       success: true, 
       order,
@@ -275,7 +275,7 @@ export async function updateOrderStatus(req: Request, res: Response) {
   try {
     const { id } = req.params;
     const { status, notes } = req.body;
-    
+
     if (!status) {
       return res.status(400).json({ 
         success: false, 
@@ -288,10 +288,10 @@ export async function updateOrderStatus(req: Request, res: Response) {
       productionStatus: status,
       lastStatusChange: new Date()
     });
-    
+
     // Sync status update to Kanban app
     await updateKanbanOrderStatus(parseInt(id), status, notes);
-    
+
     res.json({ 
       success: true, 
       order,
@@ -309,9 +309,9 @@ export async function updateOrderStatus(req: Request, res: Response) {
 export async function deleteOrder(req: Request, res: Response) {
   try {
     const { id } = req.params;
-    
+
     await storage.deleteOrder(parseInt(id));
-    
+
     res.json({ 
       success: true, 
       message: 'Order deleted successfully' 
@@ -329,7 +329,7 @@ export async function deleteOrder(req: Request, res: Response) {
 export async function testKanbanSync(req: Request, res: Response) {
   try {
     const { orderId } = req.params;
-    
+
     if (!KANBAN_API_KEY || !KANBAN_API_URL) {
       return res.json({
         success: false,
@@ -353,7 +353,7 @@ export async function testKanbanSync(req: Request, res: Response) {
 
     // Test sync to Kanban
     await syncOrderToKanban(order);
-    
+
     res.json({
       success: true,
       message: `Order ${orderId} synced to Kanban successfully`,
@@ -398,7 +398,7 @@ export async function getKanbanStatus(req: Request, res: Response) {
 export async function getAllOrderGroups(req: Request, res: Response) {
   try {
     const orderGroups = await storage.getAllOrderGroups();
-    
+
     res.json({ 
       success: true, 
       orderGroups,
@@ -416,9 +416,9 @@ export async function getAllOrderGroups(req: Request, res: Response) {
 export async function createOrderGroup(req: Request, res: Response) {
   try {
     const orderGroupData = req.body;
-    
+
     const orderGroup = await storage.createOrderGroup(orderGroupData);
-    
+
     res.status(201).json({ 
       success: true, 
       orderGroup,
@@ -436,7 +436,7 @@ export async function createOrderGroup(req: Request, res: Response) {
 export async function pushOrderToKanban(req: Request, res: Response) {
   try {
     const { id } = req.params;
-    
+
     // Get order from local database
     const order = await storage.getOrder(parseInt(id));
     if (!order) {
@@ -448,7 +448,7 @@ export async function pushOrderToKanban(req: Request, res: Response) {
 
     // Force sync to Kanban
     await syncOrderToKanban(order);
-    
+
     res.json({
       success: true,
       message: `Order ${id} pushed to Kanban successfully`,
@@ -463,6 +463,91 @@ export async function pushOrderToKanban(req: Request, res: Response) {
     res.status(500).json({
       success: false,
       error: error.message || 'Failed to push order to Kanban'
+    });
+  }
+}
+
+import { db, orderGroups, orders } from '../db/schema';
+import { eq } from 'drizzle-orm';
+
+export async function processOrderGroupPayment(req: Request, res: Response) {
+  try {
+    const orderGroupId = parseInt(req.params.orderGroupId);
+    const { paymentMethod, details = {} } = req.body;
+
+    if (!orderGroupId || isNaN(orderGroupId)) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Valid order group ID is required' 
+      });
+    }
+
+    // Validate payment method
+    const validPaymentMethods = ['card', 'cash', 'check', 'partial', 'deferred'];
+    if (!paymentMethod || !validPaymentMethods.includes(paymentMethod)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Valid payment method is required'
+      });
+    }
+
+    // Get the order group
+    const [orderGroup] = await db
+      .select()
+      .from(orderGroups)
+      .where(eq(orderGroups.id, orderGroupId));
+
+    if (!orderGroup) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'Order group not found' 
+      });
+    }
+
+    // Set payment status based on method
+    let paymentStatus = 'completed';
+    if (paymentMethod === 'partial') {
+      paymentStatus = 'partial';
+    } else if (paymentMethod === 'deferred') {
+      paymentStatus = 'pending';
+    }
+
+    // Update order group with payment information
+    const [updatedOrderGroup] = await db
+      .update(orderGroups)
+      .set({
+        paymentMethod,
+        paymentStatus,
+        paidAt: paymentMethod !== 'deferred' ? new Date() : null,
+        paymentDetails: JSON.stringify(details)
+      })
+      .where(eq(orderGroups.id, orderGroupId))
+      .returning();
+
+    // Also update related orders status to 'paid' if fully paid
+    if (paymentStatus === 'completed') {
+      await db
+        .update(orders)
+        .set({ 
+          status: 'paid',
+          updatedAt: new Date()
+        })
+        .where(eq(orders.orderGroupId, orderGroupId));
+    }
+
+    res.json({
+      success: true,
+      message: 'Payment processed successfully',
+      orderGroup: updatedOrderGroup,
+      paymentMethod,
+      paymentStatus
+    });
+  } catch (error) {
+    console.error('Error processing payment:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Failed to process payment',
+      error: error instanceof Error ? error.message : 'Unknown error'
     });
   }
 }
