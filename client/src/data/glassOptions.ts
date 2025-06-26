@@ -24,6 +24,24 @@ export const glassOptionCatalog: GlassOption[] = [
     name: 'Conservation Glass',
     description: 'Premium UV protection',
     price: '0.25' // per square inch (wholesale)
+  },
+  {
+    id: 'regular-acrylic',
+    name: 'Regular Acrylic',
+    description: 'Standard acrylic glazing',
+    price: '0.12' // per square inch (wholesale)
+  },
+  {
+    id: 'conservation-clear-acrylic',
+    name: 'Conservation Clear Acrylic',
+    description: 'UV filtering acrylic glazing',
+    price: '0.18' // per square inch (wholesale)
+  },
+  {
+    id: 'optium-acrylic',
+    name: 'Optium Acrylic',
+    description: 'Premium non-glare acrylic',
+    price: '0.35' // per square inch (wholesale)
   }
 ];
 
