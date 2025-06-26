@@ -684,22 +684,14 @@ const PosSystem = () => {
     }
   };
 
-  // Handle dimension changes
+  // Handle dimension changes - independent width and height
   const handleDimensionChange = (dimension: 'width' | 'height', value: number) => {
     if (value <= 0) return;
 
     if (dimension === 'width') {
       setArtworkWidth(value);
-      // Prevent infinite loop by checking if aspectRatio is valid
-      if (aspectRatio > 0 && aspectRatio !== Infinity) {
-        setArtworkHeight(parseFloat((value / aspectRatio).toFixed(2)));
-      }
     } else {
       setArtworkHeight(value);
-      // Prevent infinite loop by checking if aspectRatio is valid
-      if (aspectRatio > 0 && aspectRatio !== Infinity) {
-        setArtworkWidth(parseFloat((value * aspectRatio).toFixed(2)));
-      }
     }
   };
 
