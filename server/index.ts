@@ -16,10 +16,23 @@ const PORT = parseInt(process.env.PORT || process.env.REPL_PORT || '5000', 10);
 
 // Notification service disabled for deployment stability
 
-// CORS setup for API requests
+// CORS configuration
 app.use(cors({
-  origin: process.env.NODE_ENV === 'production' ? true : ['http://localhost:5173', 'http://localhost:5000'],
-  credentials: true
+  origin: [
+    'http://localhost:5173',
+    'http://localhost:3000',
+    'http://localhost:5000',
+    'https://localhost:5173',
+    process.env.REPL_URL || '',
+    process.env.FRONTEND_URL || '',
+    // Allow Replit deployment domains
+    /https:\/\/.*\.replit\.dev$/,
+    /https:\/\/.*\.replit\.app$/,
+    /https:\/\/.*\.repl\.co$/,
+  ],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
 }));
 
 // JSON parsing middleware with increased limits for image uploads
