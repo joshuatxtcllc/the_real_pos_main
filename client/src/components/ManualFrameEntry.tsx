@@ -13,6 +13,9 @@ interface ManualFrameEntryProps {
   onFrameNameChange?: (name: string) => void;
   frameCost?: number;
   onFrameCostChange?: (cost: number) => void;
+  selectedFrames?: any[];
+  onFrameRemove?: (frameId: string) => void;
+  onFrameEdit?: (frameId: string, updatedFrame: any) => void;
 }
 
 export default function ManualFrameEntry({ 
@@ -22,7 +25,10 @@ export default function ManualFrameEntry({
   frameName,
   onFrameNameChange,
   frameCost,
-  onFrameCostChange
+  onFrameCostChange,
+  selectedFrames = [],
+  onFrameRemove,
+  onFrameEdit
 }: ManualFrameEntryProps) {
   const [frameData, setFrameData] = useState({
     name: '',
@@ -116,9 +122,54 @@ export default function ManualFrameEntry({
   return (
     <Card className="w-full max-w-md">
       <CardHeader>
-        <CardTitle>Add Frame/Moulding</CardTitle>
+        <CardTitle>Frame Management</CardTitle>
       </CardHeader>
       <CardContent>
+        {/* Selected Frames Section */}
+        {selectedFrames.length > 0 && (
+          <div className="mb-4 p-3 border rounded-md">
+            <h4 className="font-medium mb-2">Selected Frames</h4>
+            {selectedFrames.map((frameItem, index) => (
+              <div key={frameItem.frame.id + '-' + frameItem.position} className="flex items-center justify-between p-2 border rounded mb-2">
+                <div className="flex-1">
+                  <p className="font-medium text-sm">{frameItem.frame.name}</p>
+                  <p className="text-xs text-muted-foreground">${frameItem.frame.price}/ft</p>
+                </div>
+                <div className="flex space-x-1">
+                  {frameItem.frame.id.startsWith('manual') && onFrameEdit && (
+                    <Button 
+                      size="sm" 
+                      variant="outline"
+                      onClick={() => {
+                        // Set frame data for editing
+                        setFrameData({
+                          name: frameItem.frame.name,
+                          manufacturer: frameItem.frame.manufacturer,
+                          material: frameItem.frame.material,
+                          width: frameItem.frame.width,
+                          depth: frameItem.frame.depth,
+                          price: frameItem.frame.price,
+                          color: frameItem.frame.color || '#8B4513'
+                        });
+                      }}
+                    >
+                      Edit
+                    </Button>
+                  )}
+                  {onFrameRemove && (
+                    <Button 
+                      size="sm" 
+                      variant="destructive"
+                      onClick={() => onFrameRemove(frameItem.frame.id)}
+                    >
+                      ×
+                    </Button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
         <Tabs defaultValue="frame" className="w-full">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="frame">Custom Frame</TabsTrigger>

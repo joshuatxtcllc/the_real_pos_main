@@ -96,13 +96,13 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({
 }) => {
   // Local state for wholesale order checkbox if not provided through props
   const [localAddToWholesaleOrder, setLocalAddToWholesaleOrder] = useState(false);
-  
+
   // Discount state
   const [discountPercentage, setDiscountPercentage] = useState<number>(initialDiscountPercentage);
-  
+
   // Quantity state
   const [quantity, setQuantity] = useState<number>(initialQuantity);
-  
+
   // Handle discount change
   const handleDiscountChange = (newDiscountPercentage: number) => {
     setDiscountPercentage(newDiscountPercentage);
@@ -167,11 +167,11 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({
 
   // Calculate final subtotal with overhead and quantity
   const subtotal = (preOverheadSubtotal + overheadCharge) * quantity;
-  
+
   // Apply discount
   const discountAmount = subtotal * (discountPercentage / 100);
   const discountedSubtotal = subtotal - discountAmount;
-  
+
   const taxRate = 0.08; // 8% tax rate
   const tax = discountedSubtotal * taxRate;
   const total = discountedSubtotal + tax;
@@ -353,7 +353,7 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({
             <span>Subtotal</span>
             <span>${subtotal.toFixed(2)}</span>
           </div>
-          
+
           {/* Discount Input */}
           <div className="flex justify-between items-center mt-2">
             <div className="flex items-center space-x-2">
@@ -372,14 +372,14 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({
             </div>
             <span className="text-sm text-red-600">-${discountAmount.toFixed(2)}</span>
           </div>
-          
+
           {discountPercentage > 0 && (
             <div className="flex justify-between font-medium text-green-600">
               <span>Discounted Subtotal</span>
               <span>${discountedSubtotal.toFixed(2)}</span>
             </div>
           )}
-          
+
           <div className="flex justify-between text-sm text-light-textSecondary dark:text-dark-textSecondary">
             <span>Tax (8%)</span>
             <span>${tax.toFixed(2)}</span>
@@ -494,7 +494,7 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({
                 <span>{glassOption.name}</span>
                 <span>{artworkWidth + 2 * primaryMatWidth}" × {artworkHeight + 2 * primaryMatWidth}"</span>
               </li>
-            )}
+            ))}
 
             {/* Mat requirements */}
             {mats.map(matItem => (

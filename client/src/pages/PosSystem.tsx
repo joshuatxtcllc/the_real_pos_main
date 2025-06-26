@@ -516,11 +516,12 @@ const PosSystem = () => {
     
     // Handle "No Mat" selection
     if (id === 'none' || id === 'no-mat') {
-      const existingMatIndex = selectedMatboards.findIndex(m => m.position === activeMatPosition);
-      if (existingMatIndex >= 0) {
-        // Remove the mat at this position
-        const updatedMats = selectedMatboards.filter(m => m.position !== activeMatPosition);
-        setSelectedMatboards(updatedMats);
+      const updatedMats = selectedMatboards.filter(m => m.position !== activeMatPosition);
+      setSelectedMatboards(updatedMats);
+      
+      // If removing the primary mat, reset primary mat width
+      if (activeMatPosition === 1) {
+        setPrimaryMatWidth(0);
       }
       return;
     }
@@ -1096,6 +1097,28 @@ const PosSystem = () => {
     }
   };
 
+  // Handle frame removal
+  const handleRemoveFrame = (frameId: string) => {
+    setSelectedFrames(selectedFrames.filter(f => f.frame.id !== frameId));
+  };
+
+  // Handle frame editing
+  const handleEditFrame = (frameId: string, updatedFrameData: any) => {
+    const updatedFrames = selectedFrames.map(frameItem => {
+      if (frameItem.frame.id === frameId) {
+        return {
+          ...frameItem,
+          frame: {
+            ...frameItem.frame,
+            ...updatedFrameData
+          }
+        };
+      }
+      return frameItem;
+    });
+    setSelectedFrames(updatedFrames);
+  };
+
   return (
     <div className="w-full max-w-none">
       <div className="grid grid-cols-1 lg:grid-cols-7 gap-4 lg:gap-6">
@@ -1636,10 +1659,24 @@ const PosSystem = () => {
                   <h3 className="font-medium mb-2">Selected Mats</h3>
                   {selectedMatboards.map((matItem, index) => (
                     <div key={matItem.matboard.id + '-' + matItem.position} className={index > 0 ? 'mt-3 pt-3 border-t border-light-border dark:border-dark-border' : ''}>
-                      <h4 className="text-xs font-medium mb-1">
-                        {matItem.position === 1 ? 'Top' : matItem.position === 2 ? 'Middle' : 'Bottom'} Mat
-                        {useMultipleMats ? ` (Position ${matItem.position})` : ''}
-                      </h4>
+                      <div className="flex items-center justify-between mb-1">
+                        <h4 className="text-xs font-medium">
+                          {matItem.position === 1 ? 'Top' : matItem.position === 2 ? 'Middle' : 'Bottom'} Mat
+                          {useMultipleMats ? ` (Position ${matItem.position})` : ''}
+                        </h4>
+                        <button
+                          className="text-red-500 hover:text-red-700 text-xs font-medium"
+                          onClick={() => {
+                            const updatedMats = selectedMatboards.filter(m => m.position !== matItem.position);
+                            setSelectedMatboards(updatedMats);
+                            if (matItem.position === 1) {
+                              setPrimaryMatWidth(0);
+                            }
+                          }}
+                        >
+                          Remove
+                        </button>
+                      </div>
                       <div className="flex items-center gap-3">
                         <div 
                           className="w-10 h-10 rounded-md inline-block border border-gray-300 shadow-sm" 
@@ -1661,6 +1698,14 @@ const PosSystem = () => {
                       </div>
                     </div>
                   ))}
+                </div>
+              )}
+              
+              {/* No mats selected */}
+              {selectedMatboards.length === 0 && (
+                <div className="mt-4 p-3 border border-dashed border-gray-300 rounded-md text-center">
+                  <p className="text-sm text-gray-500">No mats selected</p>
+                  <p className="text-xs text-gray-400">Click on a mat color above to add matting</p>
                 </div>
               )}
             </div>
@@ -1727,7 +1772,7 @@ const PosSystem = () => {
             // Add manual frame to selected frames
             const manualFrame = {
               frame: {
-                id: 'manual',
+                id: `manual-${Date.now()}`,
                 name: frame.name,
                 manufacturer: frame.manufacturer,
                 material: frame.material,
@@ -1751,6 +1796,9 @@ const PosSystem = () => {
           onFrameNameChange={setManualFrameName}
           frameCost={manualFrameCost}
           onFrameCostChange={setManualFrameCost}
+          selectedFrames={selectedFrames}
+          onFrameRemove={handleRemoveFrame}
+          onFrameEdit={handleEditFrame}
         />
 
         {/* Special Services Section */}
