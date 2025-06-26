@@ -203,20 +203,20 @@ export default function Header({ darkMode, toggleTheme }: HeaderProps) {
 
           {/* Mobile menu button */}
           <Button 
-            className="md:hidden text-foreground hover:text-foreground" 
+            className="md:hidden text-foreground hover:text-foreground hover:bg-accent" 
             variant="ghost" 
             size="icon" 
             onClick={toggleMobileMenu}
             aria-label="Toggle menu"
           >
-            {isMobileMenuOpen ? <X className="h-5 w-5 text-foreground" /> : <Menu className="h-5 w-5 text-foreground" />}
+            {isMobileMenuOpen ? <X className="h-6 w-6 text-foreground" /> : <Menu className="h-6 w-6 text-foreground" />}
           </Button>
         </div>
       </div>
 
       {/* Mobile menu */}
       {isMobileMenuOpen && (
-        <div className="md:hidden absolute top-16 left-0 w-full bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 shadow-lg z-40">
+        <div className="md:hidden absolute top-14 lg:top-16 left-0 w-full bg-background dark:bg-background border-b border-border shadow-lg z-40">
           <nav className="container mx-auto px-4 py-4 max-h-[calc(100vh-4rem)] overflow-y-auto">
             {menuStructure.map((menuItem, idx) => (
               <div key={idx} className="mb-4">
