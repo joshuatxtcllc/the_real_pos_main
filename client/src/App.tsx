@@ -146,6 +146,7 @@ function App() {
                 <Route path="/notifications" component={NotificationCenterPage} />
                 <Route path="/kanban-test" component={KanbanTestPage} />
                 <Route path="/voice-calls" component={VoiceCallManager} />
+                <Route path="/automated-notifications" component={AutomatedNotifications} />
                 <Route component={NotFound} />
               </Switch>
             </main>

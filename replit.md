@@ -119,6 +119,20 @@ The application uses a streamlined deployment process optimized for Replit:
 - WebSocket connections for real-time features require sticky sessions
 
 ## Changelog
+- June 22, 2025: Automated Order Notification System Complete
+  - Implemented comprehensive automated notification system for order events
+  - Created SimpleOrderNotificationService with support for 9 different event types:
+    * Order placed confirmations, payment received notifications
+    * Production started updates, frame/mat cutting progress alerts
+    * Assembly complete notifications, pickup ready calls
+    * Payment reminders, pickup overdue reminders
+  - Built OrderNotificationController with REST API endpoints for triggering, scheduling, and bulk notifications
+  - Added automated notification routes at /api/order-notifications/* with status, trigger, schedule, bulk, and test endpoints
+  - Created AutomatedNotifications frontend interface with tabbed layout for immediate triggers, scheduling, event management, and integration guides
+  - Integrated automated notifications into main application at /automated-notifications route
+  - System supports immediate notifications, delayed scheduling, and bulk processing for multiple orders
+  - Voice notifications use professional Polly voices with customized messages for each event type
+  - Ready for integration into order workflow to automatically notify customers of status changes
 - June 22, 2025: Twilio Voice Calling System Integration
   - Implemented comprehensive voice calling functionality using Node.js and Twilio
   - Created voice call service with support for custom calls, order status updates, payment reminders, pickup notifications, and order completion calls
