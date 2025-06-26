@@ -1,43 +1,15 @@
-
 import { Router } from 'express';
-import * as webhookController from '../controllers/webhookController';
-import { authenticateAdmin } from '../middleware/auth';
+import { handleKanbanWebhook, handleOrderUpdateWebhook, webhookHealthCheck } from '../controllers/webhookController';
 
 const router = Router();
 
-/**
- * @route GET /api/webhooks
- * @desc Get all webhook endpoints
- * @access Admin only
- */
-router.get('/', authenticateAdmin, webhookController.getWebhookEndpoints);
+// Webhook endpoint for Kanban app status updates
+router.post('/kanban', handleKanbanWebhook);
 
-/**
- * @route POST /api/webhooks
- * @desc Create a new webhook endpoint
- * @access Admin only
- */
-router.post('/', authenticateAdmin, webhookController.createWebhookEndpoint);
+// General webhook endpoint for any external system
+router.post('/order-update', handleOrderUpdateWebhook);
 
-/**
- * @route PATCH /api/webhooks/:id
- * @desc Update a webhook endpoint
- * @access Admin only
- */
-router.patch('/:id', authenticateAdmin, webhookController.updateWebhookEndpoint);
-
-/**
- * @route DELETE /api/webhooks/:id
- * @desc Delete a webhook endpoint
- * @access Admin only
- */
-router.delete('/:id', authenticateAdmin, webhookController.deleteWebhookEndpoint);
-
-/**
- * @route POST /api/webhooks/:id/test
- * @desc Test a webhook endpoint
- * @access Admin only
- */
-router.post('/:id/test', authenticateAdmin, webhookController.testWebhookEndpoint);
+// Health check endpoint
+router.get('/health', webhookHealthCheck);
 
 export default router;

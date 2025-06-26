@@ -40,8 +40,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/frame-designs', frameDesignController.saveFrameDesign);
   app.get('/api/frame-designs/:orderId', frameDesignController.getFrameDesign);
 
-  // Webhook routes (commented out temporarily)
-  // app.use('/api/webhooks', webhookRoutes);
+  // Webhook routes for bidirectional notifications
+  app.use('/api/webhooks', webhookRoutes);
 
   // Pricing monitor routes (commented out temporarily)
   // app.use('/api/pricing-monitor', pricingMonitorRoutes);

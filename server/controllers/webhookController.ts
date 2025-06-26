@@ -1,243 +1,193 @@
-
 import { Request, Response } from 'express';
 import { storage } from '../storage';
-import axios from 'axios';
+import { SimpleOrderNotificationService } from '../services/simpleOrderNotificationService';
+
+const orderNotificationService = new SimpleOrderNotificationService();
 
 /**
- * Get all registered webhook endpoints
+ * Webhook endpoint for receiving status updates from external Kanban app
+ * This enables bidirectional notification support
  */
-export async function getWebhookEndpoints(req: Request, res: Response) {
+export async function handleKanbanWebhook(req: Request, res: Response) {
   try {
-    const webhooks = await storage.getWebhookEndpoints();
-    res.json(webhooks);
-  } catch (error: any) {
-    console.error('Error getting webhook endpoints:', error);
-    res.status(500).json({ error: error.message || 'Failed to get webhook endpoints' });
-  }
-}
+    const { orderId, status, updatedBy, timestamp, previousStatus } = req.body;
+    
+    console.log(`Received Kanban webhook for order ${orderId}: ${previousStatus} → ${status}`);
+    
+    // Validate required fields
+    if (!orderId || !status) {
+      return res.status(400).json({
+        success: false,
+        error: 'Missing required fields: orderId and status'
+      });
+    }
 
-/**
- * Create a new webhook endpoint
- */
-export async function createWebhookEndpoint(req: Request, res: Response) {
-  try {
-    const { name, url, events } = req.body;
-    
-    if (!url || !name) {
-      return res.status(400).json({ error: 'Name and URL are required' });
+    // Skip if update came from our POS system to avoid loops
+    if (updatedBy === 'Jays Frames POS') {
+      console.log('Skipping webhook - update originated from POS system');
+      return res.json({ success: true, message: 'Update originated from POS, no notification needed' });
     }
-    
-    // Validate URL format
-    try {
-      new URL(url);
-    } catch (error) {
-      return res.status(400).json({ error: 'Invalid URL format' });
-    }
-    
-    // Create webhook endpoint
-    const webhook = await storage.createWebhookEndpoint({
-      name,
-      url,
-      events: events || ['order.created'],
-      active: true
+
+    // Update local order status
+    const order = await storage.updateOrder(parseInt(orderId), {
+      productionStatus: status,
+      lastStatusChange: new Date()
     });
-    
-    res.status(201).json({ success: true, webhook });
-  } catch (error: any) {
-    console.error('Error creating webhook endpoint:', error);
-    res.status(500).json({ error: error.message || 'Failed to create webhook endpoint' });
-  }
-}
 
-/**
- * Update a webhook endpoint
- */
-export async function updateWebhookEndpoint(req: Request, res: Response) {
-  try {
-    const { id } = req.params;
-    const webhookId = parseInt(id);
-    
-    if (isNaN(webhookId)) {
-      return res.status(400).json({ error: 'Invalid webhook ID' });
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        error: 'Order not found'
+      });
     }
-    
-    const webhook = await storage.getWebhookEndpoint(webhookId);
-    
-    if (!webhook) {
-      return res.status(404).json({ error: 'Webhook endpoint not found' });
-    }
-    
-    const updatedWebhook = await storage.updateWebhookEndpoint(webhookId, req.body);
-    
-    res.json({ success: true, webhook: updatedWebhook });
-  } catch (error: any) {
-    console.error('Error updating webhook endpoint:', error);
-    res.status(500).json({ error: error.message || 'Failed to update webhook endpoint' });
-  }
-}
 
-/**
- * Delete a webhook endpoint
- */
-export async function deleteWebhookEndpoint(req: Request, res: Response) {
-  try {
-    const { id } = req.params;
-    const webhookId = parseInt(id);
-    
-    if (isNaN(webhookId)) {
-      return res.status(400).json({ error: 'Invalid webhook ID' });
-    }
-    
-    const webhook = await storage.getWebhookEndpoint(webhookId);
-    
-    if (!webhook) {
-      return res.status(404).json({ error: 'Webhook endpoint not found' });
-    }
-    
-    await storage.deleteWebhookEndpoint(webhookId);
-    
-    res.json({ success: true, message: 'Webhook endpoint deleted' });
-  } catch (error: any) {
-    console.error('Error deleting webhook endpoint:', error);
-    res.status(500).json({ error: error.message || 'Failed to delete webhook endpoint' });
-  }
-}
-
-/**
- * Test a webhook endpoint
- */
-export async function testWebhookEndpoint(req: Request, res: Response) {
-  try {
-    const { id } = req.params;
-    const webhookId = parseInt(id);
-    
-    if (isNaN(webhookId)) {
-      return res.status(400).json({ error: 'Invalid webhook ID' });
-    }
-    
-    const webhook = await storage.getWebhookEndpoint(webhookId);
-    
-    if (!webhook) {
-      return res.status(404).json({ error: 'Webhook endpoint not found' });
-    }
-    
-    // Create test payload
-    const testPayload = {
-      event: 'test.webhook',
-      timestamp: new Date().toISOString(),
-      data: {
-        message: 'This is a test webhook event from Jay\'s Frames',
-      }
-    };
-    
+    // Send automated notification for Kanban status change
+    let notificationSent = false;
     try {
-      // Send test webhook
-      const response = await axios.post(webhook.url, testPayload, {
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Jays-Frames-Event': 'test.webhook',
-          'X-Jays-Frames-Signature': 'test-signature'
-        },
-        timeout: 5000 // 5 second timeout
-      });
-      
-      await storage.updateWebhookEndpoint(webhookId, {
-        lastTriggered: new Date().toISOString(),
-        failCount: 0
-      });
-      
-      res.json({
-        success: true,
-        message: 'Test webhook sent successfully',
-        status: response.status,
-        data: response.data
-      });
-    } catch (error: any) {
-      // Update fail count
-      const currentFailCount = webhook.failCount || 0;
-      await storage.updateWebhookEndpoint(webhookId, {
-        failCount: currentFailCount + 1
-      });
-      
-      throw new Error(`Failed to send test webhook: ${error.message}`);
+      if (order.customerId) {
+        const customer = await storage.getCustomer(order.customerId);
+        if (customer && customer.phone) {
+          // Map status to notification event type
+          let eventType: 'production_started' | 'frame_cut' | 'mat_cut' | 'assembly_complete' | 'ready_for_pickup' | null = null;
+          
+          switch (status) {
+            case 'in_production':
+            case 'production_started':
+              eventType = 'production_started';
+              break;
+            case 'frame_cut':
+            case 'frame_cutting_complete':
+              eventType = 'frame_cut';
+              break;
+            case 'mat_cut':
+            case 'mat_cutting_complete':
+              eventType = 'mat_cut';
+              break;
+            case 'assembly_complete':
+            case 'assembled':
+              eventType = 'assembly_complete';
+              break;
+            case 'ready_for_pickup':
+            case 'completed':
+            case 'ready':
+              eventType = 'ready_for_pickup';
+              break;
+          }
+
+          if (eventType) {
+            await orderNotificationService.handleOrderEvent({
+              orderId: order.id.toString(),
+              orderNumber: `ORD-${order.id}`,
+              customerName: customer.name,
+              customerPhone: customer.phone,
+              eventType: eventType
+            });
+            console.log(`Kanban webhook notification sent for order ${order.id}: ${status}`);
+            notificationSent = true;
+          }
+        }
+      }
+    } catch (notificationError) {
+      console.error('Failed to send Kanban webhook notification:', notificationError);
+      // Don't fail the webhook if notification fails
     }
+
+    res.json({
+      success: true,
+      message: 'Status update processed successfully',
+      orderId: order.id,
+      newStatus: status,
+      notificationSent: notificationSent
+    });
+
   } catch (error: any) {
-    console.error('Error testing webhook endpoint:', error);
-    res.status(500).json({ error: error.message || 'Failed to test webhook endpoint' });
+    console.error('Error processing Kanban webhook:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to process webhook'
+    });
   }
 }
 
 /**
- * Send a webhook event to all registered webhooks that are subscribed to that event
+ * General webhook endpoint for any external system updates
  */
-export async function triggerWebhookEvent(event: string, data: any) {
+export async function handleOrderUpdateWebhook(req: Request, res: Response) {
   try {
-    // Get all active webhooks that are subscribed to this event
-    const webhooks = await storage.getWebhookEndpointsByEvent(event);
+    const { orderId, eventType, customerPhone, customerName, metadata } = req.body;
     
-    if (!webhooks || webhooks.length === 0) {
-      console.log(`No webhooks subscribed to event: ${event}`);
-      return { success: true, sent: 0, message: 'No webhooks to trigger' };
+    console.log(`Received order update webhook: ${eventType} for order ${orderId}`);
+    
+    // Validate required fields
+    if (!orderId || !eventType) {
+      return res.status(400).json({
+        success: false,
+        error: 'Missing required fields: orderId and eventType'
+      });
     }
+
+    // If customer info not provided, look up from database
+    let phone = customerPhone;
+    let name = customerName;
     
-    console.log(`Triggering ${webhooks.length} webhooks for event: ${event}`);
-    
-    // Create payload
-    const payload = {
-      event,
-      timestamp: new Date().toISOString(),
-      data
-    };
-    
-    // Send to all webhooks
-    const results = await Promise.allSettled(webhooks.map(async (webhook) => {
-      try {
-        const response = await axios.post(webhook.url, payload, {
-          headers: {
-            'Content-Type': 'application/json',
-            'X-Jays-Frames-Event': event,
-            'X-Jays-Frames-Signature': 'signature-placeholder' // TODO: Add proper HMAC signature
-          },
-          timeout: 5000 // 5 second timeout
-        });
-        
-        // Update last triggered timestamp
-        await storage.updateWebhookEndpoint(webhook.id, {
-          lastTriggered: new Date().toISOString(),
-          failCount: 0
-        });
-        
-        return {
-          webhookId: webhook.id,
-          success: true,
-          status: response.status
-        };
-      } catch (error: any) {
-        // Update fail count
-        const currentFailCount = webhook.failCount || 0;
-        await storage.updateWebhookEndpoint(webhook.id, {
-          failCount: currentFailCount + 1
-        });
-        
-        return {
-          webhookId: webhook.id,
-          success: false,
-          error: error.message
-        };
+    if (!phone || !name) {
+      const order = await storage.getOrder(parseInt(orderId));
+      if (order && order.customerId) {
+        const customer = await storage.getCustomer(order.customerId);
+        if (customer) {
+          phone = phone || customer.phone;
+          name = name || customer.name;
+        }
       }
-    }));
-    
-    const successful = results.filter(r => r.status === 'fulfilled' && (r.value as any).success).length;
-    
-    return {
+    }
+
+    if (!phone || !name) {
+      return res.status(400).json({
+        success: false,
+        error: 'Customer information not found'
+      });
+    }
+
+    // Send notification
+    await orderNotificationService.handleOrderEvent({
+      orderId: orderId.toString(),
+      orderNumber: `ORD-${orderId}`,
+      customerName: name,
+      customerPhone: phone,
+      eventType: eventType,
+      metadata: metadata || {}
+    });
+
+    console.log(`Webhook notification sent for order ${orderId}: ${eventType}`);
+
+    res.json({
       success: true,
-      total: webhooks.length,
-      sent: successful,
-      failed: webhooks.length - successful,
-      results
-    };
+      message: 'Notification sent successfully',
+      orderId: orderId,
+      eventType: eventType
+    });
+
   } catch (error: any) {
-    console.error('Error triggering webhook event:', error);
-    return { success: false, error: error.message };
+    console.error('Error processing order update webhook:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to process webhook'
+    });
   }
+}
+
+/**
+ * Webhook health check endpoint
+ */
+export async function webhookHealthCheck(req: Request, res: Response) {
+  res.json({
+    success: true,
+    message: 'Webhook endpoints are operational',
+    timestamp: new Date().toISOString(),
+    endpoints: {
+      kanban: '/api/webhooks/kanban',
+      orderUpdate: '/api/webhooks/order-update',
+      health: '/api/webhooks/health'
+    }
+  });
 }
