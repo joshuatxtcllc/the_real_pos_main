@@ -1,6 +1,9 @@
 import { Request, Response } from 'express';
 import { storage } from '../storage';
 import axios from 'axios';
+import { SimpleOrderNotificationService } from '../services/simpleOrderNotificationService';
+
+const orderNotificationService = new SimpleOrderNotificationService();
 
 // Kanban app configuration
 const KANBAN_API_URL = process.env.KANBAN_API_URL || 'https://kanban-app-url.replit.app';
@@ -228,6 +231,29 @@ export async function createOrder(req: Request, res: Response) {
     // Sync new order to Kanban app
     await syncOrderToKanban(order);
 
+    // Send order placed notification
+    try {
+      if (order.customerId) {
+        const customer = await storage.getCustomer(order.customerId);
+        if (customer && customer.phone) {
+          await orderNotificationService.handleOrderEvent({
+            orderId: order.id.toString(),
+            orderNumber: `ORD-${order.id}`,
+            customerName: customer.name,
+            customerPhone: customer.phone,
+            eventType: 'order_placed',
+            metadata: {
+              estimatedCompletion: order.estimatedCompletionDays ? `${order.estimatedCompletionDays} days` : '7-10 days'
+            }
+          });
+          console.log(`Order placed notification sent for order ${order.id}`);
+        }
+      }
+    } catch (notificationError) {
+      console.error('Failed to send order placed notification:', notificationError);
+      // Don't fail the order creation if notification fails
+    }
+
     res.status(201).json({ 
       success: true, 
       order,
@@ -288,6 +314,49 @@ export async function updateOrderStatus(req: Request, res: Response) {
       productionStatus: status,
       lastStatusChange: new Date()
     });
+
+    // Send automated notification for status change
+    try {
+      if (order && order.customerId) {
+        const customer = await storage.getCustomer(order.customerId);
+        if (customer && customer.phone) {
+          // Map status to notification event type
+          let eventType: 'production_started' | 'frame_cut' | 'mat_cut' | 'assembly_complete' | 'ready_for_pickup' | null = null;
+          
+          switch (status) {
+            case 'in_production':
+              eventType = 'production_started';
+              break;
+            case 'frame_cut':
+              eventType = 'frame_cut';
+              break;
+            case 'mat_cut':
+              eventType = 'mat_cut';
+              break;
+            case 'assembly_complete':
+              eventType = 'assembly_complete';
+              break;
+            case 'ready_for_pickup':
+              eventType = 'ready_for_pickup';
+              break;
+          }
+
+          if (eventType) {
+            await orderNotificationService.handleOrderEvent({
+              orderId: order.id.toString(),
+              orderNumber: `ORD-${order.id}`,
+              customerName: customer.name,
+              customerPhone: customer.phone,
+              eventType: eventType
+            });
+            console.log(`Status change notification sent for order ${order.id}: ${status}`);
+          }
+        }
+      }
+    } catch (notificationError) {
+      console.error('Failed to send status change notification:', notificationError);
+      // Don't fail the status update if notification fails
+    }
 
     // Sync status update to Kanban app
     await updateKanbanOrderStatus(parseInt(id), status, notes);
