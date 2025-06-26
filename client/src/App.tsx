@@ -30,6 +30,7 @@ import SystemHealthPage from "@/pages/SystemHealthPage";
 import NotificationCenterPage from '@/pages/NotificationCenterPage';
 import KanbanTestPage from './pages/KanbanTestPage';
 import VoiceCallManager from './pages/VoiceCallManager';
+import AutomatedNotifications from './pages/AutomatedNotifications';
 import { TooltipProvider } from "@/components/ui/tooltip";
 import ChatWidget from "./components/ChatWidget";
 import FrameEducationPage from '@/pages/FrameEducationPage';
