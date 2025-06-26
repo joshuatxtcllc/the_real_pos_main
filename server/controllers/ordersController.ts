@@ -467,7 +467,8 @@ export async function pushOrderToKanban(req: Request, res: Response) {
   }
 }
 
-import { db, orderGroups, orders } from '../db/schema';
+import { db } from '../db';
+import { orderGroups, orders } from '../../shared/schema';
 import { eq } from 'drizzle-orm';
 
 export async function processOrderGroupPayment(req: Request, res: Response) {
