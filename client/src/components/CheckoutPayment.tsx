@@ -85,11 +85,17 @@ const CardPaymentForm = ({ clientSecret, onSuccess }: { clientSecret: string, on
       if (paymentIntent) {
         switch (paymentIntent.status) {
           case 'succeeded':
-            // Payment succeeded, redirect to success page
+            toast({
+              title: 'Payment Successful',
+              description: 'Your payment has been processed successfully.',
+            });
             window.location.href = `/payment-status?payment_intent_client_secret=${paymentIntent.client_secret}`;
             break;
           case 'processing':
-            // Payment is processing, redirect to status page
+            toast({
+              title: 'Payment Processing',
+              description: 'Your payment is being processed.',
+            });
             window.location.href = `/payment-status?payment_intent_client_secret=${paymentIntent.client_secret}`;
             break;
           case 'requires_action':
@@ -568,52 +574,47 @@ const CheckoutPayment: React.FC<CheckoutPaymentProps> = ({
 
         <div className="space-y-4">
               <h3 className="text-lg font-semibold">Choose Payment Method</h3>
-              <div className="grid grid-cols-5 gap-3">
-                <button
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+                <Button
+                  variant={paymentMethod === 'card' ? 'default' : 'outline'}
                   onClick={() => setPaymentMethod('card')}
-                  className={`p-3 border rounded-lg text-center text-sm ${
-                    paymentMethod === 'card' ? 'border-blue-500 bg-blue-50' : 'border-gray-300'
-                  }`}
+                  className="h-16 flex flex-col items-center justify-center p-2"
                 >
-                  <div className="text-xl mb-1">💳</div>
-                  <div>Credit Card</div>
-                </button>
-                <button
+                  <CreditCard className="h-5 w-5 mb-1" />
+                  <span className="text-xs">Credit Card</span>
+                </Button>
+                <Button
+                  variant={paymentMethod === 'cash' ? 'default' : 'outline'}
                   onClick={() => setPaymentMethod('cash')}
-                  className={`p-3 border rounded-lg text-center text-sm ${
-                    paymentMethod === 'cash' ? 'border-blue-500 bg-blue-50' : 'border-gray-300'
-                  }`}
+                  className="h-16 flex flex-col items-center justify-center p-2"
                 >
-                  <div className="text-xl mb-1">💵</div>
-                  <div>Cash</div>
-                </button>
-                <button
+                  <Banknote className="h-5 w-5 mb-1" />
+                  <span className="text-xs">Cash</span>
+                </Button>
+                <Button
+                  variant={paymentMethod === 'check' ? 'default' : 'outline'}
                   onClick={() => setPaymentMethod('check')}
-                  className={`p-3 border rounded-lg text-center text-sm ${
-                    paymentMethod === 'check' ? 'border-blue-500 bg-blue-50' : 'border-gray-300'
-                  }`}
+                  className="h-16 flex flex-col items-center justify-center p-2"
                 >
-                  <div className="text-xl mb-1">🏦</div>
-                  <div>Check</div>
-                </button>
-                <button
+                  <FileCheck className="h-5 w-5 mb-1" />
+                  <span className="text-xs">Check</span>
+                </Button>
+                <Button
+                  variant={paymentMethod === 'partial' ? 'default' : 'outline'}
                   onClick={() => setPaymentMethod('partial')}
-                  className={`p-3 border rounded-lg text-center text-sm ${
-                    paymentMethod === 'partial' ? 'border-blue-500 bg-blue-50' : 'border-gray-300'
-                  }`}
+                  className="h-16 flex flex-col items-center justify-center p-2"
                 >
-                  <div className="text-xl mb-1">📊</div>
-                  <div>Partial Payment</div>
-                </button>
-                <button
+                  <span className="text-lg mb-1">📊</span>
+                  <span className="text-xs">Partial</span>
+                </Button>
+                <Button
+                  variant={paymentMethod === 'deferred' ? 'default' : 'outline'}
                   onClick={() => setPaymentMethod('deferred')}
-                  className={`p-3 border rounded-lg text-center text-sm ${
-                    paymentMethod === 'deferred' ? 'border-blue-500 bg-blue-50' : 'border-gray-300'
-                  }`}
+                  className="h-16 flex flex-col items-center justify-center p-2"
                 >
-                  <div className="text-xl mb-1">⏰</div>
-                  <div>Pay Later</div>
-                </button>
+                  <span className="text-lg mb-1">⏰</span>
+                  <span className="text-xs">Pay Later</span>
+                </Button>
               </div>
             </div>
 

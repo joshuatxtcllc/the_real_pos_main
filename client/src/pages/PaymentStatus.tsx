@@ -1,184 +1,188 @@
-import React, { useEffect } from 'react';
-import { useLocation } from 'wouter';
-import { useStripe } from '@stripe/react-stripe-js';
-import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Loader2, CheckCircle, XCircle } from 'lucide-react';
 
-/**
- * PaymentStatus component to handle payment success/failure status
- * This page is typically accessed after a Stripe redirect
- */
+import React, { useEffect, useState } from 'react';
+import { useLocation } from 'wouter';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Loader2, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
+
 const PaymentStatus = () => {
-  const stripe = useStripe();
-  const [location, setLocation] = useLocation();
-  const [status, setStatus] = React.useState<'loading' | 'success' | 'failed'>('loading');
-  const [message, setMessage] = React.useState<string>('');
+  const [, setLocation] = useLocation();
+  const [status, setStatus] = useState<'loading' | 'success' | 'failed' | 'processing'>('loading');
+  const [message, setMessage] = useState<string>('');
+  const [orderGroupId, setOrderGroupId] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!stripe) {
+    const urlParams = new URLSearchParams(window.location.search);
+    const paymentIntentClientSecret = urlParams.get('payment_intent_client_secret');
+    const redirectStatus = urlParams.get('redirect_status');
+
+    if (!paymentIntentClientSecret) {
+      setStatus('failed');
+      setMessage('No payment information found.');
       return;
     }
 
-    // Extract the client secret from URL query parameters
-    const clientSecret = new URLSearchParams(window.location.search).get('payment_intent_client_secret');
-    const token = new URLSearchParams(window.location.search).get('token');
+    // Extract payment intent ID from client secret
+    const paymentIntentId = paymentIntentClientSecret.split('_secret_')[0];
 
-    if (clientSecret) {
-      // Handle Stripe payment status
-      stripe.retrievePaymentIntent(clientSecret)
-        .then(({ paymentIntent, error }) => {
-          if (error) {
-            console.error('Error retrieving payment intent:', error);
-            setStatus('failed');
-            setMessage(`Unable to retrieve payment information: ${error.message}`);
-            return;
-          }
+    const checkPaymentStatus = async () => {
+      try {
+        const response = await fetch('/api/payment-status', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            payment_intent_id: paymentIntentId,
+            client_secret: paymentIntentClientSecret,
+          }),
+        });
 
-          if (!paymentIntent) {
-            setStatus('failed');
-            setMessage('Unable to retrieve payment information.');
-            return;
-          }
+        const data = await response.json();
 
-          switch (paymentIntent.status) {
+        if (response.ok) {
+          setOrderGroupId(data.orderGroupId);
+          
+          switch (data.status) {
             case 'succeeded':
               setStatus('success');
-              setMessage('Your payment was successful! Your framing order has been submitted.');
-              // Verify payment completion on server side
-              verifyPaymentCompletion(paymentIntent.id, token);
+              setMessage('Your payment has been processed successfully!');
               break;
             case 'processing':
-              setStatus('loading');
-              setMessage('Your payment is processing. We will notify you when it is complete.');
-              // Poll for status updates
-              pollPaymentStatus(clientSecret);
+              setStatus('processing');
+              setMessage('Your payment is being processed. We\'ll notify you when it\'s complete.');
               break;
             case 'requires_payment_method':
               setStatus('failed');
-              setMessage('Your payment was not successful, please try again.');
-              break;
-            case 'requires_action':
-              setStatus('failed');
-              setMessage('Your payment requires additional authentication. Please try again.');
-              break;
-            case 'requires_confirmation':
-              setStatus('loading');
-              setMessage('Confirming your payment...');
-              break;
-            case 'canceled':
-              setStatus('failed');
-              setMessage('Your payment was canceled.');
+              setMessage('Your payment was not successful. Please try again with a different payment method.');
               break;
             default:
               setStatus('failed');
-              setMessage('Something went wrong with your payment.');
-              break;
+              setMessage('There was an issue with your payment. Please contact support.');
           }
-        })
-        .catch((error) => {
-          console.error('Error retrieving payment intent:', error);
+        } else {
           setStatus('failed');
-          setMessage('Network error. Please check your connection and try again.');
-        });
-    } else {
-      // No client secret in URL, likely direct navigation to this page
-      setStatus('failed');
-      setMessage('No payment information found.');
-    }
-  }, [stripe]);
-
-  // Verify payment completion on server side
-  const verifyPaymentCompletion = async (paymentIntentId: string, token: string | null) => {
-    if (!token) return;
-    
-    try {
-      const response = await fetch(`/api/payment/${token}/verify`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ paymentIntentId }),
-      });
-      
-      if (!response.ok) {
-        console.warn('Payment verification failed');
+          setMessage(data.message || 'Failed to verify payment status.');
+        }
+      } catch (error) {
+        console.error('Error checking payment status:', error);
+        setStatus('failed');
+        setMessage('Unable to verify payment status. Please contact support.');
       }
-    } catch (error) {
-      console.error('Error verifying payment:', error);
+    };
+
+    checkPaymentStatus();
+  }, []);
+
+  const renderStatusIcon = () => {
+    switch (status) {
+      case 'loading':
+        return <Loader2 className="h-12 w-12 animate-spin text-blue-500" />;
+      case 'success':
+        return <CheckCircle className="h-12 w-12 text-green-500" />;
+      case 'processing':
+        return <AlertCircle className="h-12 w-12 text-yellow-500" />;
+      case 'failed':
+        return <XCircle className="h-12 w-12 text-red-500" />;
+      default:
+        return <Loader2 className="h-12 w-12 animate-spin text-blue-500" />;
     }
   };
 
-  // Poll payment status for processing payments
-  const pollPaymentStatus = (clientSecret: string) => {
-    const pollInterval = setInterval(() => {
-      if (!stripe) return;
-      
-      stripe.retrievePaymentIntent(clientSecret).then(({ paymentIntent }) => {
-        if (paymentIntent && paymentIntent.status !== 'processing') {
-          clearInterval(pollInterval);
-          
-          if (paymentIntent.status === 'succeeded') {
-            setStatus('success');
-            setMessage('Your payment was successful! Your framing order has been submitted.');
-          } else {
-            setStatus('failed');
-            setMessage('Your payment could not be completed. Please try again.');
-          }
-        }
-      });
-    }, 3000); // Poll every 3 seconds
+  const getStatusTitle = () => {
+    switch (status) {
+      case 'loading':
+        return 'Processing Payment...';
+      case 'success':
+        return 'Payment Successful!';
+      case 'processing':
+        return 'Payment Processing';
+      case 'failed':
+        return 'Payment Failed';
+      default:
+        return 'Processing Payment...';
+    }
+  };
 
-    // Clear polling after 5 minutes
-    setTimeout(() => {
-      clearInterval(pollInterval);
-      if (status === 'loading') {
-        setStatus('failed');
-        setMessage('Payment verification timed out. Please contact support.');
-      }
-    }, 300000);
+  const getStatusColor = () => {
+    switch (status) {
+      case 'success':
+        return 'text-green-600';
+      case 'processing':
+        return 'text-yellow-600';
+      case 'failed':
+        return 'text-red-600';
+      default:
+        return 'text-blue-600';
+    }
   };
 
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="max-w-md mx-auto">
         <Card>
-          <CardHeader>
-            <CardTitle>
-              {status === 'loading' && 'Processing Payment'}
-              {status === 'success' && 'Payment Successful'}
-              {status === 'failed' && 'Payment Failed'}
+          <CardHeader className="text-center">
+            <div className="flex justify-center mb-4">
+              {renderStatusIcon()}
+            </div>
+            <CardTitle className={getStatusColor()}>
+              {getStatusTitle()}
             </CardTitle>
+            <CardDescription>
+              {message}
+            </CardDescription>
           </CardHeader>
-          <CardContent className="flex flex-col items-center justify-center py-8">
-            {status === 'loading' && (
-              <Loader2 className="h-16 w-16 text-primary animate-spin mb-4" />
+          <CardContent className="text-center space-y-4">
+            {status === 'success' && orderGroupId && (
+              <div className="p-4 bg-green-50 rounded-lg">
+                <p className="text-sm text-green-700">
+                  Order #{orderGroupId} has been confirmed and will be processed shortly.
+                </p>
+              </div>
             )}
-            {status === 'success' && (
-              <CheckCircle className="h-16 w-16 text-green-500 mb-4" />
+            
+            {status === 'processing' && (
+              <div className="p-4 bg-yellow-50 rounded-lg">
+                <p className="text-sm text-yellow-700">
+                  We'll send you an email confirmation once the payment is complete.
+                </p>
+              </div>
             )}
+            
             {status === 'failed' && (
-              <XCircle className="h-16 w-16 text-red-500 mb-4" />
+              <div className="p-4 bg-red-50 rounded-lg">
+                <p className="text-sm text-red-700">
+                  No charges have been made to your account.
+                </p>
+              </div>
             )}
-            <p className="text-center">{message}</p>
+            
+            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+              {status === 'success' && orderGroupId ? (
+                <>
+                  <Button onClick={() => setLocation('/orders')}>
+                    View My Orders
+                  </Button>
+                  <Button variant="outline" onClick={() => setLocation('/')}>
+                    Return Home
+                  </Button>
+                </>
+              ) : status === 'failed' ? (
+                <>
+                  <Button onClick={() => window.history.back()}>
+                    Try Again
+                  </Button>
+                  <Button variant="outline" onClick={() => setLocation('/')}>
+                    Return Home
+                  </Button>
+                </>
+              ) : (
+                <Button variant="outline" onClick={() => setLocation('/')}>
+                  Return Home
+                </Button>
+              )}
+            </div>
           </CardContent>
-          <CardFooter className="flex justify-center">
-            {status === 'success' && (
-              <Button onClick={() => setLocation('/orders')}>
-                View Your Orders
-              </Button>
-            )}
-            {status === 'failed' && (
-              <Button onClick={() => window.history.back()}>
-                Try Again
-              </Button>
-            )}
-            {status === 'loading' && (
-              <Button variant="outline" disabled>
-                Please Wait...
-              </Button>
-            )}
-          </CardFooter>
         </Card>
       </div>
     </div>

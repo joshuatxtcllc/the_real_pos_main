@@ -44,29 +44,62 @@ const PaymentForm = ({ orderGroupId }: { orderGroupId: number }) => {
     setMessage(null);
 
     // Confirm the payment
-    const { error } = await stripe.confirmPayment({
+    const { error, paymentIntent } = await stripe.confirmPayment({
       elements,
       confirmParams: {
-        return_url: window.location.origin + '/orders',
+        return_url: `${window.location.origin}/payment-status`,
       },
       redirect: 'if_required',
     });
 
     if (error) {
-      // Show error to customer
-      setMessage(error.message || 'An unexpected error occurred.');
+      // Handle specific error types
+      let errorMessage = 'An unexpected error occurred.';
+      
+      switch (error.type) {
+        case 'card_error':
+          errorMessage = `Your card was declined: ${error.message}`;
+          break;
+        case 'validation_error':
+          errorMessage = 'Please check your payment information and try again.';
+          break;
+        case 'rate_limit_error':
+          errorMessage = 'Too many payment attempts. Please wait a moment and try again.';
+          break;
+        default:
+          errorMessage = error.message || errorMessage;
+      }
+      
+      setMessage(errorMessage);
       toast({
         title: 'Payment failed',
-        description: error.message || 'An unexpected error occurred.',
+        description: errorMessage,
         variant: 'destructive',
       });
-    } else {
-      // Payment succeeded
-      toast({
-        title: 'Payment successful',
-        description: 'Your payment has been processed successfully.',
-      });
-      setLocation('/orders');
+    } else if (paymentIntent) {
+      // Handle different payment intent statuses
+      switch (paymentIntent.status) {
+        case 'succeeded':
+          toast({
+            title: 'Payment successful',
+            description: 'Your payment has been processed successfully.',
+          });
+          setLocation('/payment-status?payment_intent_client_secret=' + paymentIntent.client_secret);
+          break;
+        case 'processing':
+          toast({
+            title: 'Payment processing',
+            description: 'Your payment is being processed.',
+          });
+          setLocation('/payment-status?payment_intent_client_secret=' + paymentIntent.client_secret);
+          break;
+        case 'requires_action':
+          // This should not happen with redirect: 'if_required'
+          setMessage('Your payment requires additional authentication.');
+          break;
+        default:
+          setMessage('Payment status unclear. Please contact support.');
+      }
     }
 
     setIsLoading(false);

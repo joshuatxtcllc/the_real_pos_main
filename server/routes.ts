@@ -30,6 +30,7 @@ import testEmailRoutes from './routes/testEmailRoutes.js';
 import voiceCallRoutes from './routes/voiceCallRoutes.js';
 import twimlRoutes from './routes/twimlRoutes.js';
 import orderNotificationRoutes from './routes/orderNotificationRoutes';
+import paymentStatusRoutes from './routes/paymentStatusRoutes';
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Art Location routes
@@ -731,6 +732,7 @@ app.get('/api/ai/seasonal-trends/:materialId', async (req, res) => {
 
   // Automated order notification routes
   app.use('/api/order-notifications', orderNotificationRoutes);
+  app.use('/api', paymentStatusRoutes);
 
 
   // Notification routes (Discord integration disabled)
@@ -856,7 +858,7 @@ app.get('/api/ai/seasonal-trends/:materialId', async (req, res) => {
 
       console.log(`Found order:`, order);
 
-      const materialOrders = await storage.createMaterialOrdersFromOrder(order);
+      const materialOrders = await storage.createMaterialOrdersFromorder(order);
 
       console.log(`Generated ${materialOrders.length} material orders`);
 
