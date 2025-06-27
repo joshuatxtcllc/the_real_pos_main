@@ -247,6 +247,73 @@ export async function completePaymentForLink(req: Request, res: Response) {
     
     if (!updatedLink) {
       return res.status(500).json({ 
+
+
+/**
+ * Verify payment completion (additional security check)
+ */
+export async function verifyPaymentCompletion(req: Request, res: Response) {
+  try {
+    const { token } = req.params;
+    const { paymentIntentId } = req.body;
+    
+    if (!paymentIntentId) {
+      return res.status(400).json({ 
+        success: false,
+        message: 'Payment intent ID is required' 
+      });
+    }
+
+    const paymentLink = await validatePaymentLink(token);
+    
+    if (!paymentLink) {
+      return res.status(404).json({ 
+        success: false,
+        message: 'Payment link not found or expired' 
+      });
+    }
+
+    // Verify with Stripe that the payment actually succeeded
+    if (process.env.STRIPE_SECRET_KEY) {
+      // @ts-ignore
+      const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+      
+      try {
+        const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
+        
+        if (paymentIntent.status === 'succeeded' && !paymentLink.used) {
+          // Mark payment link as used only if Stripe confirms success
+          await markPaymentLinkAsUsed(paymentLink.id, 'succeeded');
+          
+          return res.json({ 
+            success: true,
+            verified: true,
+            message: 'Payment verified successfully' 
+          });
+        }
+      } catch (stripeError: any) {
+        console.error('Stripe verification error:', stripeError);
+        return res.status(400).json({ 
+          success: false,
+          message: 'Payment verification failed' 
+        });
+      }
+    }
+
+    res.json({ 
+      success: true,
+      verified: false,
+      message: 'Could not verify payment with Stripe' 
+    });
+  } catch (error: any) {
+    console.error('Error verifying payment:', error);
+    res.status(500).json({ 
+      success: false,
+      message: `Payment verification error: ${error.message}` 
+    });
+  }
+}
+
         success: false,
         message: 'Failed to update payment link status' 
       });

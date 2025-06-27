@@ -124,7 +124,7 @@ app.get('/api/recommendations/frames', async (req, res) => {
 app.post('/api/recommendations/from-image', async (req, res) => {
   try {
     const { imageBase64, ...params } = req.body;
-    
+
     if (!imageBase64) {
       return res.status(400).json({ error: 'Image data required' });
     }
@@ -860,8 +860,7 @@ app.get('/api/ai/seasonal-trends/:materialId', async (req, res) => {
 
       console.log(`Generated ${materialOrders.length} material orders`);
 
-      res.json({ 
-        success: true, 
+      res.json({         success: true, 
         message: `Generated ${materialOrders.length} material orders for order #${orderId}`,
         materialOrders 
       });
@@ -974,6 +973,53 @@ app.get('/api/ai/seasonal-trends/:materialId', async (req, res) => {
       });
     }
   });
+
+  // Payment link routes
+  // const {
+  //   createNewPaymentLink,
+  //   getAllPaymentLinks,
+  //   getPaymentLinkById,
+  //   sendPaymentLinkNotification,
+  //   validatePaymentLinkByToken,
+  //   completePaymentForLink,
+  //   verifyPaymentCompletion
+  // } = await import('./controllers/paymentLinkController');
+
+  // Payment link routes
+  // app.post('/api/payment-links', createNewPaymentLink);
+  // app.get('/api/payment-links', getAllPaymentLinks);
+  // app.get('/api/payment-links/:id', getPaymentLinkById);
+  // app.post('/api/payment-links/:id/send', sendPaymentLinkNotification);
+  // app.get('/api/payment/:token/validate', validatePaymentLinkByToken);
+  // app.post('/api/payment/:token/complete', completePaymentForLink);
+  // app.post('/api/payment/:token/verify', verifyPaymentCompletion);
+  // Payment link routes
+  // const {
+  //   createNewPaymentLink,
+  //   getAllPaymentLinks,
+  //   getPaymentLinkById,
+  //   sendPaymentLinkNotification,
+  //   validatePaymentLinkByToken,
+  //   completePaymentForLink,
+  //   verifyPaymentCompletion
+  // } = await import('./controllers/paymentLinkController');
+  const {
+    createNewPaymentLink,
+    getAllPaymentLinks,
+    getPaymentLinkById,
+    sendPaymentLinkNotification,
+    validatePaymentLinkByToken,
+    completePaymentForLink,
+    verifyPaymentCompletion
+  } = await import('./controllers/paymentLinkController');
+  // Payment link routes
+  app.post('/api/payment-links', createNewPaymentLink);
+  app.get('/api/payment-links', getAllPaymentLinks);
+  app.get('/api/payment-links/:id', getPaymentLinkById);
+  app.post('/api/payment-links/:id/send', sendPaymentLinkNotification);
+  app.get('/api/payment/:token/validate', validatePaymentLinkByToken);
+  app.post('/api/payment/:token/complete', completePaymentForLink);
+  app.post('/api/payment/:token/verify', verifyPaymentCompletion);
 
   // Create HTTP server
   const httpServer = createServer(app);

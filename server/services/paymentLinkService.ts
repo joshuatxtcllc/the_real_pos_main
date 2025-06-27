@@ -290,7 +290,7 @@ export async function createPaymentIntentForLink(paymentLinkId: number): Promise
 }
 
 /**
- * Mark a payment link as used
+ * Mark a payment link as used with atomic transaction
  * @param paymentLinkId The ID of the payment link
  * @param status The payment status
  * @returns The updated payment link
@@ -299,15 +299,58 @@ export async function markPaymentLinkAsUsed(
   paymentLinkId: number,
   status: string = 'succeeded'
 ): Promise<PaymentLink | null> {
-  const [paymentLink] = await db
-    .update(paymentLinks)
-    .set({
-      used: true,
-      usedAt: new Date(),
-      paymentStatus: status
-    })
-    .where(eq(paymentLinks.id, paymentLinkId))
-    .returning();
-  
-  return paymentLink || null;
+  try {
+    // Begin transaction
+    const result = await db.transaction(async (tx) => {
+      // First, check if the payment link is still available
+      const [existingLink] = await tx
+        .select()
+        .from(paymentLinks)
+        .where(eq(paymentLinks.id, paymentLinkId));
+      
+      if (!existingLink) {
+        throw new Error('Payment link not found');
+      }
+      
+      if (existingLink.used) {
+        throw new Error('Payment link has already been used');
+      }
+      
+      // Check if not expired
+      const now = new Date();
+      if (existingLink.expiresAt < now) {
+        throw new Error('Payment link has expired');
+      }
+      
+      // Mark as used
+      const [updatedLink] = await tx
+        .update(paymentLinks)
+        .set({
+          used: true,
+          usedAt: new Date(),
+          paymentStatus: status
+        })
+        .where(eq(paymentLinks.id, paymentLinkId))
+        .returning();
+      
+      // Record the payment completion in notifications
+      await tx.insert(customerNotifications).values({
+        customerId: existingLink.customerId,
+        notificationType: 'payment_completion',
+        channel: 'system',
+        subject: 'Payment Completed',
+        message: `Payment of $${existingLink.amount} completed successfully`,
+        successful: status === 'succeeded',
+        paymentLinkId: existingLink.id,
+        responseData: { status, paymentIntentId: existingLink.paymentIntentId }
+      });
+      
+      return updatedLink;
+    });
+    
+    return result;
+  } catch (error: any) {
+    console.error('Error marking payment link as used:', error);
+    throw error;
+  }
 }

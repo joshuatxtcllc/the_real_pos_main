@@ -39,43 +39,71 @@ const CardPaymentForm = ({ clientSecret, onSuccess }: { clientSecret: string, on
     e.preventDefault();
 
     if (!stripe || !elements) {
+      setErrorMessage('Payment system not ready. Please refresh the page.');
       return;
     }
 
     setIsProcessing(true);
-    setErrorMessage(null);
+    setErrorMessage('');
 
     try {
-      const { error } = await stripe.confirmPayment({
+      // Validate form before submission
+      const { error: submitError } = await elements.submit();
+      if (submitError) {
+        setErrorMessage(submitError.message || 'Please check your payment information.');
+        setIsProcessing(false);
+        return;
+      }
+
+      const { paymentIntent, error } = await stripe.confirmPayment({
         elements,
         confirmParams: {
-          return_url: window.location.origin,
+          return_url: `${window.location.origin}/payment-status`,
         },
         redirect: 'if_required',
       });
 
       if (error) {
-        setErrorMessage(error.message || 'Payment failed');
-        toast({
-          title: 'Payment Failed',
-          description: error.message || 'There was an issue processing your payment',
-          variant: 'destructive',
-        });
-      } else {
-        toast({
-          title: 'Payment Successful',
-          description: 'Your payment was processed successfully',
-        });
-        onSuccess();
+        // Handle specific error types
+        switch (error.type) {
+          case 'card_error':
+            setErrorMessage(`Your card was declined: ${error.message}`);
+            break;
+          case 'validation_error':
+            setErrorMessage('Please check your payment information and try again.');
+            break;
+          case 'rate_limit_error':
+            setErrorMessage('Too many payment attempts. Please wait a moment and try again.');
+            break;
+          default:
+            setErrorMessage(error.message || 'An error occurred while processing your payment.');
+        }
+        setIsProcessing(false);
+        return;
       }
-    } catch (err) {
-      setErrorMessage('An unexpected error occurred');
-      toast({
-        title: 'Payment Error',
-        description: 'An unexpected error occurred during payment processing',
-        variant: 'destructive',
-      });
-    } finally {
+
+      if (paymentIntent) {
+        switch (paymentIntent.status) {
+          case 'succeeded':
+            // Payment succeeded, redirect to success page
+            window.location.href = `/payment-status?payment_intent_client_secret=${paymentIntent.client_secret}`;
+            break;
+          case 'processing':
+            // Payment is processing, redirect to status page
+            window.location.href = `/payment-status?payment_intent_client_secret=${paymentIntent.client_secret}`;
+            break;
+          case 'requires_action':
+            setErrorMessage('Your payment requires additional authentication. Please try again.');
+            setIsProcessing(false);
+            break;
+          default:
+            setErrorMessage('Payment could not be completed. Please try again.');
+            setIsProcessing(false);
+        }
+      }
+    } catch (error: any) {
+      console.error('Payment error:', error);
+      setErrorMessage('An unexpected error occurred. Please check your connection and try again.');
       setIsProcessing(false);
     }
   };
@@ -537,7 +565,7 @@ const CheckoutPayment: React.FC<CheckoutPaymentProps> = ({
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        
+
         <div className="space-y-4">
               <h3 className="text-lg font-semibold">Choose Payment Method</h3>
               <div className="grid grid-cols-5 gap-3">

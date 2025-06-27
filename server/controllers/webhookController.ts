@@ -2,6 +2,12 @@ import { Request, Response } from 'express';
 import { storage } from '../storage';
 import { SimpleOrderNotificationService } from '../services/simpleOrderNotificationService';
 
+import { db } from '../db';
+import { orders, paymentLinks } from '@shared/schema';
+import { eq } from 'drizzle-orm';
+import Stripe from 'stripe';
+import { markPaymentLinkAsUsed } from '../services/paymentLinkService';
+
 const orderNotificationService = new SimpleOrderNotificationService();
 
 /**
@@ -11,9 +17,9 @@ const orderNotificationService = new SimpleOrderNotificationService();
 export async function handleKanbanWebhook(req: Request, res: Response) {
   try {
     const { orderId, status, updatedBy, timestamp, previousStatus } = req.body;
-    
+
     console.log(`Received Kanban webhook for order ${orderId}: ${previousStatus} → ${status}`);
-    
+
     // Validate required fields
     if (!orderId || !status) {
       return res.status(400).json({
@@ -49,7 +55,7 @@ export async function handleKanbanWebhook(req: Request, res: Response) {
         if (customer && customer.phone) {
           // Map status to notification event type
           let eventType: 'production_started' | 'frame_cut' | 'mat_cut' | 'assembly_complete' | 'ready_for_pickup' | null = null;
-          
+
           switch (status) {
             case 'in_production':
             case 'production_started':
@@ -115,9 +121,9 @@ export async function handleKanbanWebhook(req: Request, res: Response) {
 export async function handleOrderUpdateWebhook(req: Request, res: Response) {
   try {
     const { orderId, eventType, customerPhone, customerName, metadata } = req.body;
-    
+
     console.log(`Received order update webhook: ${eventType} for order ${orderId}`);
-    
+
     // Validate required fields
     if (!orderId || !eventType) {
       return res.status(400).json({
@@ -129,7 +135,7 @@ export async function handleOrderUpdateWebhook(req: Request, res: Response) {
     // If customer info not provided, look up from database
     let phone = customerPhone;
     let name = customerName;
-    
+
     if (!phone || !name) {
       const order = await storage.getOrder(parseInt(orderId));
       if (order && order.customerId) {
