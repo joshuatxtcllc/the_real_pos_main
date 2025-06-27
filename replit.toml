@@ -2,8 +2,8 @@
 run = "npx tsx server/index.ts"
 
 [deployment]
-build = ["echo", "Deployment ready - using runtime TypeScript execution"]
-run = ["npx", "tsx", "server/index.ts"]
+build = ["node", "simple-deploy.mjs"]
+run = ["node", "start-production.mjs"]
 ignoreBuildErrors = true
 
 [env]
