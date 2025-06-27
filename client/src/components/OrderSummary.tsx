@@ -494,7 +494,7 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({
                 <span>{glassOption.name}</span>
                 <span>{artworkWidth + 2 * primaryMatWidth}" × {artworkHeight + 2 * primaryMatWidth}"</span>
               </li>
-            ))}
+            )}
 
             {/* Mat requirements */}
             {mats.map(matItem => (
