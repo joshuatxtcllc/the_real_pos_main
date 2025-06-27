@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { db } from '../db';
 import { customers, paymentLinks } from '@shared/schema';
 import { eq } from 'drizzle-orm';
+import { storage } from '../storage';
 import { 
   createPaymentLink, 
   sendPaymentLinkViaEmail, 
@@ -247,7 +248,29 @@ export async function completePaymentForLink(req: Request, res: Response) {
     
     if (!updatedLink) {
       return res.status(500).json({ 
+        success: false,
+        message: 'Failed to mark payment link as used' 
+      });
+    }
 
+    res.json({ 
+      success: true,
+      message: 'Payment completed successfully',
+      paymentLink: {
+        id: updatedLink.id,
+        used: updatedLink.used,
+        usedAt: updatedLink.usedAt
+      }
+    });
+
+  } catch (error: any) {
+    console.error('Complete payment error:', error);
+    res.status(500).json({ 
+      success: false,
+      message: 'Failed to complete payment' 
+    });
+  }
+}
 
 /**
  * Verify payment completion (additional security check)
@@ -310,24 +333,6 @@ export async function verifyPaymentCompletion(req: Request, res: Response) {
     res.status(500).json({ 
       success: false,
       message: `Payment verification error: ${error.message}` 
-    });
-  }
-}
-
-        success: false,
-        message: 'Failed to update payment link status' 
-      });
-    }
-    
-    res.json({ 
-      success: true,
-      message: 'Payment completed successfully' 
-    });
-  } catch (error: any) {
-    console.error('Error completing payment:', error);
-    res.status(500).json({ 
-      success: false,
-      message: `Failed to complete payment: ${error.message}` 
     });
   }
 }
