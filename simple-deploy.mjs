@@ -17,6 +17,11 @@ async function deployBuild() {
       console.log('✓ Created dist directory');
     }
 
+    // Build frontend first
+    console.log('🎨 Building frontend for deployment...');
+    await execAsync('npx vite build');
+    console.log('✓ Frontend build completed');
+
     // Build backend server (optimized for deployment)
     console.log('🔧 Building server for deployment...');
     await execAsync('npx esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outfile=dist/server.mjs --define:process.env.NODE_ENV=\\"production\\" --minify');

@@ -1,10 +1,10 @@
 [run]
-run = "npx tsx server/index.ts"
+run = "node start-production.mjs"
 
 [deployment]
 build = ["node", "simple-deploy.mjs"]
 run = ["node", "start-production.mjs"]
-ignoreBuildErrors = true
+ignoreBuildErrors = false
 
 [env]
 NODE_ENV = "production"
