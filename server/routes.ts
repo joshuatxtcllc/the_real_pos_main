@@ -97,6 +97,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     try {
       const response = await fetch(`${dashboardApiUrl}/api/metrics`);
+
+// AI Recommendation routes
+app.get('/api/recommendations/frames', async (req, res) => {
+  try {
+    const params = {
+      artworkType: req.query.artworkType as string,
+      artworkDescription: req.query.artworkDescription as string,
+      artworkWidth: parseFloat(req.query.artworkWidth as string) || 16,
+      artworkHeight: parseFloat(req.query.artworkHeight as string) || 20,
+      colorPreference: req.query.colorPreference as string,
+      stylePreference: req.query.stylePreference as string,
+      budgetLevel: req.query.budgetLevel as 'economy' | 'standard' | 'premium',
+      roomDecor: req.query.roomDecor as string,
+      customerPreference: req.query.customerPreference as string
+    };
+
+    const recommendations = await recommendationService.getRecommendations(params);
+    res.json(recommendations);
+  } catch (error: any) {
+    console.error('Error getting frame recommendations:', error);
+    res.status(500).json({ error: 'Failed to get recommendations', message: error.message });
+  }
+});
+
+app.post('/api/recommendations/from-image', async (req, res) => {
+  try {
+    const { imageBase64, ...params } = req.body;
+    
+    if (!imageBase64) {
+      return res.status(400).json({ error: 'Image data required' });
+    }
+
+    const recommendations = await recommendationService.getRecommendationsFromImage(imageBase64, params);
+    res.json(recommendations);
+  } catch (error: any) {
+    console.error('Error getting image-based recommendations:', error);
+    res.status(500).json({ error: 'Failed to analyze image', message: error.message });
+  }
+});
+
+
       const data = await response.json();
       res.json(data);
     } catch (error: any) {
@@ -106,6 +147,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get('/api/dashboard-proxy/status', async (req, res) => {
     const dashboardApiUrl = process.env.DASHBOARD_API_URL;
+
+// AI Material Ordering routes
+app.get('/api/ai/material-recommendations', async (req, res) => {
+  try {
+    const aiMaterialService = await import('./services/aiMaterialOrderingService');
+    const recommendations = await aiMaterialService.generateOrderingRecommendations();
+    res.json({ recommendations });
+  } catch (error: any) {
+    console.error('Error getting material recommendations:', error);
+    res.status(500).json({ error: 'Failed to generate recommendations', message: error.message });
+  }
+});
+
+app.get('/api/ai/seasonal-trends/:materialId', async (req, res) => {
+  try {
+    const { materialId } = req.params;
+    const aiMaterialService = await import('./services/aiMaterialOrderingService');
+    const trends = await aiMaterialService.getSeasonalTrends(materialId);
+    res.json(trends);
+  } catch (error: any) {
+    console.error('Error getting seasonal trends:', error);
+    res.status(500).json({ error: 'Failed to get trends', message: error.message });
+  }
+});
+
+
     if (!dashboardApiUrl) {
       return res.status(400).json({ error: 'Dashboard API URL not configured' });
     }

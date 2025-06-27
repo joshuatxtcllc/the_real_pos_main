@@ -42,19 +42,19 @@ interface RecommendationResponse {
 export async function getRecommendations(params: RecommendationParams): Promise<RecommendationResponse> {
   try {
     log("Getting frame recommendations with OpenAI", "recommendationService");
-    
+
     // Get all frames from database to use as context
     const allFrames = await db.query.frames.findMany();
-    
+
     if (!allFrames.length) {
       throw new Error("No frames found in database");
     }
-    
+
     log(`Found ${allFrames.length} frames for recommendation context`, "recommendationService");
-    
+
     // Create a prompt for OpenAI that includes the available frames
     const prompt = createPrompt(params, allFrames);
-    
+
     // Call OpenAI to get recommendations
     const completion = await openai.chat.completions.create({
       model: MODEL,
@@ -69,18 +69,18 @@ export async function getRecommendations(params: RecommendationParams): Promise<
       temperature: 0.7,
       max_tokens: 1000,
     });
-    
+
     const responseContent = completion.choices[0].message.content;
     if (!responseContent) {
       throw new Error("No response from OpenAI");
     }
-    
+
     // Parse the response
     const aiResponse = JSON.parse(responseContent);
-    
+
     // Map AI recommendations to actual frame objects
     const recommendedFrames = await mapRecommendationsToFrames(aiResponse.recommendedFrameIds, allFrames);
-    
+
     return {
       recommendations: recommendedFrames,
       matRecommendations: aiResponse.matRecommendations || [],
@@ -89,7 +89,17 @@ export async function getRecommendations(params: RecommendationParams): Promise<
     };
   } catch (error) {
     log(`Error getting frame recommendations: ${error}`, "recommendationService");
-    throw error;
+    // Fallback to simpler recommendations
+    log("Falling back to simpler recommendations", "recommendationService");
+    const fallbackRecommendations = getFallbackRecommendations(params, allFrames);
+    const defaultMatRecommendations = getDefaultMatRecommendations(params);
+
+    return {
+      recommendations: fallbackRecommendations,
+      matRecommendations: defaultMatRecommendations,
+      reasonings: { fallback: "AI failed, using fallback recommendations" },
+      suggestedPairings: {}
+    };
   }
 }
 
@@ -111,7 +121,7 @@ function createPrompt(params: RecommendationParams, availableFrames: Frame[]): s
       finish: frame.finish || "standard"
     };
   });
-  
+
   // Create the prompt
   return `
 I need personalized frame recommendations for custom framing. 
@@ -159,7 +169,7 @@ async function mapRecommendationsToFrames(recommendedIds: string[], allFrames: F
   allFrames.forEach(frame => {
     frameMap[frame.id] = frame;
   });
-  
+
   // Map recommended IDs to frame objects
   const recommendedFrames: Frame[] = [];
   for (const id of recommendedIds) {
@@ -167,11 +177,11 @@ async function mapRecommendationsToFrames(recommendedIds: string[], allFrames: F
       recommendedFrames.push(frameMap[id]);
     }
   }
-  
+
   // If we couldn't find exact matches, try to find close matches
   if (recommendedFrames.length === 0 && recommendedIds.length > 0) {
     log("No exact matches found for recommendations, trying fuzzy matching", "recommendationService");
-    
+
     // This might happen if the AI returns frame IDs that don't exactly match
     // Try to find frames with similar IDs or names
     for (const id of recommendedIds) {
@@ -181,12 +191,12 @@ async function mapRecommendationsToFrames(recommendedIds: string[], allFrames: F
         recommendedFrames.push(similarIdFrames[0]);
         continue;
       }
-      
+
       // Try to find a frame with a similar name
       const words = id.split(/[-_\s]+/);
       for (const word of words) {
         if (word.length < 3) continue; // Skip short words
-        
+
         const similarNameFrames = allFrames.filter(frame => frame.name.toLowerCase().includes(word.toLowerCase()));
         if (similarNameFrames.length > 0) {
           recommendedFrames.push(similarNameFrames[0]);
@@ -195,7 +205,7 @@ async function mapRecommendationsToFrames(recommendedIds: string[], allFrames: F
       }
     }
   }
-  
+
   return recommendedFrames;
 }
 
@@ -205,14 +215,14 @@ async function mapRecommendationsToFrames(recommendedIds: string[], allFrames: F
 export async function getRecommendationsFromImage(imageBase64: string, params: Partial<RecommendationParams>): Promise<RecommendationResponse> {
   try {
     log("Getting frame recommendations from image analysis", "recommendationService");
-    
+
     // Get all frames from database to use as context
     const allFrames = await db.query.frames.findMany();
-    
+
     if (!allFrames.length) {
       throw new Error("No frames found in database");
     }
-    
+
     // Create a concise representation of available frames
     const framesList = allFrames.map(frame => {
       return {
@@ -227,7 +237,7 @@ export async function getRecommendationsFromImage(imageBase64: string, params: P
         finish: frame.finish || "standard"
       };
     });
-    
+
     // Call OpenAI vision model to analyze the image
     const completion = await openai.chat.completions.create({
       model: MODEL,
@@ -291,19 +301,19 @@ Make sure the recommendedFrameIds field only contains IDs that are actually in t
       temperature: 0.7,
       max_tokens: 1200,
     });
-    
+
     const responseContent = completion.choices[0].message.content;
     if (!responseContent) {
       throw new Error("No response from OpenAI");
     }
-    
+
     // Parse the response
     const aiResponse = JSON.parse(responseContent);
-    
+
     // Map AI recommendations to actual frame objects
     const recommendedFrames = await mapRecommendationsToFrames(aiResponse.recommendedFrameIds, allFrames);
-    
-    return {
+
+     return {
       recommendations: recommendedFrames,
       matRecommendations: aiResponse.matRecommendations || [],
       reasonings: {
@@ -314,6 +324,134 @@ Make sure the recommendedFrameIds field only contains IDs that are actually in t
     };
   } catch (error) {
     log(`Error getting frame recommendations from image: ${error}`, "recommendationService");
-    throw error;
+    // Fallback to simpler recommendations
+    log("Falling back to simpler recommendations", "recommendationService");
+    const fallbackRecommendations = getFallbackRecommendations(params as RecommendationParams, allFrames);
+    const defaultMatRecommendations = getDefaultMatRecommendations(params as RecommendationParams);
+
+    return {
+      recommendations: fallbackRecommendations,
+      matRecommendations: defaultMatRecommendations,
+      reasonings: { fallback: "AI failed, using fallback recommendations" },
+      suggestedPairings: {}
+    };
   }
 }
+
+/**
+ * Get fallback recommendations when AI fails
+ */
+function getFallbackRecommendations(params: RecommendationParams, allFrames: Frame[]): Frame[] {
+  const { artworkType, colorPreference, stylePreference, budgetLevel } = params;
+
+  let filteredFrames = allFrames;
+
+  // Filter by budget level
+  if (budgetLevel) {
+    filteredFrames = filteredFrames.filter(frame => {
+      const price = parseFloat(frame.price.toString());
+      switch (budgetLevel) {
+        case 'economy': return price <= 50;
+        case 'standard': return price > 50 && price <= 150;
+        case 'premium': return price > 150;
+        default: return true;
+      }
+    });
+  }
+
+  // Filter by style preference
+  if (stylePreference) {
+    const styleKeywords = stylePreference.toLowerCase();
+    filteredFrames = filteredFrames.filter(frame => {
+      const frameName = frame.name.toLowerCase();
+      const frameStyle = (frame.style || '').toLowerCase();
+      return frameName.includes(styleKeywords) || frameStyle.includes(styleKeywords);
+    });
+  }
+
+  // Filter by color preference
+  if (colorPreference) {
+    const colorKeywords = colorPreference.toLowerCase();
+    filteredFrames = filteredFrames.filter(frame => {
+      const frameColor = (frame.color || '').toLowerCase();
+      const frameName = frame.name.toLowerCase();
+      return frameColor.includes(colorKeywords) || frameName.includes(colorKeywords);
+    });
+  }
+
+  // Artwork type specific recommendations
+  if (artworkType) {
+    const artType = artworkType.toLowerCase();
+    if (artType.includes('photograph') || artType.includes('photo')) {
+      // Prefer clean, simple frames for photographs
+      filteredFrames = filteredFrames.filter(frame => 
+        frame.material === 'metal' || frame.name.toLowerCase().includes('simple') || frame.name.toLowerCase().includes('clean')
+      );
+    } else if (artType.includes('painting') || artType.includes('oil')) {
+      // Prefer ornate or traditional frames for paintings
+      filteredFrames = filteredFrames.filter(frame => 
+        frame.material === 'wood' || frame.name.toLowerCase().includes('ornate') || frame.name.toLowerCase().includes('traditional')
+      );
+    } else if (artType.includes('print') || artType.includes('poster')) {
+      // Prefer modern frames for prints
+      filteredFrames = filteredFrames.filter(frame => 
+        frame.material === 'metal' || frame.name.toLowerCase().includes('modern')
+      );
+    }
+  }
+
+  // If filtering resulted in no frames, use all frames
+  if (filteredFrames.length === 0) {
+    filteredFrames = allFrames;
+  }
+
+  // Sort by popularity/price and return top 5
+  return filteredFrames
+    .sort((a, b) => parseFloat(a.price.toString()) - parseFloat(b.price.toString()))
+    .slice(0, 5);
+}
+
+/**
+ * Get default mat recommendations based on artwork
+ */
+function getDefaultMatRecommendations(params: RecommendationParams): string[] {
+  const { artworkType, colorPreference } = params;
+
+  const defaultMats = ['White', 'Off-White', 'Black', 'Cream'];
+
+  // Add color-specific recommendations
+  if (colorPreference) {
+    const color = colorPreference.toLowerCase();
+    if (color.includes('warm')) {
+      return ['Cream', 'Off-White', 'Light Gray', 'Tan'];
+    } else if (color.includes('cool')) {
+      return ['White', 'Light Blue', 'Light Gray', 'Black'];
+    } else if (color.includes('neutral')) {
+      return ['White', 'Off-White', 'Light Gray', 'Cream'];
+    }
+  }
+
+  // Artwork type specific mats
+  if (artworkType) {
+    const artType = artworkType.toLowerCase();
+    if (artType.includes('photograph')) {
+      return ['White', 'Off-White', 'Black', 'Light Gray'];
+    } else if (artType.includes('watercolor')) {
+      return ['White', 'Cream', 'Off-White', 'Light Blue'];
+    } else if (artType.includes('charcoal') || artType.includes('pencil')) {
+      return ['White', 'Off-White', 'Light Gray', 'Cream'];
+    }
+  }
+
+  return defaultMats;
+}
+
+/**
+ * Create a visualization of the detected artwork and marker
+ * This would show the detected marker and artwork outlines in a real implementation
+ * 
+ * @param image The original artwork image
+ * @param dimensions The detected dimensions
+ * @returns Canvas element with visualization
+ */
+createVisualization(image: HTMLImageElement, dimensions: ArtworkDimensions): HTMLCanvasElement {

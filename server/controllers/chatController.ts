@@ -17,6 +17,38 @@ import { getLowStockAlerts } from '../services/inventoryService';
 // Initialize OpenAI API
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
+
+/**
+ * Get current system context for AI assistant
+ */
+async function getSystemContext(): Promise<string> {
+  try {
+    // Get recent orders count
+    const recentOrders = await storage.getRecentOrdersCount(7); // Last 7 days
+    
+    // Get pending orders
+    const pendingOrders = await storage.getPendingOrdersCount();
+    
+    // Get production status
+    const productionSummary = await storage.getProductionSummary();
+    
+    // Get low inventory alerts
+    const lowInventoryCount = await storage.getLowInventoryCount();
+
+    return `
+- Recent orders (7 days): ${recentOrders}
+- Pending orders: ${pendingOrders}
+- Production queue: ${productionSummary.inProduction || 0} orders in progress
+- Low inventory alerts: ${lowInventoryCount} items need reordering
+- System status: Operational
+`;
+  } catch (error) {
+    console.error('Error getting system context:', error);
+    return '- System status: Operational (limited context available)';
+  }
+}
+
+
 });
 
 // Sample questions and answers for common queries
@@ -133,17 +165,40 @@ export const processMessage = async (req: Request, res: Response) => {
     }
 
     // If we get here, use the OpenAI API
+    // Get current system context for better assistance
+    const systemContext = await getSystemContext();
+
     const completion = await openai.chat.completions.create({
-      model: "gpt-3.5-turbo",
+      model: "gpt-4o",
       messages: [
         {
           role: "system",
-          content: "You are an assistant for Jay's Frames custom framing shop. Your name is Jay's Frames Assistant. You help employees navigate the POS system, check order status, and provide information about framing services. Be concise and helpful. If you don't know something, suggest where they might find the information in the system."
+          content: `You are Jay's Frames Assistant, an expert AI helper for a custom framing shop POS system. 
+
+CURRENT SYSTEM STATUS:
+${systemContext}
+
+CAPABILITIES:
+- Help navigate the POS system and find features
+- Check order status and production workflow
+- Provide framing advice and material recommendations
+- Explain pricing calculations and markup structures
+- Guide through customer management and inventory tracking
+- Assist with vendor integrations (Larson-Juhl, Crescent, etc.)
+
+KNOWLEDGE AREAS:
+- Custom framing techniques and best practices
+- Frame materials, matboards, and glass options
+- Color theory and design principles for framing
+- Production workflow and quality control
+- Customer service and consultation techniques
+
+Be concise, helpful, and specific. If asked about system features, guide users to the exact page or button. For framing advice, consider artwork type, style, and customer preferences.`
         },
         { role: "user", content: message }
       ],
-      max_tokens: 300,
-      temperature: 0.7,
+      max_tokens: 400,
+      temperature: 0.3,
     });
 
     const aiResponse = completion.choices[0]?.message?.content || 
