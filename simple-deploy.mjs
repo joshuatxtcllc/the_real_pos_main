@@ -1,5 +1,11 @@
 #!/usr/bin/env node
 
+/**
+ * Production Deployment Build Script
+ * This script creates optimized production builds for both frontend and backend
+ * ensuring the application is ready for deployment without any development dependencies
+ */
+
 import { exec } from 'child_process';
 import { promisify } from 'util';
 import fs from 'fs';
@@ -7,7 +13,12 @@ import path from 'path';
 
 const execAsync = promisify(exec);
 
-console.log('🚀 Starting deployment build process...');
+// Force production environment during build
+process.env.NODE_ENV = 'production';
+
+console.log('🚀 Starting production deployment build...');
+console.log('🔧 Environment: production');
+console.log('📦 Building optimized artifacts...');
 
 async function deployBuild() {
   try {

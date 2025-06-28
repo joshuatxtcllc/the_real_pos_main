@@ -1,27 +1,10 @@
-[run]
-run = "node start-production.mjs"
+# Production-only configuration for deployment
+modules = ["nodejs-20", "bash", "web", "postgresql-16"]
 
 [deployment]
 build = ["node", "simple-deploy.mjs"]
-run = ["node", "start-production.mjs"]
-ignoreBuildErrors = false
+run = ["node", "production-start.mjs"]
+deploymentTarget = "autoscale"
 
 [env]
 NODE_ENV = "production"
-
-[nix]
-channel = "stable-22_11"
-
-[unitTest]
-language = "nodejs"
-
-[gitHubImport]
-requiredFiles = [".replit", "replit.nix"]
-
-[languages]
-
-[languages.typescript]
-pattern = "**/{*.ts,*.js,*.tsx,*.jsx,*.json}"
-
-[languages.typescript.languageServer]
-start = "typescript-language-server --stdio"
