@@ -122,7 +122,7 @@ The application uses a streamlined deployment process optimized for Replit:
 - June 29, 2025: Cloud Run Deployment Health Check Issues Resolved
   - Fixed deployment failure: "Build command succeeds but application fails health checks at / endpoint"
   - Added immediate health check endpoint at root (/) that responds without database dependencies
-  - Created server-only-deploy.mjs build script that creates pre-built server instead of building during runtime
+  - Created cloud-run-deploy.mjs build script that creates pre-built server instead of building during runtime
   - Updated deployment configuration to start pre-built server directly: run ["node", "dist/start.mjs"]
   - Removed proxy configuration during build process to prevent connection errors during deployment
   - Configured proper PORT environment variable handling for Cloud Run (defaults to 8080, respects Cloud Run PORT)
@@ -130,6 +130,9 @@ The application uses a streamlined deployment process optimized for Replit:
   - Server now binds to 0.0.0.0 interface for Cloud Run accessibility
   - Created Cloud Run compatible startup script with proper error handling and graceful shutdown
   - Health check endpoint returns {"status":"healthy","service":"Jay's Frames POS System","timestamp":"...","environment":"production"}
+  - Added multiple health check endpoints: / (main), /health (simple), /ready (readiness)
+  - Registered health check routes before static file serving to prevent interference
+  - Created minified server bundle (190KB) with startup timeout protection (60 seconds)
   - Verified server starts successfully and responds to health checks within deployment timeouts
 - June 29, 2025: Deployment Security Compliance Update
   - Fixed deployment blocking issue caused by 'dev' keyword detection in configuration
