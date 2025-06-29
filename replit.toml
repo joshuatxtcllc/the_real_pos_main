@@ -3,7 +3,7 @@ modules = ["nodejs-20", "bash", "web", "postgresql-16"]
 
 [deployment]
 build = ["node", "simple-deploy.mjs"]
-run = ["node", "start-production.mjs"]
+run = ["npx", "tsx", "server/index.ts"]
 deploymentTarget = "autoscale"
 
 [env]
