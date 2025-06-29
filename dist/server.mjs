@@ -8789,7 +8789,7 @@ import cors from "cors";
 var __filename2 = fileURLToPath2(import.meta.url);
 var __dirname2 = dirname(__filename2);
 var app = express4();
-var PORT = parseInt(process.env.PORT || "8080", 10);
+var PORT = parseInt(process.env.PORT || "5000", 10);
 app.use(cors({
   origin: [
     "http://localhost:5173",

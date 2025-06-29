@@ -56,7 +56,7 @@ try {
 // Cloud Run production startup
 process.env.NODE_ENV = 'production';
 
-// Configure PORT for Cloud Run (required)
+// Configure PORT for Cloud Run (required) - override default 5000 for deployment
 const PORT = process.env.PORT || 8080;
 process.env.PORT = PORT.toString();
 
