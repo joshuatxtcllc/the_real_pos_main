@@ -5,7 +5,7 @@ run = "npx tsx server/index.ts"
 entrypoint = "server/index.ts"
 
 [deployment]
-build = ["node", "production-build.mjs"]
+build = ["node", "server-only-deploy.mjs"]
 run = ["node", "dist/start.mjs"]
 deploymentTarget = "autoscale"
 
