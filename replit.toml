@@ -5,8 +5,8 @@ run = "npx tsx server/index.ts"
 entrypoint = "server/index.ts"
 
 [deployment]
-build = ["node", "simple-deploy.mjs"]
-run = ["node", "production-startup.mjs"]
+build = ["node", "quick-deploy.mjs"]
+run = ["node", "dist/server.mjs"]
 deploymentTarget = "autoscale"
 
 [env]

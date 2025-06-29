@@ -119,6 +119,15 @@ The application uses a streamlined deployment process optimized for Replit:
 - WebSocket connections for real-time features require sticky sessions
 
 ## Changelog
+- June 29, 2025: Cloud Run Deployment Compatibility Fixes
+  - Fixed CommonJS/ESM module format mismatch by changing esbuild output from CommonJS to ESM format
+  - Updated server to prioritize PORT environment variable for Cloud Run deployment compatibility
+  - Created quick-deploy.mjs script with optimized ESM build process and type: module package.json
+  - Removed fallback port logic to ensure immediate binding to specified PORT for Cloud Run
+  - Updated replit.toml deployment configuration to use ESM server bundle (dist/server.mjs)
+  - Enhanced server startup to support import.meta syntax through ESM format
+  - Fixed "application doesn't open port in time" issue with streamlined port binding
+  - All deployment scripts now create executable server files with correct .mjs extension
 - June 29, 2025: Deployment Security Compliance Update
   - Fixed deployment blocking issue caused by 'dev' keyword detection in configuration
   - Created multiple clean production scripts: start-production.mjs, deploy-production.mjs, production-deploy.mjs
