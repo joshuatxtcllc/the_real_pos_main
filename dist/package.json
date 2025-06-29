@@ -2,9 +2,9 @@
   "name": "jays-frames-pos",
   "version": "1.0.0",
   "type": "module",
-  "main": "server.mjs",
+  "main": "start.mjs",
   "scripts": {
-    "start": "node server.mjs"
+    "start": "node start.mjs"
   },
   "engines": {
     "node": ">=18.0.0"

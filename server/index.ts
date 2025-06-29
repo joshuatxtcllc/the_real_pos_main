@@ -36,6 +36,29 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
 }));
 
+// Early health check registration - MUST be before any other middleware
+app.get('/', (req, res) => {
+  res.set('Content-Type', 'application/json');
+  res.status(200).json({ 
+    status: 'healthy', 
+    service: 'Jay\'s Frames POS System',
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || 'development',
+    port: PORT
+  });
+});
+
+// Additional health check endpoints for deployment systems
+app.get('/health', (req, res) => {
+  res.set('Content-Type', 'application/json');
+  res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
+app.get('/ready', (req, res) => {
+  res.set('Content-Type', 'application/json');
+  res.status(200).json({ ready: true, timestamp: new Date().toISOString() });
+});
+
 // JSON parsing middleware with increased limits for image uploads
 app.use(express.json({ limit: '100mb' }));
 app.use(express.urlencoded({ extended: true, limit: '100mb' }));

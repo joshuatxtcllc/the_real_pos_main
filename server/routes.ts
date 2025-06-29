@@ -56,13 +56,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
 
-  // Root health check for deployment health checks
+  // Root health check for deployment health checks - ALWAYS respond to this
   app.get('/', (req, res) => {
-    res.json({ 
+    // Force immediate response for health checks, bypass static file serving
+    res.set('Content-Type', 'application/json');
+    res.status(200).json({ 
       status: 'healthy', 
       service: 'Jay\'s Frames POS System',
       timestamp: new Date().toISOString(),
-      environment: process.env.NODE_ENV || 'development'
+      environment: process.env.NODE_ENV || 'development',
+      port: process.env.PORT || '5000'
     });
   });
 
