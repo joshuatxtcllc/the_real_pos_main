@@ -231,12 +231,20 @@ export function logErrorToServer(error: Error, componentStack: string) {
 export function setupGlobalErrorHandling() {
   window.addEventListener('error', (event) => {
     console.error('Global error:', event.error);
+    logErrorToServer(event.error, 'Global Error');
     // Don't display toast for every error to avoid overwhelming the user
     // Only log it for now
   });
   
   window.addEventListener('unhandledrejection', (event) => {
     console.error('Unhandled promise rejection:', event.reason);
+    // Prevent the default browser behavior
+    event.preventDefault();
+    
+    // Log the error with more details
+    const error = event.reason instanceof Error ? event.reason : new Error(String(event.reason));
+    logErrorToServer(error, 'Unhandled Promise Rejection');
+    
     // Don't display toast for every rejection to avoid overwhelming the user
     // Only log it for now
   });
