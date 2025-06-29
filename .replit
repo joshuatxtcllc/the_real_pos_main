@@ -1,5 +1,5 @@
 modules = ["nodejs-20", "bash", "web", "postgresql-16"]
-run = "npm run dev"
+run = "npm run build"
 hidden = [".config", ".git", "generated-icon.png", "node_modules", "dist"]
 
 [nix]
@@ -7,7 +7,7 @@ channel = "stable-24_05"
 
 [deployment]
 deploymentTarget = "autoscale"
-run = ["sh", "-c", "npm run dev"]
+run = ["sh", "-c", "npm run build"]
 build = ["sh", "-c", "node simple-deploy.mjs"]
 
 [[ports]]
@@ -53,7 +53,7 @@ task = "packager.installForAll"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "npm run dev"
+args = "npm run build"
 waitForPort = 5000
 
 [[workflows.workflow]]
@@ -63,7 +63,7 @@ mode = "sequential"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "npm run dev"
+args = "npm run build"
 
 [[workflows.workflow]]
 name = "Run Houston Frames App"
@@ -72,7 +72,7 @@ mode = "sequential"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "npm run dev"
+args = "npm run build"
 
 [[workflows.workflow]]
 name = "Run Jay's Frames App"
@@ -81,7 +81,7 @@ mode = "sequential"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "npm run dev"
+args = "npm run build"
 
 [[workflows.workflow]]
 name = "Pricing Monitor"
@@ -107,7 +107,7 @@ args = "sleep 2"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "npm run dev"
+args = "npm run build"
 
 [[workflows.workflow]]
 name = "Development Server"
@@ -116,7 +116,7 @@ mode = "sequential"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "npm run dev"
+args = "npm run build"
 
 [[workflows.workflow]]
 name = "Clean Development Start"
@@ -137,7 +137,7 @@ args = "sleep 3"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "npm run dev"
+args = "npm run build"
 
 [[workflows.workflow]]
 name = "Fresh Development Start"
@@ -166,7 +166,7 @@ args = "rm -rf client/node_modules/.vite || true"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "npm run dev"
+args = "npm run build"
 
 [[workflows.workflow]]
 name = "Fresh Development Restart"
@@ -195,7 +195,7 @@ args = "rm -rf client/node_modules/.vite || true"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "npm run dev"
+args = "npm run build"
 
 [[workflows.workflow]]
 name = "Fixed Development Server"
@@ -220,4 +220,4 @@ args = "sleep 2"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "npm run dev"
+args = "npm run build"
