@@ -2,6 +2,27 @@
  * Service for accessing Larson-Juhl wholesale pricing data
  */
 
+// Import necessary types
+interface MatboardColor {
+  id: string;
+  name: string;
+  hex: string;
+  price?: number;
+  code?: string;
+  manufacturer?: string;
+}
+
+// Static fallback data
+function getStaticMatboards(): MatboardColor[] {
+  return [
+    { id: '1', name: 'Pure White', hex: '#FFFFFF', code: 'W001' },
+    { id: '2', name: 'Antique White', hex: '#FAEBD7', code: 'W002' },
+    { id: '3', name: 'Cream', hex: '#F5F5DC', code: 'W003' },
+    { id: '4', name: 'Black', hex: '#000000', code: 'B001' },
+    { id: '5', name: 'Charcoal', hex: '#36454F', code: 'B002' }
+  ];
+}
+
 export interface LarsonJuhlWholesalePrice {
   itemNumber: string;
   width: string;
