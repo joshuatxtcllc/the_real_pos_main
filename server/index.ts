@@ -12,7 +12,8 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const app = express();
-const PORT = parseInt(process.env.PORT || '5000', 10);
+// Cloud Run expects PORT environment variable, fallback to 8080 for local development
+const PORT = parseInt(process.env.PORT || '8080', 10);
 
 // Notification service disabled for deployment stability
 

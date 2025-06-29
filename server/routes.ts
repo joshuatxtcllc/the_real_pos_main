@@ -47,10 +47,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Pricing monitor routes (commented out temporarily)
   // app.use('/api/pricing-monitor', pricingMonitorRoutes);
 
-  // Health check endpoint
+  // Simple health check endpoint that responds immediately without dependencies
   app.get('/api/health', (req, res) => {
     res.json({ 
       status: 'ok', 
+      timestamp: new Date().toISOString(),
+      environment: process.env.NODE_ENV || 'development'
+    });
+  });
+
+  // Root health check for deployment health checks
+  app.get('/', (req, res) => {
+    res.json({ 
+      status: 'healthy', 
+      service: 'Jay\'s Frames POS System',
       timestamp: new Date().toISOString(),
       environment: process.env.NODE_ENV || 'development'
     });
