@@ -1,8 +1,5 @@
-# Override deployment configuration to avoid dev keyword issues
+# Production Deployment Configuration
 modules = ["nodejs-20", "bash", "web", "postgresql-16"]
-
-run = "npx tsx server/index.ts"
-entrypoint = "server/index.ts"
 
 [deployment]
 build = ["node", "simple-deploy.mjs"]
@@ -11,7 +8,6 @@ deploymentTarget = "autoscale"
 
 [env]
 NODE_ENV = "production"
-PORT = "5000"
 
 [[ports]]
 localPort = 5000
