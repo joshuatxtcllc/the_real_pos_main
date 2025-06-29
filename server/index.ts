@@ -12,7 +12,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const app = express();
-const PORT = parseInt(process.env.PORT || process.env.REPL_PORT || '5000', 10);
+const PORT = parseInt(process.env.PORT || '5000', 10);
 
 // Notification service disabled for deployment stability
 

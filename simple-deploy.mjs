@@ -33,9 +33,9 @@ async function deployBuild() {
     await execAsync('npx vite build');
     console.log('✓ Frontend build completed');
 
-    // Build backend server (optimized for deployment)
+    // Build backend server (optimized for deployment with ESM format)
     console.log('🔧 Building server for deployment...');
-    await execAsync('npx esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outfile=dist/server.mjs --define:process.env.NODE_ENV=\\"production\\" --minify');
+    await execAsync('npx esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outfile=dist/server.mjs --define:process.env.NODE_ENV=\\"production\\" --minify --target=es2020');
     console.log('✓ Server build completed');
 
     // Copy package.json essentials for deployment
