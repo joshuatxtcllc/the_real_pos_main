@@ -33,10 +33,31 @@ async function quickDeploy() {
     await execAsync(`npx esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outfile=dist/server.mjs --define:process.env.NODE_ENV='"production"' --target=es2020 --minify`);
     console.log('✓ Server built with ESM format');
 
-    // Create minimal package.json with type: module
+    // Create fixed package.json with proper JSON syntax
+    console.log('🔧 Creating corrected package.json...');
+    
+    // Read original package.json and fix the JSON syntax error
+    let originalPackage;
+    try {
+      const originalContent = fs.readFileSync('package.json', 'utf8');
+      // Fix the malformed build script by adding missing quote
+      const fixedContent = originalContent.replace(
+        '"build": "vite build && esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outfile=dist/index.js,',
+        '"build": "vite build && esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outfile=dist/server.mjs --define:process.env.NODE_ENV=\\\\"production\\\\" --target=es2020",'
+      );
+      originalPackage = JSON.parse(fixedContent);
+    } catch (error) {
+      console.log('📦 Using fallback package.json due to syntax error');
+      originalPackage = {
+        name: "jays-frames-pos",
+        version: "1.0.0",
+        dependencies: {}
+      };
+    }
+
     const deployPackageJson = {
-      name: "jays-frames-pos",
-      version: "1.0.0",
+      name: originalPackage.name || "jays-frames-pos",
+      version: originalPackage.version || "1.0.0",
       type: "module",
       main: "server.mjs",
       scripts: {
