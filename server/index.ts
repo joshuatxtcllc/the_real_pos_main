@@ -98,34 +98,18 @@ app.use((req, res, next) => {
   // Function to start server with deployment-ready configuration
   const startServer = () => {
     try {
-      // Use consistent PORT configuration with fallback handling
+      // Use consistent PORT configuration - prioritize PORT env var for Cloud Run
       const serverInstance = server.listen(PORT, "0.0.0.0", () => {
         log(`serving on port ${PORT}`);
         console.log(`✓ Server running on port ${PORT}`);
         console.log(`✓ Environment: ${process.env.NODE_ENV || 'development'}`);
-        console.log(`✓ CORS enabled for development`);
+        console.log(`✓ Ready for connections`);
       });
 
       serverInstance.on('error', (error: any) => {
-        if (error.code === 'EADDRINUSE') {
-          log(`Port ${PORT} is already in use, trying ${PORT + 1}`, "warning");
-          const fallbackPort = PORT + 1;
-          try {
-            const fallbackServer = server.listen(fallbackPort, "0.0.0.0", () => {
-              log(`serving on fallback port ${fallbackPort}`);
-              console.log(`✓ Server running on fallback port ${fallbackPort}`);
-            });
-            return fallbackServer;
-          } catch (fallbackError) {
-            log(`Failed to start on fallback port: ${fallbackError}`, "error");
-            console.error('Fallback server error:', fallbackError);
-            process.exit(1);
-          }
-        } else {
-          log(`Server startup error: ${error.message}`, "error");
-          console.error('Server error:', error);
-          process.exit(1);
-        }
+        log(`Server startup error: ${error.message}`, "error");
+        console.error('Server error:', error);
+        process.exit(1);
       });
 
       // Graceful shutdown handlers
