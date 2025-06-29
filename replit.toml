@@ -6,7 +6,7 @@ entrypoint = "server/index.ts"
 
 [deployment]
 build = ["node", "simple-deploy.mjs"]
-run = ["npx", "tsx", "server/index.ts"]
+run = ["node", "production-startup.mjs"]
 deploymentTarget = "autoscale"
 
 [env]
