@@ -24,7 +24,10 @@ interface ErrorDetails {
 
 // Handle and normalize different error types
 function handleError(error: any, context?: string): ErrorDetails {
-  console.error(`Error ${context ? `in ${context}` : ''}:`, error);
+  // Use structured logging instead of console.error in production
+  if (process.env.NODE_ENV === 'development') {
+    console.error(`Error ${context ? `in ${context}` : ''}:`, error);
+  }
 
   // Network error
   if (error.name === 'AxiosError' && !error.response) {
@@ -237,7 +240,10 @@ export function setupGlobalErrorHandling() {
   });
   
   window.addEventListener('unhandledrejection', (event) => {
-    console.error('Unhandled promise rejection:', event.reason);
+    if (process.env.NODE_ENV === 'development') {
+      console.error('Unhandled promise rejection:', event.reason);
+    }
+    
     // Prevent the default browser behavior
     event.preventDefault();
     
@@ -245,8 +251,11 @@ export function setupGlobalErrorHandling() {
     const error = event.reason instanceof Error ? event.reason : new Error(String(event.reason));
     logErrorToServer(error, 'Unhandled Promise Rejection');
     
-    // Don't display toast for every rejection to avoid overwhelming the user
-    // Only log it for now
+    // Only show critical errors to users
+    if (error.message && !error.message.includes('AbortError')) {
+      // This is likely a real error that needs attention
+      logError(error, 'Unhandled Promise Rejection');
+    }
   });
 }
 // Duplicate functions removed - using the main error handling functions above

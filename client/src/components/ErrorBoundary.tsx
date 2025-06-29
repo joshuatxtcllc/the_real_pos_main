@@ -1,4 +1,3 @@
-
 import React, { Component, ErrorInfo, ReactNode } from 'react';
 
 interface Props {
@@ -54,12 +53,12 @@ class ErrorBoundary extends Component<Props, State> {
                 </h3>
               </div>
             </div>
-            
+
             <div className="mb-4">
               <p className="text-sm text-gray-600">
                 The application encountered an unexpected error. You can try reloading the page or reset the error state.
               </p>
-              
+
               {this.state.error && (
                 <details className="mt-2">
                   <summary className="text-sm text-gray-500 cursor-pointer">Technical Details</summary>
@@ -70,7 +69,7 @@ class ErrorBoundary extends Component<Props, State> {
                 </details>
               )}
             </div>
-            
+
             <div className="flex space-x-3">
               <button
                 onClick={this.handleReset}

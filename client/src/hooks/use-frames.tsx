@@ -52,6 +52,8 @@ export function useFrames() {
         return convertedFrames.length > 0 ? convertedFrames : frameCatalog;
       } catch (error) {
         console.error('Error fetching frames from API:', error);
+        // Use the error handler to properly categorize and handle the error
+        logError(error, 'Frames API fetch');
         console.log('Using static frame data as fallback');
         return frameCatalog;
       }

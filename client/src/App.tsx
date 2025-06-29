@@ -53,12 +53,16 @@ function App() {
   useEffect(() => {
     const initializeApp = async () => {
       try {
-        console.log('Starting app initialization...');
+        if (process.env.NODE_ENV === 'development') {
+          console.log('Starting app initialization...');
+        }
 
         // Initialize the notification service
         notificationService.init();
 
-        console.log('App components initialized successfully');
+        if (process.env.NODE_ENV === 'development') {
+          console.log('App components initialized successfully');
+        }
       } catch (error) {
         console.error('Error initializing app:', error);
         // Continue execution even if notification service fails
@@ -95,15 +99,15 @@ function App() {
   // Initialize global error handling
   useEffect(() => {
     setupGlobalErrorHandling();
-    
+
     // Additional promise rejection handler
     const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
       console.error('Unhandled promise rejection caught:', event.reason);
       event.preventDefault(); // Prevent default browser behavior
     };
-    
+
     window.addEventListener('unhandledrejection', handleUnhandledRejection);
-    
+
     return () => {
       window.removeEventListener('unhandledrejection', handleUnhandledRejection);
     };
