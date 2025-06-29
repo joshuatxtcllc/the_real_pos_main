@@ -106,45 +106,53 @@ export function getLarsonJuhlBasePricePerFoot(
 }
 
 export const fetchCrescentMatboards = async (): Promise<MatboardColor[]> => {
-  try {
-    console.log('Fetching Crescent matboards from Larson Juhl catalog...');
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+  return new Promise((resolve) => {
+    (async () => {
+      try {
+        console.log('Fetching Crescent matboards from Larson Juhl catalog...');
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
 
-    const response = await fetch('/api/larson-juhl/crescent-matboards', {
-      signal: controller.signal,
-      headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json'
+        const response = await fetch('/api/larson-juhl/crescent-matboards', {
+          signal: controller.signal,
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+          }
+        });
+
+        clearTimeout(timeoutId);
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status} - ${response.statusText}`);
+        }
+
+        const data = await response.json();
+
+        if (!data || !Array.isArray(data) || data.length === 0) {
+          console.log('No Crescent matboards found in Larson Juhl catalog or empty response. Using static fallback data.');
+          resolve(getStaticMatboards());
+          return;
+        }
+
+        console.log(`Successfully loaded ${data.length} Crescent matboards from API`);
+        resolve(data);
+      } catch (error) {
+        if (error instanceof Error) {
+          if (error.name === 'AbortError') {
+            console.error('Crescent matboards request timed out');
+          } else {
+            console.error('Error fetching Crescent matboards:', error.message);
+          }
+        } else {
+          console.error('Unknown error fetching Crescent matboards:', error);
+        }
+        console.log('Loading static matboard data to prevent application freezing...');
+        resolve(getStaticMatboards());
       }
+    })().catch((error) => {
+      console.error('Unhandled error in fetchCrescentMatboards:', error);
+      resolve(getStaticMatboards());
     });
-
-    clearTimeout(timeoutId);
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status} - ${response.statusText}`);
-    }
-
-    const data = await response.json();
-
-    if (!data || !Array.isArray(data) || data.length === 0) {
-      console.log('No Crescent matboards found in Larson Juhl catalog or empty response. Using static fallback data.');
-      return getStaticMatboards();
-    }
-
-    console.log(`Successfully loaded ${data.length} Crescent matboards from API`);
-    return data;
-  } catch (error) {
-    if (error instanceof Error) {
-      if (error.name === 'AbortError') {
-        console.error('Crescent matboards request timed out');
-      } else {
-        console.error('Error fetching Crescent matboards:', error.message);
-      }
-    } else {
-      console.error('Unknown error fetching Crescent matboards:', error);
-    }
-    console.log('Loading static matboard data to prevent application freezing...');
-    return getStaticMatboards();
-  }
+  });
 };

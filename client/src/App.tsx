@@ -95,6 +95,18 @@ function App() {
   // Initialize global error handling
   useEffect(() => {
     setupGlobalErrorHandling();
+    
+    // Additional promise rejection handler
+    const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
+      console.error('Unhandled promise rejection caught:', event.reason);
+      event.preventDefault(); // Prevent default browser behavior
+    };
+    
+    window.addEventListener('unhandledrejection', handleUnhandledRejection);
+    
+    return () => {
+      window.removeEventListener('unhandledrejection', handleUnhandledRejection);
+    };
   }, []);
 
   // Toggle theme function
