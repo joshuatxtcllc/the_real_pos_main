@@ -1,0 +1,17 @@
+# Production deployment configuration - security compliant
+modules = ["nodejs-20", "postgresql-16"]
+
+run = "node deploy-production.mjs"
+entrypoint = "deploy-production.mjs"
+
+[deployment]
+build = ["node", "simple-deploy.mjs"]
+run = ["node", "deploy-production.mjs"]
+deploymentTarget = "autoscale"
+
+[env]
+NODE_ENV = "production"
+
+[[ports]]
+localPort = 5000
+externalPort = 5000

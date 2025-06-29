@@ -1,16 +1,14 @@
-# Clean Production Deployment Configuration 
-# No development mode references for deployment compliance
+# Production Deployment Configuration
 modules = ["nodejs-20", "bash", "web", "postgresql-16"]
 
 [deployment]
 build = ["node", "simple-deploy.mjs"]
-run = ["node", "production-deploy.mjs"]
+run = ["node", "start-production.mjs"]
 deploymentTarget = "autoscale"
 
 [env]
 NODE_ENV = "production"
 
-# Production server configuration
 [[ports]]
 localPort = 5000
 externalPort = 5000
