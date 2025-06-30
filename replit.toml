@@ -13,5 +13,5 @@ deploymentTarget = "autoscale"
 NODE_ENV = "production"
 
 [[ports]]
-localPort = 8080
+localPort = 5000
 externalPort = 80

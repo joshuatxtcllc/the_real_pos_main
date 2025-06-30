@@ -8791,7 +8791,7 @@ import cors from "cors";
 var __filename2 = fileURLToPath2(import.meta.url);
 var __dirname2 = dirname(__filename2);
 var app = express4();
-var PORT = parseInt(process.env.PORT || "8080", 10);
+var PORT = parseInt(process.env.PORT || "5000", 10);
 app.use(cors({
   origin: [
     "http://localhost:5173",
@@ -8869,32 +8869,46 @@ app.use((req, res, next) => {
   }
   const startServer = () => {
     try {
+      console.log(`\u{1F680} Starting Jay's Frames POS System`);
+      console.log(`\u{1F4CD} Environment: ${"production"}`);
+      console.log(`\u{1F50C} Port: ${PORT}`);
+      console.log(`\u{1F310} Binding to: 0.0.0.0:${PORT}`);
       const serverInstance = server.listen(PORT, "0.0.0.0", () => {
         log2(`serving on port ${PORT}`);
-        console.log(`\u2713 Server running on port ${PORT}`);
-        console.log(`\u2713 Environment: ${"production"}`);
-        console.log(`\u2713 Ready for connections`);
+        console.log(`\u2705 Server successfully started on port ${PORT}`);
+        console.log(`\u2705 Health endpoints available at:`, [
+          `http://0.0.0.0:${PORT}/`,
+          `http://0.0.0.0:${PORT}/health`,
+          `http://0.0.0.0:${PORT}/ready`
+        ]);
+        console.log(`\u2705 Ready for incoming connections`);
       });
       serverInstance.on("error", (error) => {
-        log2(`Server startup error: ${error.message}`, "error");
-        console.error("Server error:", error);
+        const errorMessage = `Server startup error: ${error.message}`;
+        log2(errorMessage, "error");
+        console.error("\u274C Server error:", error);
+        if (error.code === "EADDRINUSE") {
+          console.error(`\u274C Port ${PORT} is already in use`);
+        } else if (error.code === "EACCES") {
+          console.error(`\u274C Permission denied to bind to port ${PORT}`);
+        }
         process.exit(1);
       });
       const gracefulShutdown = (signal) => {
         log2(`${signal} received, shutting down gracefully`, "info");
-        console.log(`Shutting down server...`);
+        console.log(`\u{1F6D1} ${signal} received, shutting down gracefully...`);
         serverInstance.close((error) => {
           if (error) {
-            console.error("Error during shutdown:", error);
+            console.error("\u274C Error during shutdown:", error);
             process.exit(1);
           } else {
             log2("Server closed", "info");
-            console.log("Server closed gracefully");
+            console.log("\u2705 Server closed gracefully");
             process.exit(0);
           }
         });
         setTimeout(() => {
-          console.log("Force exit after timeout");
+          console.log("\u23F0 Force exit after timeout");
           process.exit(1);
         }, 1e4);
       };
@@ -8902,8 +8916,10 @@ app.use((req, res, next) => {
       process.on("SIGINT", () => gracefulShutdown("SIGINT"));
       return serverInstance;
     } catch (error) {
-      log2(`Critical server startup failure: ${error?.message || error}`, "error");
-      console.error("Critical error:", error);
+      const errorMessage = `Critical server startup failure: ${error?.message || error}`;
+      log2(errorMessage, "error");
+      console.error("\u274C Critical error:", error);
+      console.error("\u274C Stack trace:", error.stack);
       process.exit(1);
     }
   };

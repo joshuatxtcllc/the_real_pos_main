@@ -12,8 +12,8 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const app = express();
-// Use PORT environment variable (Cloud Run defaults to 8080) with fallbacks
-const PORT = parseInt(process.env.PORT || '8080', 10);
+// Use PORT environment variable with proper Cloud Run compatibility
+const PORT = parseInt(process.env.PORT || '5000', 10);
 
 // Notification service disabled for deployment stability
 
@@ -122,39 +122,57 @@ app.use((req, res, next) => {
   // Function to start server with deployment-ready configuration
   const startServer = () => {
     try {
+      console.log(`🚀 Starting Jay's Frames POS System`);
+      console.log(`📍 Environment: ${process.env.NODE_ENV || 'development'}`);
+      console.log(`🔌 Port: ${PORT}`);
+      console.log(`🌐 Binding to: 0.0.0.0:${PORT}`);
+      
       // Use consistent PORT configuration - prioritize PORT env var for Cloud Run
       const serverInstance = server.listen(PORT, "0.0.0.0", () => {
         log(`serving on port ${PORT}`);
-        console.log(`✓ Server running on port ${PORT}`);
-        console.log(`✓ Environment: ${process.env.NODE_ENV || 'development'}`);
-        console.log(`✓ Ready for connections`);
+        console.log(`✅ Server successfully started on port ${PORT}`);
+        console.log(`✅ Health endpoints available at:`, [
+          `http://0.0.0.0:${PORT}/`,
+          `http://0.0.0.0:${PORT}/health`,
+          `http://0.0.0.0:${PORT}/ready`
+        ]);
+        console.log(`✅ Ready for incoming connections`);
       });
 
       serverInstance.on('error', (error: any) => {
-        log(`Server startup error: ${error.message}`, "error");
-        console.error('Server error:', error);
+        const errorMessage = `Server startup error: ${error.message}`;
+        log(errorMessage, "error");
+        console.error('❌ Server error:', error);
+        
+        // Handle specific error cases for Cloud Run
+        if (error.code === 'EADDRINUSE') {
+          console.error(`❌ Port ${PORT} is already in use`);
+        } else if (error.code === 'EACCES') {
+          console.error(`❌ Permission denied to bind to port ${PORT}`);
+        }
+        
         process.exit(1);
       });
 
       // Graceful shutdown handlers
       const gracefulShutdown = (signal: string) => {
         log(`${signal} received, shutting down gracefully`, "info");
-        console.log(`Shutting down server...`);
+        console.log(`🛑 ${signal} received, shutting down gracefully...`);
 
         serverInstance.close((error) => {
           if (error) {
-            console.error('Error during shutdown:', error);
+            console.error('❌ Error during shutdown:', error);
             process.exit(1);
           } else {
             log("Server closed", "info");
-            console.log('Server closed gracefully');
+            console.log('✅ Server closed gracefully');
             process.exit(0);
           }
         });
 
         // Force exit after 10 seconds
         setTimeout(() => {
-          console.log('Force exit after timeout');
+          console.log('⏰ Force exit after timeout');
           process.exit(1);
         }, 10000);
       };
@@ -164,8 +182,10 @@ app.use((req, res, next) => {
 
       return serverInstance;
     } catch (error: any) {
-      log(`Critical server startup failure: ${error?.message || error}`, "error");
-      console.error('Critical error:', error);
+      const errorMessage = `Critical server startup failure: ${error?.message || error}`;
+      log(errorMessage, "error");
+      console.error('❌ Critical error:', error);
+      console.error('❌ Stack trace:', error.stack);
       process.exit(1);
     }
   };
