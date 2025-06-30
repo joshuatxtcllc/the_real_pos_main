@@ -15,7 +15,7 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     transition: background-color 0.3s ease, color 0.3s ease;
-    color: #111827; /* Darker text for better readability */
+    color: #111827 !important; /* Darker text for better readability */
     /* Mobile optimizations */
     -webkit-tap-highlight-color: transparent;
     -webkit-touch-callout: none;
@@ -24,6 +24,20 @@
     -moz-user-select: none;
     -ms-user-select: none;
     user-select: none;
+  }
+
+  /* Ensure all text elements have dark colors */
+  h1, h2, h3, h4, h5, h6, p, span, div, label, a, button {
+    color: #111827 !important;
+  }
+
+  /* Override Tailwind's default text colors for better visibility */
+  .text-foreground {
+    color: #111827 !important;
+  }
+
+  .text-muted-foreground {
+    color: #6b7280 !important;
   }
   
   /* Touch manipulation for better mobile interactions */

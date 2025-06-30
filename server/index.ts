@@ -12,8 +12,8 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const app = express();
-// Use PORT environment variable (Cloud Run) or 5000 for development
-const PORT = parseInt(process.env.PORT || '5000', 10);
+// Use PORT environment variable (Cloud Run defaults to 8080) with fallbacks
+const PORT = parseInt(process.env.PORT || '8080', 10);
 
 // Notification service disabled for deployment stability
 
