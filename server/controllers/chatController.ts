@@ -25,23 +25,24 @@ const openai = new OpenAI({
  */
 async function getSystemContext(): Promise<string> {
   try {
-    // Get recent orders count
-    const recentOrders = await storage.getRecentOrdersCount(7); // Last 7 days
+    // Get basic order count
+    const allOrders = await storage.getAllOrders();
+    const recentOrders = allOrders.filter(order => {
+      if (!order.createdAt) return false;
+      const orderDate = new Date(order.createdAt);
+      const weekAgo = new Date();
+      weekAgo.setDate(weekAgo.getDate() - 7);
+      return orderDate >= weekAgo;
+    }).length;
     
-    // Get pending orders
-    const pendingOrders = await storage.getPendingOrdersCount();
-    
-    // Get production status
-    const productionSummary = await storage.getProductionSummary();
-    
-    // Get low inventory alerts
-    const lowInventoryCount = await storage.getLowInventoryCount();
+    const pendingOrders = allOrders.filter(order => 
+      order.status === 'pending' || order.status === 'in_production'
+    ).length;
 
     return `
 - Recent orders (7 days): ${recentOrders}
 - Pending orders: ${pendingOrders}
-- Production queue: ${productionSummary.inProduction || 0} orders in progress
-- Low inventory alerts: ${lowInventoryCount} items need reordering
+- Total orders: ${allOrders.length}
 - System status: Operational
 `;
   } catch (error) {

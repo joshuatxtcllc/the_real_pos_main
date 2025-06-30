@@ -36,6 +36,13 @@ interface RecommendationResponse {
   suggestedPairings: Record<string, string[]>;
 }
 
+interface ArtworkDimensions {
+  width: number;
+  height: number;
+  x?: number;
+  y?: number;
+}
+
 /**
  * Get personalized frame recommendations
  */
@@ -455,3 +462,30 @@ function getDefaultMatRecommendations(params: RecommendationParams): string[] {
  * @returns Canvas element with visualization
  */
 export function createVisualization(image: HTMLImageElement, dimensions: ArtworkDimensions): HTMLCanvasElement {
+  // Create canvas for visualization
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d');
+  
+  if (!ctx) {
+    throw new Error('Could not get canvas context');
+  }
+  
+  // Set canvas dimensions
+  canvas.width = image.width;
+  canvas.height = image.height;
+  
+  // Draw the original image
+  ctx.drawImage(image, 0, 0);
+  
+  // Draw detected artwork outline
+  ctx.strokeStyle = '#00ff00';
+  ctx.lineWidth = 3;
+  ctx.strokeRect(
+    dimensions.x || 0,
+    dimensions.y || 0,
+    dimensions.width,
+    dimensions.height
+  );
+  
+  return canvas;
+}
