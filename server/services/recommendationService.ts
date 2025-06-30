@@ -454,4 +454,4 @@ function getDefaultMatRecommendations(params: RecommendationParams): string[] {
  * @param dimensions The detected dimensions
  * @returns Canvas element with visualization
  */
-createVisualization(image: HTMLImageElement, dimensions: ArtworkDimensions): HTMLCanvasElement {
+export function createVisualization(image: HTMLImageElement, dimensions: ArtworkDimensions): HTMLCanvasElement {

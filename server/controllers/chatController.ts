@@ -13,10 +13,12 @@ import OpenAI from 'openai';
 import { findOrderByNumber } from '../services/orderService';
 import { getOrderStatusHistory } from '../services/orderStatusHistoryService';
 import { getLowStockAlerts } from '../services/inventoryService';
+import { storage } from '../storage';
 
 // Initialize OpenAI API
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
+});
 
 /**
  * Get current system context for AI assistant
@@ -47,9 +49,6 @@ async function getSystemContext(): Promise<string> {
     return '- System status: Operational (limited context available)';
   }
 }
-
-
-});
 
 // Sample questions and answers for common queries
 const FAQ_DATA = [
