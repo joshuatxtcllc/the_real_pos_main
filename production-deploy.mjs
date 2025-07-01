@@ -46,8 +46,8 @@ try {
     },
     dependencies: {
       // Only include essential runtime dependencies
-      "@neondatabase/serverless": originalPackage.dependencies["@neondatabase/serverless"],
-      "dotenv": originalPackage.dependencies["dotenv"]
+      "@neondatabase/serverless": originalPackage.dependencies?.["@neondatabase/serverless"] || "^0.9.0",
+      "dotenv": originalPackage.dependencies?.["dotenv"] || "^16.0.0"
     }
   };
 

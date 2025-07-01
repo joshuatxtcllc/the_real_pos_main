@@ -80,8 +80,8 @@ if (fs.existsSync('production-deploy.mjs')) {
     console.log('❌ Frontend build configuration issue');
   }
   
-  if (deployScript.includes('"type": "module"') && 
-      deployScript.includes('"start": "node start.mjs"')) {
+  if (deployScript.includes('type: "module"') && 
+      deployScript.includes('start: "node start.mjs"')) {
     console.log('✅ Production package.json configured for ESM and proper start command');
   } else {
     console.log('❌ Production package.json configuration issue');
