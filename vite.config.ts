@@ -18,18 +18,19 @@ export default defineConfig({
         ]
       : []),
   ],
+  root: "client",
   resolve: {
     alias: {
-      "@": path.resolve(import.meta.dirname, "client", "src"),
-      "@shared": path.resolve(import.meta.dirname, "shared"),
-      "@assets": path.resolve(import.meta.dirname, "attached_assets"),
+      "@": path.resolve(__dirname, "./client/src"),
+      "@shared": path.resolve(__dirname, "./shared"),
+      "@assets": path.resolve(__dirname, "attached_assets"),
     },
   },
-  root: path.resolve(import.meta.dirname, "client"),
   build: {
-    outDir: path.resolve(import.meta.dirname, "dist/public"),
+    outDir: path.resolve(__dirname, "dist/public"),
     emptyOutDir: true,
     rollupOptions: {
+      input: path.resolve(__dirname, "client/index.html"),
       output: {
         manualChunks: {
           // Split vendor libraries
@@ -39,11 +40,7 @@ export default defineConfig({
           utils: ['date-fns', 'clsx', 'tailwind-merge'],
           icons: ['lucide-react', 'react-icons'],
           forms: ['react-hook-form', '@hookform/resolvers'],
-          query: ['@tanstack/react-query'],
-          // Split large pages
-          'pos-system': ['./src/pages/PosSystem.tsx'],
-          'production': ['./src/pages/ProductionPage.tsx'],
-          'inventory': ['./src/pages/InventoryPage.tsx']
+          query: ['@tanstack/react-query']
         }
       }
     }
