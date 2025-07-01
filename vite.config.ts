@@ -29,6 +29,24 @@ export default defineConfig({
   build: {
     outDir: path.resolve(import.meta.dirname, "dist/public"),
     emptyOutDir: true,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          // Split vendor libraries
+          vendor: ['react', 'react-dom'],
+          ui: ['@radix-ui/react-dialog', '@radix-ui/react-dropdown-menu', '@radix-ui/react-toast'],
+          charts: ['recharts'],
+          utils: ['date-fns', 'clsx', 'tailwind-merge'],
+          icons: ['lucide-react', 'react-icons'],
+          forms: ['react-hook-form', '@hookform/resolvers'],
+          query: ['@tanstack/react-query'],
+          // Split large pages
+          'pos-system': ['./src/pages/PosSystem.tsx'],
+          'production': ['./src/pages/ProductionPage.tsx'],
+          'inventory': ['./src/pages/InventoryPage.tsx']
+        }
+      }
+    }
   },
   server: {
     host: "0.0.0.0",
