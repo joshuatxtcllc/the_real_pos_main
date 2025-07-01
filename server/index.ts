@@ -37,26 +37,46 @@ app.use(cors({
 }));
 
 // Early health check registration - MUST be before any other middleware
+// These endpoints respond immediately without database dependencies
 app.get('/', (req, res) => {
   res.set('Content-Type', 'application/json');
+  res.set('Cache-Control', 'no-cache');
   res.status(200).json({ 
     status: 'healthy', 
     service: 'Jay\'s Frames POS System',
     timestamp: new Date().toISOString(),
     environment: process.env.NODE_ENV || 'development',
-    port: PORT
+    port: PORT,
+    uptime: process.uptime(),
+    version: '1.0.0'
   });
 });
 
 // Additional health check endpoints for deployment systems
 app.get('/health', (req, res) => {
   res.set('Content-Type', 'application/json');
-  res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
+  res.set('Cache-Control', 'no-cache');
+  res.status(200).json({ 
+    status: 'ok', 
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime()
+  });
 });
 
 app.get('/ready', (req, res) => {
   res.set('Content-Type', 'application/json');
-  res.status(200).json({ ready: true, timestamp: new Date().toISOString() });
+  res.set('Cache-Control', 'no-cache');
+  res.status(200).json({ 
+    ready: true, 
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || 'development'
+  });
+});
+
+// Additional ping endpoint for load balancers
+app.get('/ping', (req, res) => {
+  res.set('Content-Type', 'text/plain');
+  res.status(200).send('pong');
 });
 
 // JSON parsing middleware with increased limits for image uploads
