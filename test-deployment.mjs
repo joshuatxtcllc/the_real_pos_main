@@ -1,37 +1,55 @@
 #!/usr/bin/env node
 
-import { exec } from 'child_process';
-import { promisify } from 'util';
+import { spawn } from 'child_process';
+import http from 'http';
 
-const execAsync = promisify(exec);
+console.log('Testing deployment build...');
 
-async function testDeployment() {
-  console.log('🧪 Testing deployment build...');
-  
-  try {
-    // Test TypeScript compilation
-    console.log('📝 Checking TypeScript compilation...');
-    await execAsync('npx tsc --noEmit --skipLibCheck');
-    console.log('✅ TypeScript compilation successful');
-    
-    // Test esbuild compilation
-    console.log('📦 Testing esbuild compilation...');
-    await execAsync('npx esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outfile=dist/test-server.mjs --define:process.env.NODE_ENV=\"production\" --minify');
-    console.log('✅ ESBuild compilation successful');
-    
-    console.log('🎉 All deployment tests passed!');
-    return true;
-  } catch (error) {
-    console.error('❌ Deployment test failed:', error.message);
-    return false;
-  }
-}
-
-testDeployment().then(success => {
-  if (success) {
-    console.log('\n🚀 Application is ready for deployment!');
-  } else {
-    console.log('\n🔧 Additional fixes needed before deployment');
-    process.exit(1);
-  }
+// Start the server
+const server = spawn('npx', ['tsx', 'server.ts'], { 
+  cwd: 'dist',
+  stdio: 'pipe'
 });
+
+server.stdout.on('data', (data) => {
+  console.log('Server:', data.toString().trim());
+});
+
+server.stderr.on('data', (data) => {
+  console.error('Error:', data.toString().trim());
+});
+
+// Test health check after 3 seconds
+setTimeout(() => {
+  console.log('Testing health check...');
+  
+  const req = http.request({
+    hostname: 'localhost',
+    port: 5000,
+    path: '/',
+    method: 'GET'
+  }, (res) => {
+    let data = '';
+    res.on('data', chunk => data += chunk);
+    res.on('end', () => {
+      console.log('✅ Health check successful:', data);
+      server.kill();
+      process.exit(0);
+    });
+  });
+  
+  req.on('error', (err) => {
+    console.error('❌ Health check failed:', err.message);
+    server.kill();
+    process.exit(1);
+  });
+  
+  req.end();
+}, 3000);
+
+// Cleanup after 10 seconds
+setTimeout(() => {
+  console.log('Timeout - killing server');
+  server.kill();
+  process.exit(1);
+}, 10000);

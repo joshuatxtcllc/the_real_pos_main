@@ -3,8 +3,8 @@ modules = ["nodejs-20"]
 run = "npx tsx server/index.ts"
 
 [deployment]
-build = ["node", "minimal-deploy.mjs"]
-run = ["npx", "tsx", "index.ts"]
+build = ["node", "final-deploy.mjs"]
+run = ["npx", "tsx", "server.ts"]
 
 [env]
 NODE_ENV = "production"
