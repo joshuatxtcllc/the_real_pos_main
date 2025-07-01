@@ -31,13 +31,32 @@
     color: #111827 !important;
   }
 
+  /* Input and form element text colors */
+  input, select, textarea {
+    color: #111827 !important;
+  }
+
+  input::placeholder, textarea::placeholder, select option {
+    color: #6b7280 !important;
+  }
+
   /* Override Tailwind's default text colors for better visibility */
   .text-foreground {
     color: #111827 !important;
   }
 
-  .text-muted-foreground {
+  .text-muted-foreground, .text-light-textSecondary, .text-gray-500, .text-gray-400 {
     color: #6b7280 !important;
+  }
+
+  /* Ensure form labels and text are always dark */
+  .text-sm, .text-xs {
+    color: #111827 !important;
+  }
+
+  /* Dark text for specific utility classes used in forms */
+  .text-gray-800 {
+    color: #111827 !important;
   }
   
   /* Touch manipulation for better mobile interactions */

@@ -1129,47 +1129,47 @@ const PosSystem = () => {
           <h2 className="text-lg lg:text-xl font-semibold mb-3 lg:mb-4 header-underline">Order Information</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 lg:gap-4">
             <div>
-              <label className="block text-sm font-medium text-light-textSecondary dark:text-dark-textSecondary mb-1">
+              <label className="block text-sm font-medium text-gray-800 mb-1">
                 Customer Name
               </label>
               <input 
                 type="text" 
-                className="w-full p-3 text-base border border-light-border dark:border-dark-border rounded-md bg-light-bg dark:bg-dark-bg touch-manipulation" 
+                className="w-full p-3 text-base text-gray-800 border border-gray-300 rounded-md bg-white touch-manipulation" 
                 placeholder="Enter customer name"
                 value={customer.name}
                 onChange={(e) => setCustomer({...customer, name: e.target.value})}
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-light-textSecondary dark:text-dark-textSecondary mb-1">
+              <label className="block text-sm font-medium text-gray-800 mb-1">
                 Order Date
               </label>
               <input 
                 type="date" 
-                className="w-full p-3 text-base border border-light-border dark:border-dark-border rounded-md bg-light-bg dark:bg-dark-bg touch-manipulation"
+                className="w-full p-3 text-base text-gray-800 border border-gray-300 rounded-md bg-white touch-manipulation"
                 value={new Date().toISOString().split('T')[0]}
                 readOnly
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-light-textSecondary dark:text-dark-textSecondary mb-1">
+              <label className="block text-sm font-medium text-gray-800 mb-1">
                 Phone
               </label>
               <input 
                 type="tel" 
-                className="w-full p-3 text-base border border-light-border dark:border-dark-border rounded-md bg-light-bg dark:bg-dark-bg touch-manipulation" 
+                className="w-full p-3 text-base text-gray-800 border border-gray-300 rounded-md bg-white touch-manipulation" 
                 placeholder="(555) 123-4567"
                 value={customer.phone || ''}
                 onChange={(e) => setCustomer({...customer, phone: e.target.value})}
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-light-textSecondary dark:text-dark-textSecondary mb-1">
+              <label className="block text-sm font-medium text-gray-800 mb-1">
                 Email
               </label>
               <input 
                 type="email" 
-                className="w-full p-3 text-base border border-light-border dark:border-dark-border rounded-md bg-light-bg dark:bg-dark-bg touch-manipulation" 
+                className="w-full p-3 text-base text-gray-800 border border-gray-300 rounded-md bg-white touch-manipulation" 
                 placeholder="customer@example.com"
                 value={customer.email || ''}
                 onChange={(e) => setCustomer({...customer, email: e.target.value})}
@@ -1239,7 +1239,7 @@ const PosSystem = () => {
                 Art Type
               </label>
               <select
-                className="w-full p-3 text-base border border-gray-300 rounded-md bg-white text-gray-800 touch-manipulation"
+                className="w-full p-3 text-base text-gray-800 border border-gray-300 rounded-md bg-white touch-manipulation"
                 value={artworkType}
                 onChange={(e) => setArtworkType(e.target.value)}
               >
