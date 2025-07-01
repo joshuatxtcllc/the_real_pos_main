@@ -1,13 +1,10 @@
-# Production deployment configuration for Cloud Run
-modules = ["nodejs-20", "bash", "web", "postgresql-16"]
+modules = ["nodejs-20"]
 
 run = "npx tsx server/index.ts"
-entrypoint = "server/index.ts"
 
 [deployment]
-build = ["node", "production-deploy.mjs"]
-run = ["node", "dist/start.mjs"]
-deploymentTarget = "autoscale"
+build = ["node", "minimal-deploy.mjs"]
+run = ["npx", "tsx", "index.ts"]
 
 [env]
 NODE_ENV = "production"
