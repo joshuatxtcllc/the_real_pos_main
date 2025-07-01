@@ -44,6 +44,11 @@ export function ArtworkSizeDetector({
   });
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [manualEntry, setManualEntry] = useState<boolean>(false);
+  const [zoomLevel, setZoomLevel] = useState<number>(1);
+  const [panX, setPanX] = useState<number>(0);
+  const [panY, setPanY] = useState<number>(0);
+  const [isPanning, setIsPanning] = useState<boolean>(false);
+  const [lastTouch, setLastTouch] = useState<{ x: number; y: number } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const webcamRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -590,7 +595,55 @@ export function ArtworkSizeDetector({
                         ref={webcamRef} 
                         autoPlay 
                         playsInline 
-                        className="w-full h-full object-cover"
+                        className="w-full h-full object-cover transition-transform duration-200 cursor-move"
+                        style={{ 
+                          transform: `scale(${zoomLevel}) translate(${panX}px, ${panY}px)`,
+                          transformOrigin: 'center center'
+                        }}
+                        onMouseDown={(e) => {
+                          if (zoomLevel > 1) {
+                            setIsPanning(true);
+                            setLastTouch({ x: e.clientX, y: e.clientY });
+                          }
+                        }}
+                        onMouseMove={(e) => {
+                          if (isPanning && lastTouch && zoomLevel > 1) {
+                            const deltaX = e.clientX - lastTouch.x;
+                            const deltaY = e.clientY - lastTouch.y;
+                            setPanX(prev => prev + deltaX);
+                            setPanY(prev => prev + deltaY);
+                            setLastTouch({ x: e.clientX, y: e.clientY });
+                          }
+                        }}
+                        onMouseUp={() => {
+                          setIsPanning(false);
+                          setLastTouch(null);
+                        }}
+                        onMouseLeave={() => {
+                          setIsPanning(false);
+                          setLastTouch(null);
+                        }}
+                        onTouchStart={(e) => {
+                          if (e.touches.length === 1 && zoomLevel > 1) {
+                            const touch = e.touches[0];
+                            setIsPanning(true);
+                            setLastTouch({ x: touch.clientX, y: touch.clientY });
+                          }
+                        }}
+                        onTouchMove={(e) => {
+                          if (isPanning && lastTouch && e.touches.length === 1 && zoomLevel > 1) {
+                            const touch = e.touches[0];
+                            const deltaX = touch.clientX - lastTouch.x;
+                            const deltaY = touch.clientY - lastTouch.y;
+                            setPanX(prev => prev + deltaX);
+                            setPanY(prev => prev + deltaY);
+                            setLastTouch({ x: touch.clientX, y: touch.clientY });
+                          }
+                        }}
+                        onTouchEnd={() => {
+                          setIsPanning(false);
+                          setLastTouch(null);
+                        }}
                       />
                       
                       {/* Camera grid overlay for alignment */}
@@ -609,8 +662,53 @@ export function ArtworkSizeDetector({
                       </div>
                       
                       {/* Instruction overlay */}
-                      <div className="absolute top-4 left-0 right-0 text-center text-white text-sm bg-black/50 py-2 px-4 mx-4 rounded">
-                        Position artwork with 1" × 1" marker on same plane
+                      <div className="absolute top-4 left-0 right-0 text-center text-white text-sm bg-black/70 py-3 px-4 mx-4 rounded-lg backdrop-blur-sm">
+                        <div className="font-medium">Position artwork with 1" × 1" marker on same plane</div>
+                        <div className="text-xs mt-1 opacity-90">
+                          Use zoom controls to get closer • {zoomLevel > 1 ? 'Drag to pan view' : 'Zoom in to enable panning'}
+                        </div>
+                      </div>
+                      
+                      {/* Zoom controls */}
+                      <div className="absolute right-4 top-1/2 transform -translate-y-1/2 flex flex-col gap-2 bg-black/70 rounded-lg p-3 backdrop-blur-sm">
+                        <div className="text-white text-xs text-center font-medium mb-1">Zoom</div>
+                        <Button
+                          onClick={() => setZoomLevel(prev => Math.min(4, prev + 0.3))}
+                          size="sm"
+                          variant="secondary"
+                          className="bg-white/90 text-black hover:bg-white w-10 h-8 p-0 font-bold text-lg"
+                          disabled={zoomLevel >= 4}
+                          title="Zoom In"
+                        >
+                          +
+                        </Button>
+                        <div className="text-white text-sm text-center font-mono bg-black/70 px-2 py-1 rounded border border-white/20">
+                          {zoomLevel.toFixed(1)}x
+                        </div>
+                        <Button
+                          onClick={() => setZoomLevel(prev => Math.max(1, prev - 0.3))}
+                          size="sm"
+                          variant="secondary"
+                          className="bg-white/90 text-black hover:bg-white w-10 h-8 p-0 font-bold text-lg"
+                          disabled={zoomLevel <= 1}
+                          title="Zoom Out"
+                        >
+                          -
+                        </Button>
+                        <Button
+                          onClick={() => {
+                            setZoomLevel(1);
+                            setPanX(0);
+                            setPanY(0);
+                          }}
+                          size="sm"
+                          variant="secondary"
+                          className="bg-white/90 text-black hover:bg-white w-10 h-8 p-0 text-xs font-medium"
+                          disabled={zoomLevel === 1 && panX === 0 && panY === 0}
+                          title="Reset View"
+                        >
+                          Reset
+                        </Button>
                       </div>
                       
                       {/* Capture button overlay */}
