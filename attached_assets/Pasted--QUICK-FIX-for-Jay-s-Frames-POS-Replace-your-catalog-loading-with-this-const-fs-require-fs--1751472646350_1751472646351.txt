@@ -1,0 +1,412 @@
+// QUICK FIX for Jay's Frames POS - Replace your catalog loading with this
+
+const fs = require('fs');
+const csv = require('csv-parser');
+
+class SimpleJaysFramesCatalog {
+  constructor(catalogFilePath) {
+    this.filePath = catalogFilePath;
+    this.products = [];
+    this.lastLoaded = null;
+    this.isLoading = false;
+  }
+
+  // Main method - call this instead of any API calls
+  async getProducts() {
+    if (this.shouldReload() && !this.isLoading) {
+      await this.loadCatalog();
+    }
+    return this.products;
+  }
+
+  shouldReload() {
+    if (!this.lastLoaded) return true;
+    // Reload every 6 hours
+    return (Date.now() - this.lastLoaded) > (6 * 60 * 60 * 1000);
+  }
+
+  async loadCatalog() {
+    this.isLoading = true;
+    console.log('🔄 Loading Larson-Juhl catalog from file...');
+
+    try {
+      this.products = await this.parseCSV();
+      this.lastLoaded = Date.now();
+      console.log(`✅ Loaded ${this.products.length} products successfully`);
+    } catch (error) {
+      console.error('❌ Failed to load catalog:', error.message);
+      // Keep existing products if reload fails
+    } finally {
+      this.isLoading = false;
+    }
+  }
+
+  parseCSV() {
+    return new Promise((resolve, reject) => {
+      const products = [];
+      const stream = fs.createReadStream(this.filePath);
+
+      stream
+        .pipe(csv({
+          // Handle different header formats automatically
+          mapHeaders: ({ header, index }) => {
+            const cleaned = header.trim().toLowerCase();
+            
+            // Map common variations to standard names
+            const mappings = {
+              'item number': 'sku',
+              'item_number': 'sku',
+              'part number': 'sku',
+              'part_number': 'sku',
+              'product code': 'sku',
+              'product_code': 'sku',
+              'product name': 'name',
+              'product_name': 'name',
+              'description': 'name',
+              'title': 'name',
+              'wholesale price': 'wholesale_price',
+              'wholesale_price': 'wholesale_price',
+              'dealer price': 'wholesale_price',
+              'dealer_price': 'wholesale_price',
+              'cost': 'wholesale_price',
+              'trade price': 'wholesale_price',
+              'retail price': 'retail_price',
+              'retail_price': 'retail_price',
+              'list price': 'retail_price',
+              'list_price': 'retail_price',
+              'msrp': 'retail_price',
+              'suggested retail': 'retail_price',
+              'product category': 'category',
+              'product_category': 'category',
+              'type': 'category',
+              'group': 'category',
+              'stock status': 'stock',
+              'stock_status': 'stock',
+              'available': 'stock',
+              'inventory': 'stock',
+              'in stock': 'stock',
+              'in_stock': 'stock'
+            };
+
+            return mappings[cleaned] || cleaned.replace(/[^a-z0-9]/g, '_');
+          },
+          skipEmptyLines: true,
+          skipLinesWithError: true
+        }))
+        .on('data', (row) => {
+          try {
+            const product = this.normalizeProduct(row);
+            if (product.sku && product.name) {
+              products.push(product);
+            }
+          } catch (error) {
+            // Skip invalid rows silently
+            console.warn('Skipping invalid row:', error.message);
+          }
+        })
+        .on('end', () => {
+          resolve(products);
+        })
+        .on('error', (error) => {
+          reject(new Error(`CSV parsing failed: ${error.message}`));
+        });
+    });
+  }
+
+  normalizeProduct(rawProduct) {
+    const product = {};
+
+    // Extract SKU
+    product.sku = this.cleanString(
+      rawProduct.sku || 
+      rawProduct.item_number || 
+      rawProduct.part_number ||
+      rawProduct.product_code ||
+      ''
+    );
+
+    // Extract name
+    product.name = this.cleanString(
+      rawProduct.name || 
+      rawProduct.product_name || 
+      rawProduct.description || 
+      rawProduct.title ||
+      ''
+    );
+
+    // Extract prices
+    product.wholesale_price = this.parsePrice(
+      rawProduct.wholesale_price || 
+      rawProduct.dealer_price || 
+      rawProduct.cost || 
+      rawProduct.trade_price ||
+      '0'
+    );
+
+    product.retail_price = this.parsePrice(
+      rawProduct.retail_price || 
+      rawProduct.list_price || 
+      rawProduct.msrp || 
+      rawProduct.suggested_retail ||
+      '0'
+    );
+
+    // Extract category
+    product.category = this.cleanString(
+      rawProduct.category || 
+      rawProduct.product_category || 
+      rawProduct.type || 
+      rawProduct.group ||
+      'Uncategorized'
+    );
+
+    // Extract stock status
+    product.in_stock = this.parseStock(
+      rawProduct.stock || 
+      rawProduct.stock_status || 
+      rawProduct.available || 
+      rawProduct.inventory ||
+      rawProduct.in_stock ||
+      'unknown'
+    );
+
+    // Extract dimensions if available
+    product.width = this.parseDimension(rawProduct.width || rawProduct.w || '0');
+    product.height = this.parseDimension(rawProduct.height || rawProduct.h || '0');
+
+    // Extract material and finish
+    product.material = this.cleanString(rawProduct.material || rawProduct.frame_material || '');
+    product.finish = this.cleanString(rawProduct.finish || rawProduct.color || rawProduct.frame_finish || '');
+
+    return product;
+  }
+
+  cleanString(str) {
+    if (!str) return '';
+    return str.toString().trim();
+  }
+
+  parsePrice(priceStr) {
+    if (!priceStr) return 0;
+    
+    // Remove currency symbols, commas, and spaces
+    const cleaned = priceStr.toString().replace(/[$£€¥,\s]/g, '');
+    const parsed = parseFloat(cleaned);
+    
+    return isNaN(parsed) ? 0 : Math.round(parsed * 100) / 100; // Round to 2 decimals
+  }
+
+  parseDimension(dimStr) {
+    if (!dimStr) return 0;
+    
+    // Extract numeric value, ignoring units
+    const cleaned = dimStr.toString().replace(/[^\d.]/g, '');
+    const parsed = parseFloat(cleaned);
+    
+    return isNaN(parsed) ? 0 : parsed;
+  }
+
+  parseStock(stockStr) {
+    if (!stockStr) return false;
+    
+    const stockValue = stockStr.toString().toLowerCase().trim();
+    const inStockValues = ['true', 'yes', 'available', 'in stock', 'instock', '1', 'y'];
+    
+    return inStockValues.includes(stockValue);
+  }
+
+  // Search products by SKU, name, or category
+  async searchProducts(query) {
+    const products = await this.getProducts();
+    
+    if (!query) return products;
+    
+    const searchTerm = query.toLowerCase();
+    
+    return products.filter(product => 
+      product.sku.toLowerCase().includes(searchTerm) ||
+      product.name.toLowerCase().includes(searchTerm) ||
+      product.category.toLowerCase().includes(searchTerm) ||
+      product.material.toLowerCase().includes(searchTerm) ||
+      product.finish.toLowerCase().includes(searchTerm)
+    );
+  }
+
+  // Get single product by SKU
+  async getProductBySku(sku) {
+    const products = await this.getProducts();
+    return products.find(product => 
+      product.sku.toLowerCase() === sku.toLowerCase()
+    );
+  }
+
+  // Get products by category
+  async getProductsByCategory(category) {
+    const products = await this.getProducts();
+    return products.filter(product => 
+      product.category.toLowerCase() === category.toLowerCase()
+    );
+  }
+
+  // Get all categories
+  async getCategories() {
+    const products = await this.getProducts();
+    const categories = new Set();
+    
+    products.forEach(product => {
+      if (product.category) {
+        categories.add(product.category);
+      }
+    });
+    
+    return Array.from(categories).sort();
+  }
+
+  // Calculate frame pricing (your existing logic)
+  calculateFramePrice(product, width, height, options = {}) {
+    if (!product.wholesale_price) {
+      throw new Error('Product has no wholesale price');
+    }
+
+    // Calculate linear feet for frame
+    const linearFeet = 2 * (width + height) / 12;
+    
+    // Base frame cost
+    let frameCost = product.wholesale_price * linearFeet;
+    
+    // Apply your markup (adjust as needed)
+    const markup = options.markup || 2.5; // 150% markup
+    let framePrice = frameCost * markup;
+
+    // Add glass cost
+    const glassArea = (width * height) / 144; // square feet
+    const glassCosts = {
+      standard: 8,
+      uv: 12,
+      museum: 20
+    };
+    const glassCost = glassArea * (glassCosts[options.glass] || glassCosts.standard);
+
+    // Add matting cost if requested
+    let mattingCost = 0;
+    if (options.matting) {
+      mattingCost = glassArea * 15; // $15 per sq ft
+    }
+
+    const totalPrice = framePrice + glassCost + mattingCost;
+
+    return {
+      product: product,
+      dimensions: { width, height, linearFeet },
+      costs: {
+        frame: Math.round(framePrice * 100) / 100,
+        glass: Math.round(glassCost * 100) / 100,
+        matting: Math.round(mattingCost * 100) / 100,
+        total: Math.round(totalPrice * 100) / 100
+      }
+    };
+  }
+
+  // Get status for debugging
+  getStatus() {
+    return {
+      productsLoaded: this.products.length,
+      lastLoaded: this.lastLoaded ? new Date(this.lastLoaded).toISOString() : null,
+      isLoading: this.isLoading,
+      filePath: this.filePath
+    };
+  }
+}
+
+// Simple Express.js integration
+function setupQuickAPI(app, catalogPath) {
+  const catalog = new SimpleJaysFramesCatalog(catalogPath);
+
+  // Initialize catalog on startup
+  catalog.loadCatalog().catch(console.error);
+
+  // Get all products
+  app.get('/api/products', async (req, res) => {
+    try {
+      const products = await catalog.getProducts();
+      res.json({ success: true, count: products.length, products });
+    } catch (error) {
+      res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
+  // Search products
+  app.get('/api/products/search', async (req, res) => {
+    try {
+      const { q } = req.query;
+      const products = await catalog.searchProducts(q);
+      res.json({ success: true, count: products.length, products });
+    } catch (error) {
+      res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
+  // Get product by SKU
+  app.get('/api/products/:sku', async (req, res) => {
+    try {
+      const product = await catalog.getProductBySku(req.params.sku);
+      if (!product) {
+        return res.status(404).json({ success: false, error: 'Product not found' });
+      }
+      res.json({ success: true, product });
+    } catch (error) {
+      res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
+  // Calculate frame price
+  app.post('/api/calculate-price', async (req, res) => {
+    try {
+      const { sku, width, height, options } = req.body;
+      
+      const product = await catalog.getProductBySku(sku);
+      if (!product) {
+        return res.status(404).json({ success: false, error: 'Product not found' });
+      }
+
+      const pricing = catalog.calculateFramePrice(product, width, height, options);
+      res.json({ success: true, pricing });
+    } catch (error) {
+      res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
+  // Get categories
+  app.get('/api/categories', async (req, res) => {
+    try {
+      const categories = await catalog.getCategories();
+      res.json({ success: true, categories });
+    } catch (error) {
+      res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
+  // Get status
+  app.get('/api/status', (req, res) => {
+    const status = catalog.getStatus();
+    res.json({ success: true, status });
+  });
+
+  return catalog;
+}
+
+// Usage in your POS system:
+/*
+const catalog = new SimpleJaysFramesCatalog('./data/larson-juhl-catalog.csv');
+
+// Replace all your API calls with these:
+const allProducts = await catalog.getProducts();
+const frameProducts = await catalog.searchProducts('frame');
+const product = await catalog.getProductBySku('LJ-1234');
+const pricing = catalog.calculateFramePrice(product, 16, 20, { glass: 'uv', matting: true });
+*/
+
+module.exports = {
+  SimpleJaysFramesCatalog,
+  setupQuickAPI
+};

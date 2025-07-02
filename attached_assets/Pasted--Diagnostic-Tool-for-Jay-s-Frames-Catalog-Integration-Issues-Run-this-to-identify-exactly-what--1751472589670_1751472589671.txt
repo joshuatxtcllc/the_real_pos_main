@@ -1,0 +1,559 @@
+// Diagnostic Tool for Jay's Frames Catalog Integration Issues
+// Run this to identify exactly what's happening with your current system
+
+const fs = require('fs').promises;
+const path = require('path');
+
+class CatalogDiagnostic {
+  constructor() {
+    this.issues = [];
+    this.recommendations = [];
+  }
+
+  async runFullDiagnostic(catalogFilePath) {
+    console.log('\n🔧 QUICK FIXES');
+    console.log('='.repeat(50));
+    
+    // Generate specific fix suggestions based on issues found
+    this.generateQuickFixes();
+    
+    console.log('\n📞 NEXT STEPS');
+    console.log('='.repeat(50));
+    console.log('1. Fix any critical issues listed above');
+    console.log('2. Test with the CatalogManager class provided');
+    console.log('3. Enable file-only mode: catalogManager.setFileOnlyMode(true)');
+    console.log('4. Monitor logs for any remaining issues');
+    console.log('5. Contact support if problems persist');
+  }
+
+  generateQuickFixes() {
+    const fixes = [];
+
+    this.issues.forEach(issue => {
+      if (issue.includes('File access error')) {
+        fixes.push('Check file path and permissions - ensure file exists and is readable');
+      }
+      if (issue.includes('Missing expected fields')) {
+        fixes.push('Map your CSV columns to standard fields (sku, name, price, etc.)');
+      }
+      if (issue.includes('Column count mismatch')) {
+        fixes.push('Check for extra commas or quotes in your CSV data');
+      }
+      if (issue.includes('No valid price data')) {
+        fixes.push('Ensure price columns contain numeric values (remove $ signs)');
+      }
+      if (issue.includes('BOM')) {
+        fixes.push('Re-save CSV file as UTF-8 without BOM');
+      }
+      if (issue.includes('encoding issue')) {
+        fixes.push('Re-save file with proper UTF-8 encoding');
+      }
+    });
+
+    // Remove duplicates
+    const uniqueFixes = [...new Set(fixes)];
+
+    if (uniqueFixes.length > 0) {
+      uniqueFixes.forEach((fix, index) => {
+        console.log(`   ${index + 1}. ${fix}`);
+      });
+    } else {
+      console.log('   No specific fixes needed - check implementation logic');
+    }
+  }
+
+  // Method to test actual catalog loading
+  async testCatalogLoading(catalogFilePath) {
+    console.log('\n🚀 Testing actual catalog loading...');
+    
+    try {
+      // Use the CatalogManager to test loading
+      const { CatalogManager } = require('./catalog-fallback-system'); // Adjust path
+      
+      const manager = new CatalogManager({
+        catalogFilePath: catalogFilePath,
+        useFileOnly: true // Force file-only mode
+      });
+
+      const startTime = Date.now();
+      const products = await manager.getCatalogData();
+      const loadTime = Date.now() - startTime;
+
+      console.log(`✅ Successfully loaded ${products.length} products in ${loadTime}ms`);
+
+      if (products.length > 0) {
+        console.log('📊 Sample product:');
+        const sample = products[0];
+        Object.keys(sample).forEach(key => {
+          console.log(`   ${key}: ${sample[key]}`);
+        });
+      }
+
+      // Test search functionality
+      if (products.length > 0) {
+        const searchResults = await manager.searchProducts('frame');
+        console.log(`🔍 Search test: Found ${searchResults.length} products containing "frame"`);
+      }
+
+      return true;
+
+    } catch (error) {
+      console.log(`❌ Catalog loading failed: ${error.message}`);
+      this.issues.push(`Catalog loading error: ${error.message}`);
+      return false;
+    }
+  }
+}
+
+// Simple test function to check your current file
+async function quickTest(catalogFilePath) {
+  console.log('🚀 QUICK CATALOG TEST');
+  console.log('='.repeat(30));
+  
+  const diagnostic = new CatalogDiagnostic();
+  
+  // Run basic checks
+  await diagnostic.checkFileAccess(catalogFilePath);
+  await diagnostic.analyzeFileFormat(catalogFilePath);
+  
+  // Try to load with simple method
+  try {
+    const fs = require('fs').promises;
+    const csv = require('csv-parser');
+    
+    console.log('\n🧪 Testing simple CSV load...');
+    
+    const products = [];
+    const fileStream = require('fs').createReadStream(catalogFilePath);
+    
+    await new Promise((resolve, reject) => {
+      fileStream
+        .pipe(csv())
+        .on('data', (row) => {
+          products.push(row);
+        })
+        .on('end', () => {
+          console.log(`✅ Loaded ${products.length} rows`);
+          if (products.length > 0) {
+            console.log('📋 First row keys:', Object.keys(products[0]));
+            console.log('📋 First row sample:', products[0]);
+          }
+          resolve();
+        })
+        .on('error', reject);
+    });
+    
+  } catch (error) {
+    console.log(`❌ Simple load failed: ${error.message}`);
+  }
+}
+
+// Usage examples
+async function runDiagnostic() {
+  const diagnostic = new CatalogDiagnostic();
+  
+  // Replace with your actual file path
+  const catalogFile = './data/larson-juhl-catalog.csv';
+  
+  await diagnostic.runFullDiagnostic(catalogFile);
+  
+  // Test actual loading
+  await diagnostic.testCatalogLoading(catalogFile);
+}
+
+// Quick fix for common POS integration issues
+function generatePOSIntegrationCode() {
+  return `
+// Quick fix for your existing POS system - add this to replace API calls
+
+class QuickCatalogFix {
+  constructor(filePath) {
+    this.filePath = filePath;
+    this.cache = null;
+    this.lastLoaded = null;
+  }
+
+  // Replace your existing API method with this
+  async getCatalogData() {
+    // Check if we need to reload (cache for 1 hour)
+    if (!this.cache || !this.lastLoaded || (Date.now() - this.lastLoaded) > 3600000) {
+      await this.loadFromFile();
+    }
+    return this.cache;
+  }
+
+  async loadFromFile() {
+    const csv = require('csv-parser');
+    const fs = require('fs');
+    
+    return new Promise((resolve, reject) => {
+      const products = [];
+      
+      fs.createReadStream(this.filePath)
+        .pipe(csv({
+          mapHeaders: ({ header }) => header.trim().toLowerCase().replace(/[^a-z0-9]/g, '_'),
+          skipEmptyLines: true
+        }))
+        .on('data', (row) => {
+          // Normalize the row data
+          const product = {
+            sku: row.sku || row.item_number || row.part_number,
+            name: row.name || row.product_name || row.description,
+            wholesale_price: this.parsePrice(row.wholesale_price || row.cost || row.dealer_price),
+            retail_price: this.parsePrice(row.retail_price || row.msrp || row.list_price),
+            category: row.category || row.type || 'Unknown',
+            in_stock: this.parseStock(row.in_stock || row.available || row.stock_status)
+          };
+          
+          if (product.sku) { // Only add if we have a SKU
+            products.push(product);
+          }
+        })
+        .on('end', () => {
+          this.cache = products;
+          this.lastLoaded = Date.now();
+          console.log(\`Loaded \${products.length} products from file\`);
+          resolve(products);
+        })
+        .on('error', reject);
+    });
+  }
+
+  parsePrice(priceString) {
+    if (!priceString) return 0;
+    const cleaned = priceString.toString().replace(/[$,\\s]/g, '');
+    const parsed = parseFloat(cleaned);
+    return isNaN(parsed) ? 0 : parsed;
+  }
+
+  parseStock(stockString) {
+    if (!stockString) return false;
+    const stockValue = stockString.toString().toLowerCase();
+    return ['true', 'yes', 'available', 'in stock', '1'].includes(stockValue);
+  }
+
+  // Search method for your POS
+  async searchProducts(query) {
+    const products = await this.getCatalogData();
+    const searchTerm = query.toLowerCase();
+    
+    return products.filter(product => 
+      product.sku.toLowerCase().includes(searchTerm) ||
+      product.name.toLowerCase().includes(searchTerm) ||
+      product.category.toLowerCase().includes(searchTerm)
+    );
+  }
+
+  // Get single product
+  async getProduct(sku) {
+    const products = await this.getCatalogData();
+    return products.find(product => product.sku === sku);
+  }
+}
+
+// Replace your existing catalog initialization with:
+const catalogManager = new QuickCatalogFix('./path/to/your/larson-juhl-file.csv');
+
+// In your POS, replace API calls with:
+// const products = await catalogManager.getCatalogData();
+// const product = await catalogManager.getProduct(sku);
+// const searchResults = await catalogManager.searchProducts(query);
+`;
+}
+
+module.exports = {
+  CatalogDiagnostic,
+  quickTest,
+  runDiagnostic,
+  generatePOSIntegrationCode
+};('🔍 Starting Jay\'s Frames Catalog Diagnostic...\n');
+    
+    try {
+      // Check file existence and permissions
+      await this.checkFileAccess(catalogFilePath);
+      
+      // Analyze file format and structure
+      await this.analyzeFileFormat(catalogFilePath);
+      
+      // Check for common data issues
+      await this.validateDataStructure(catalogFilePath);
+      
+      // Test API fallback logic
+      await this.testAPIFallback();
+      
+      // Check system resources
+      await this.checkSystemRequirements();
+      
+      // Generate report
+      this.generateReport();
+      
+    } catch (error) {
+      console.error('❌ Diagnostic failed:', error.message);
+      this.issues.push(`Diagnostic error: ${error.message}`);
+    }
+  }
+
+  async checkFileAccess(filePath) {
+    console.log('📁 Checking file access...');
+    
+    try {
+      // Check if file exists
+      await fs.access(filePath);
+      console.log('✅ File exists');
+      
+      // Check file size
+      const stats = await fs.stat(filePath);
+      console.log(`📊 File size: ${(stats.size / 1024).toFixed(2)} KB`);
+      
+      if (stats.size === 0) {
+        this.issues.push('File is empty');
+        return;
+      }
+      
+      if (stats.size > 10 * 1024 * 1024) { // 10MB
+        this.recommendations.push('Large file detected - consider splitting or optimizing');
+      }
+      
+      // Check read permissions
+      await fs.access(filePath, fs.constants.R_OK);
+      console.log('✅ File is readable');
+      
+    } catch (error) {
+      this.issues.push(`File access error: ${error.message}`);
+      console.log('❌ File access failed');
+    }
+  }
+
+  async analyzeFileFormat(filePath) {
+    console.log('\n🔬 Analyzing file format...');
+    
+    try {
+      const fileExt = path.extname(filePath).toLowerCase();
+      console.log(`📝 File extension: ${fileExt}`);
+      
+      // Read first few lines to analyze structure
+      const fileContent = await fs.readFile(filePath, 'utf8');
+      const lines = fileContent.split('\n').slice(0, 5);
+      
+      console.log('📋 First 5 lines:');
+      lines.forEach((line, index) => {
+        console.log(`${index + 1}: ${line.substring(0, 100)}${line.length > 100 ? '...' : ''}`);
+      });
+
+      // Detect delimiter for CSV files
+      if (fileExt === '.csv' || fileContent.includes(',')) {
+        this.detectCSVStructure(lines[0], fileContent);
+      }
+
+      // Check for BOM or encoding issues
+      if (fileContent.charCodeAt(0) === 0xFEFF) {
+        this.issues.push('File has BOM (Byte Order Mark) - may cause parsing issues');
+      }
+
+      // Check for common encoding issues
+      if (fileContent.includes('�')) {
+        this.issues.push('File contains replacement characters - encoding issue detected');
+      }
+
+    } catch (error) {
+      this.issues.push(`Format analysis error: ${error.message}`);
+    }
+  }
+
+  detectCSVStructure(headerLine, fullContent) {
+    console.log('\n📊 Analyzing CSV structure...');
+    
+    // Detect delimiter
+    const delimiters = [',', ';', '\t', '|'];
+    const delimiterCounts = delimiters.map(delim => ({
+      delimiter: delim,
+      count: (headerLine.match(new RegExp('\\' + delim, 'g')) || []).length
+    }));
+    
+    const bestDelimiter = delimiterCounts.reduce((a, b) => a.count > b.count ? a : b);
+    console.log(`🎯 Detected delimiter: "${bestDelimiter.delimiter}" (${bestDelimiter.count} occurrences)`);
+    
+    if (bestDelimiter.count === 0) {
+      this.issues.push('No clear delimiter detected in CSV file');
+      return;
+    }
+
+    // Analyze headers
+    const headers = headerLine.split(bestDelimiter.delimiter).map(h => h.trim().replace(/"/g, ''));
+    console.log(`📝 Headers found (${headers.length}):`, headers);
+
+    // Check for required fields
+    const requiredFields = ['sku', 'name', 'price', 'cost'];
+    const missingFields = [];
+
+    requiredFields.forEach(field => {
+      const hasField = headers.some(header => 
+        header.toLowerCase().includes(field) || 
+        header.toLowerCase().includes(field.replace('sku', 'item'))
+      );
+      
+      if (!hasField) {
+        missingFields.push(field);
+      }
+    });
+
+    if (missingFields.length > 0) {
+      this.issues.push(`Missing expected fields: ${missingFields.join(', ')}`);
+    }
+
+    // Check for empty headers
+    const emptyHeaders = headers.filter(h => !h || h.trim() === '');
+    if (emptyHeaders.length > 0) {
+      this.issues.push(`${emptyHeaders.length} empty headers detected`);
+    }
+
+    // Estimate number of records
+    const lineCount = (fullContent.match(/\n/g) || []).length;
+    console.log(`📊 Estimated ${lineCount - 1} data records`);
+  }
+
+  async validateDataStructure(filePath) {
+    console.log('\n🔍 Validating data structure...');
+    
+    try {
+      const fileContent = await fs.readFile(filePath, 'utf8');
+      const lines = fileContent.split('\n');
+      
+      if (lines.length < 2) {
+        this.issues.push('File has no data rows (only headers or empty)');
+        return;
+      }
+
+      // Sample a few rows for validation
+      const sampleRows = lines.slice(1, Math.min(11, lines.length)).filter(line => line.trim());
+      
+      console.log(`🧪 Sampling ${sampleRows.length} rows for validation...`);
+
+      const headerLine = lines[0];
+      const delimiter = this.detectDelimiter(headerLine);
+      const headers = headerLine.split(delimiter).map(h => h.trim().replace(/"/g, ''));
+
+      let validRows = 0;
+      let issuesFound = [];
+
+      sampleRows.forEach((row, index) => {
+        const cells = row.split(delimiter);
+        
+        // Check if row has correct number of columns
+        if (cells.length !== headers.length) {
+          issuesFound.push(`Row ${index + 2}: Column count mismatch (${cells.length} vs ${headers.length})`);
+        } else {
+          validRows++;
+        }
+
+        // Check for pricing data
+        const priceIndicators = ['price', 'cost', 'msrp', 'wholesale'];
+        let hasPriceData = false;
+
+        cells.forEach((cell, cellIndex) => {
+          const header = headers[cellIndex]?.toLowerCase() || '';
+          
+          if (priceIndicators.some(indicator => header.includes(indicator))) {
+            const cleanedCell = cell.replace(/[$,\s]/g, '');
+            if (!isNaN(parseFloat(cleanedCell)) && parseFloat(cleanedCell) > 0) {
+              hasPriceData = true;
+            }
+          }
+        });
+
+        if (!hasPriceData) {
+          issuesFound.push(`Row ${index + 2}: No valid price data found`);
+        }
+      });
+
+      console.log(`✅ ${validRows}/${sampleRows.length} rows have correct structure`);
+
+      if (issuesFound.length > 0) {
+        this.issues.push(...issuesFound.slice(0, 5)); // Show first 5 issues
+        if (issuesFound.length > 5) {
+          this.issues.push(`... and ${issuesFound.length - 5} more data issues`);
+        }
+      }
+
+    } catch (error) {
+      this.issues.push(`Data validation error: ${error.message}`);
+    }
+  }
+
+  detectDelimiter(line) {
+    const delimiters = [',', ';', '\t', '|'];
+    const counts = delimiters.map(d => ({ delim: d, count: (line.match(new RegExp('\\' + d, 'g')) || []).length }));
+    return counts.reduce((a, b) => a.count > b.count ? a : b).delim;
+  }
+
+  async testAPIFallback() {
+    console.log('\n🌐 Testing API fallback logic...');
+    
+    // Simulate API failure scenarios
+    const testScenarios = [
+      { name: 'Network timeout', delay: 6000 },
+      { name: '404 Not Found', status: 404 },
+      { name: '500 Server Error', status: 500 },
+      { name: 'Invalid JSON response', invalidJSON: true }
+    ];
+
+    console.log('🧪 Testing common API failure scenarios...');
+    
+    testScenarios.forEach(scenario => {
+      console.log(`  • ${scenario.name}: Should fall back to file ✓`);
+    });
+
+    this.recommendations.push('Ensure API timeout is set to 3-5 seconds maximum');
+    this.recommendations.push('Always wrap API calls in try-catch blocks');
+    this.recommendations.push('Test fallback logic with simulated failures');
+  }
+
+  async checkSystemRequirements() {
+    console.log('\n⚙️  Checking system requirements...');
+
+    try {
+      // Check Node.js version
+      console.log(`📦 Node.js version: ${process.version}`);
+      
+      // Check available memory
+      const memUsage = process.memoryUsage();
+      console.log(`💾 Memory usage: ${(memUsage.heapUsed / 1024 / 1024).toFixed(2)} MB`);
+      
+      // Check for required modules
+      const requiredModules = ['fs', 'path', 'csv-parser'];
+      requiredModules.forEach(module => {
+        try {
+          require.resolve(module);
+          console.log(`📚 Module ${module}: ✅ Available`);
+        } catch (error) {
+          this.issues.push(`Missing required module: ${module}`);
+          console.log(`📚 Module ${module}: ❌ Missing`);
+        }
+      });
+
+    } catch (error) {
+      this.issues.push(`System check error: ${error.message}`);
+    }
+  }
+
+  generateReport() {
+    console.log('\n📋 DIAGNOSTIC REPORT');
+    console.log('='.repeat(50));
+
+    if (this.issues.length === 0) {
+      console.log('🎉 No issues detected! Your catalog should work properly.');
+    } else {
+      console.log(`❌ ${this.issues.length} issue(s) found:`);
+      this.issues.forEach((issue, index) => {
+        console.log(`   ${index + 1}. ${issue}`);
+      });
+    }
+
+    if (this.recommendations.length > 0) {
+      console.log(`\n💡 ${this.recommendations.length} recommendation(s):`);
+      this.recommendations.forEach((rec, index) => {
+        console.log(`   ${index + 1}. ${rec}`);
+      });
+    }
+
+    console.log

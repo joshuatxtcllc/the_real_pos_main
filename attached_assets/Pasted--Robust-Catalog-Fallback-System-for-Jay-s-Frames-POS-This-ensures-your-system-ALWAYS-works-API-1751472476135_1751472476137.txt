@@ -1,0 +1,542 @@
+// Robust Catalog Fallback System for Jay's Frames POS
+// This ensures your system ALWAYS works, API or no API
+
+const fs = require('fs').promises;
+const path = require('path');
+const csv = require('csv-parser');
+
+class CatalogManager {
+  constructor(options = {}) {
+    this.apiUrl = options.apiUrl || 'https://api.larsonjuhl.com'; // Non-existent API
+    this.apiTimeout = options.apiTimeout || 5000; // 5 second timeout
+    this.catalogFilePath = options.catalogFilePath || './data/larson-juhl-catalog.csv';
+    this.backupFilePath = options.backupFilePath || './data/catalog-backup.json';
+    this.cache = new Map();
+    this.lastUpdate = null;
+    this.useFileOnly = options.useFileOnly || false; // Force file-only mode
+  }
+
+  // Main method - ALWAYS returns catalog data
+  async getCatalogData(forceRefresh = false) {
+    try {
+      // Skip API entirely if useFileOnly is true
+      if (!this.useFileOnly && (forceRefresh || this.shouldRefreshCache())) {
+        console.log('Attempting API fetch...');
+        const apiData = await this.fetchFromAPI();
+        if (apiData && apiData.length > 0) {
+          await this.saveCacheAndBackup(apiData);
+          return apiData;
+        }
+      }
+      
+      // Always fall back to file
+      console.log('Using local catalog file...');
+      return await this.loadFromFile();
+      
+    } catch (error) {
+      console.error('Error in getCatalogData:', error.message);
+      // Ultimate fallback - try backup file
+      return await this.loadFromBackup();
+    }
+  }
+
+  // API fetch with proper timeout and error handling
+  async fetchFromAPI() {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), this.apiTimeout);
+
+    try {
+      const response = await fetch(`${this.apiUrl}/catalog`, {
+        signal: controller.signal,
+        headers: {
+          'Authorization': `Bearer ${process.env.LARSON_JUHL_TOKEN || ''}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        throw new Error(`API Error: ${response.status} ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      console.log(`API fetch successful: ${data.length} products`);
+      return data;
+
+    } catch (error) {
+      clearTimeout(timeoutId);
+      
+      if (error.name === 'AbortError') {
+        console.log('API request timed out, falling back to file');
+      } else {
+        console.log(`API error: ${error.message}, falling back to file`);
+      }
+      
+      throw error; // Let the main method handle fallback
+    }
+  }
+
+  // Load from digital catalog file - multiple format support
+  async loadFromFile() {
+    try {
+      // Check if file exists
+      await fs.access(this.catalogFilePath);
+      
+      const fileExt = path.extname(this.catalogFilePath).toLowerCase();
+      let data;
+
+      switch (fileExt) {
+        case '.csv':
+          data = await this.parseCSVFile();
+          break;
+        case '.json':
+          data = await this.parseJSONFile();
+          break;
+        case '.xlsx':
+        case '.xls':
+          data = await this.parseExcelFile();
+          break;
+        default:
+          // Try to auto-detect format
+          data = await this.autoDetectAndParse();
+      }
+
+      if (data && data.length > 0) {
+        console.log(`Loaded ${data.length} products from file: ${this.catalogFilePath}`);
+        this.cache.set('catalog', data);
+        this.lastUpdate = new Date();
+        return data;
+      } else {
+        throw new Error('No data found in catalog file');
+      }
+
+    } catch (error) {
+      console.error(`Error loading from file: ${error.message}`);
+      throw error;
+    }
+  }
+
+  // CSV parser with robust error handling
+  async parseCSVFile() {
+    return new Promise((resolve, reject) => {
+      const products = [];
+      const fileStream = require('fs').createReadStream(this.catalogFilePath);
+
+      fileStream
+        .pipe(csv({
+          mapHeaders: ({ header }) => header.trim().toLowerCase().replace(/\s+/g, '_'),
+          skipEmptyLines: true,
+          skipLinesWithError: true
+        }))
+        .on('data', (row) => {
+          try {
+            const product = this.normalizeProductData(row);
+            if (product.sku) { // Only add if we have a SKU
+              products.push(product);
+            }
+          } catch (err) {
+            console.warn(`Skipping invalid row:`, err.message);
+          }
+        })
+        .on('end', () => {
+          console.log(`CSV parsing complete: ${products.length} products`);
+          resolve(products);
+        })
+        .on('error', reject);
+    });
+  }
+
+  // JSON file parser
+  async parseJSONFile() {
+    const fileContent = await fs.readFile(this.catalogFilePath, 'utf8');
+    const data = JSON.parse(fileContent);
+    
+    // Handle different JSON structures
+    if (Array.isArray(data)) {
+      return data.map(item => this.normalizeProductData(item));
+    } else if (data.products && Array.isArray(data.products)) {
+      return data.products.map(item => this.normalizeProductData(item));
+    } else {
+      throw new Error('Unrecognized JSON structure');
+    }
+  }
+
+  // Excel file parser (requires xlsx library)
+  async parseExcelFile() {
+    const XLSX = require('xlsx');
+    const workbook = XLSX.readFile(this.catalogFilePath);
+    const sheetName = workbook.SheetNames[0];
+    const worksheet = workbook.Sheets[sheetName];
+    
+    const jsonData = XLSX.utils.sheet_to_json(worksheet, {
+      header: 1,
+      defval: ''
+    });
+
+    if (jsonData.length < 2) {
+      throw new Error('Excel file must have at least header and one data row');
+    }
+
+    const headers = jsonData[0].map(h => h.toString().trim().toLowerCase().replace(/\s+/g, '_'));
+    const products = [];
+
+    for (let i = 1; i < jsonData.length; i++) {
+      const row = {};
+      headers.forEach((header, index) => {
+        row[header] = jsonData[i][index] || '';
+      });
+      
+      const product = this.normalizeProductData(row);
+      if (product.sku) {
+        products.push(product);
+      }
+    }
+
+    return products;
+  }
+
+  // Auto-detect file format and parse
+  async autoDetectAndParse() {
+    const fileContent = await fs.readFile(this.catalogFilePath, 'utf8');
+    const firstLine = fileContent.split('\n')[0];
+
+    // Detect CSV
+    if (firstLine.includes(',') || firstLine.includes(';') || firstLine.includes('\t')) {
+      console.log('Auto-detected CSV format');
+      return await this.parseCSVFile();
+    }
+
+    // Detect JSON
+    if (firstLine.trim().startsWith('{') || firstLine.trim().startsWith('[')) {
+      console.log('Auto-detected JSON format');
+      return await this.parseJSONFile();
+    }
+
+    throw new Error('Could not auto-detect file format');
+  }
+
+  // Normalize product data from different sources/formats
+  normalizeProductData(rawData) {
+    // Handle different field name variations
+    const fieldMappings = {
+      sku: ['sku', 'item_number', 'product_code', 'part_number'],
+      name: ['name', 'product_name', 'description', 'title'],
+      wholesale_price: ['wholesale_price', 'cost', 'dealer_price', 'trade_price'],
+      retail_price: ['retail_price', 'msrp', 'list_price', 'suggested_retail'],
+      category: ['category', 'product_category', 'type', 'group'],
+      in_stock: ['in_stock', 'available', 'stock_status', 'inventory'],
+      width: ['width', 'frame_width', 'w'],
+      height: ['height', 'frame_height', 'h'],
+      material: ['material', 'frame_material', 'composition'],
+      finish: ['finish', 'color', 'frame_finish'],
+      image_url: ['image_url', 'image', 'photo', 'picture_url']
+    };
+
+    const normalized = {};
+
+    // Map fields
+    Object.keys(fieldMappings).forEach(standardField => {
+      const possibleFields = fieldMappings[standardField];
+      
+      for (let field of possibleFields) {
+        if (rawData[field] !== undefined && rawData[field] !== '') {
+          normalized[standardField] = rawData[field];
+          break;
+        }
+      }
+    });
+
+    // Clean and format data
+    if (normalized.sku) normalized.sku = normalized.sku.toString().trim();
+    if (normalized.name) normalized.name = normalized.name.toString().trim();
+    
+    // Parse prices
+    if (normalized.wholesale_price) {
+      normalized.wholesale_price = this.parsePrice(normalized.wholesale_price);
+    }
+    if (normalized.retail_price) {
+      normalized.retail_price = this.parsePrice(normalized.retail_price);
+    }
+
+    // Parse dimensions
+    if (normalized.width) normalized.width = this.parseDimension(normalized.width);
+    if (normalized.height) normalized.height = this.parseDimension(normalized.height);
+
+    // Parse stock status
+    if (normalized.in_stock) {
+      const stockValue = normalized.in_stock.toString().toLowerCase();
+      normalized.in_stock = ['true', 'yes', 'available', 'in stock', '1'].includes(stockValue);
+    }
+
+    return normalized;
+  }
+
+  // Parse price from various formats
+  parsePrice(priceString) {
+    if (typeof priceString === 'number') return priceString;
+    
+    const cleaned = priceString.toString().replace(/[$,\s]/g, '');
+    const parsed = parseFloat(cleaned);
+    
+    return isNaN(parsed) ? 0 : parsed;
+  }
+
+  // Parse dimensions
+  parseDimension(dimensionString) {
+    if (typeof dimensionString === 'number') return dimensionString;
+    
+    const cleaned = dimensionString.toString().replace(/[^\d.]/g, '');
+    const parsed = parseFloat(cleaned);
+    
+    return isNaN(parsed) ? 0 : parsed;
+  }
+
+  // Save successful data to cache and backup
+  async saveCacheAndBackup(data) {
+    this.cache.set('catalog', data);
+    this.lastUpdate = new Date();
+
+    try {
+      await fs.writeFile(this.backupFilePath, JSON.stringify({
+        data: data,
+        lastUpdate: this.lastUpdate.toISOString(),
+        source: 'api'
+      }, null, 2));
+    } catch (error) {
+      console.warn('Could not save backup file:', error.message);
+    }
+  }
+
+  // Load from backup file as ultimate fallback
+  async loadFromBackup() {
+    try {
+      const backupContent = await fs.readFile(this.backupFilePath, 'utf8');
+      const backup = JSON.parse(backupContent);
+      
+      console.log(`Loaded ${backup.data.length} products from backup file`);
+      return backup.data;
+      
+    } catch (error) {
+      console.error('Could not load backup file:', error.message);
+      // Return empty array as absolute last resort
+      return [];
+    }
+  }
+
+  // Check if cache should be refreshed
+  shouldRefreshCache() {
+    if (!this.lastUpdate) return true;
+    
+    const now = new Date();
+    const hoursSinceUpdate = (now - this.lastUpdate) / (1000 * 60 * 60);
+    
+    return hoursSinceUpdate > 24; // Refresh every 24 hours
+  }
+
+  // Search products in catalog
+  async searchProducts(query, filters = {}) {
+    const catalog = await this.getCatalogData();
+    
+    return catalog.filter(product => {
+      // Text search
+      if (query) {
+        const searchText = query.toLowerCase();
+        const productText = `${product.sku} ${product.name} ${product.category}`.toLowerCase();
+        
+        if (!productText.includes(searchText)) {
+          return false;
+        }
+      }
+
+      // Apply filters
+      if (filters.category && product.category !== filters.category) {
+        return false;
+      }
+
+      if (filters.inStockOnly && !product.in_stock) {
+        return false;
+      }
+
+      if (filters.maxPrice && product.wholesale_price > filters.maxPrice) {
+        return false;
+      }
+
+      return true;
+    });
+  }
+
+  // Get product by SKU
+  async getProduct(sku) {
+    const catalog = await this.getCatalogData();
+    return catalog.find(product => product.sku === sku);
+  }
+
+  // Get all categories
+  async getCategories() {
+    const catalog = await this.getCatalogData();
+    const categories = new Set();
+    
+    catalog.forEach(product => {
+      if (product.category) {
+        categories.add(product.category);
+      }
+    });
+
+    return Array.from(categories).sort();
+  }
+
+  // Force file-only mode (disable API attempts)
+  setFileOnlyMode(enabled = true) {
+    this.useFileOnly = enabled;
+    console.log(`File-only mode ${enabled ? 'enabled' : 'disabled'}`);
+  }
+
+  // Get system status
+  getStatus() {
+    return {
+      lastUpdate: this.lastUpdate,
+      cacheSize: this.cache.size,
+      fileOnlyMode: this.useFileOnly,
+      catalogFile: this.catalogFilePath,
+      backupFile: this.backupFilePath
+    };
+  }
+}
+
+// Express.js API endpoints
+function setupCatalogAPI(app, catalogManager) {
+  // Get all products with optional search and filters
+  app.get('/api/catalog', async (req, res) => {
+    try {
+      const { q, category, inStockOnly, maxPrice } = req.query;
+      
+      const filters = {};
+      if (category) filters.category = category;
+      if (inStockOnly === 'true') filters.inStockOnly = true;
+      if (maxPrice) filters.maxPrice = parseFloat(maxPrice);
+
+      const products = await catalogManager.searchProducts(q, filters);
+      
+      res.json({
+        success: true,
+        count: products.length,
+        products: products
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        error: error.message
+      });
+    }
+  });
+
+  // Get specific product by SKU
+  app.get('/api/catalog/product/:sku', async (req, res) => {
+    try {
+      const product = await catalogManager.getProduct(req.params.sku);
+      
+      if (!product) {
+        return res.status(404).json({
+          success: false,
+          error: 'Product not found'
+        });
+      }
+
+      res.json({
+        success: true,
+        product: product
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        error: error.message
+      });
+    }
+  });
+
+  // Get all categories
+  app.get('/api/catalog/categories', async (req, res) => {
+    try {
+      const categories = await catalogManager.getCategories();
+      
+      res.json({
+        success: true,
+        categories: categories
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        error: error.message
+      });
+    }
+  });
+
+  // Force refresh catalog
+  app.post('/api/catalog/refresh', async (req, res) => {
+    try {
+      const products = await catalogManager.getCatalogData(true);
+      
+      res.json({
+        success: true,
+        message: `Catalog refreshed with ${products.length} products`,
+        count: products.length
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        error: error.message
+      });
+    }
+  });
+
+  // Get system status
+  app.get('/api/catalog/status', (req, res) => {
+    const status = catalogManager.getStatus();
+    res.json({
+      success: true,
+      status: status
+    });
+  });
+
+  // Toggle file-only mode
+  app.post('/api/catalog/file-only-mode', (req, res) => {
+    const { enabled } = req.body;
+    catalogManager.setFileOnlyMode(enabled);
+    
+    res.json({
+      success: true,
+      message: `File-only mode ${enabled ? 'enabled' : 'disabled'}`
+    });
+  });
+}
+
+// Usage example
+async function initializeJaysFramesCatalog() {
+  const catalogManager = new CatalogManager({
+    catalogFilePath: './data/larson-juhl-catalog.csv', // Your digital file
+    useFileOnly: true, // Force file-only mode since no API exists
+    apiTimeout: 3000
+  });
+
+  // Test the system
+  try {
+    const products = await catalogManager.getCatalogData();
+    console.log(`Catalog loaded successfully: ${products.length} products`);
+    
+    // Test search
+    const frameProducts = await catalogManager.searchProducts('frame', { inStockOnly: true });
+    console.log(`Found ${frameProducts.length} frames in stock`);
+    
+    return catalogManager;
+  } catch (error) {
+    console.error('Failed to initialize catalog:', error);
+    throw error;
+  }
+}
+
+module.exports = {
+  CatalogManager,
+  setupCatalogAPI,
+  initializeJaysFramesCatalog
+};
