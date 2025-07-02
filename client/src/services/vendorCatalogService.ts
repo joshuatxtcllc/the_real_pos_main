@@ -7,9 +7,28 @@ import { Frame } from '@shared/schema';
  */
 export async function fetchLarsonJuhlFrames(): Promise<Frame[]> {
   try {
-    // Temporarily disabled to prevent application freezing
-    console.log('Using static frame data to prevent freezing');
-    return [];
+    const response = await apiRequest('GET', '/api/vendor-api/frames/larson');
+    
+    if (!response.ok) {
+      throw new Error(`Failed to fetch Larson frames: ${response.status}`);
+    }
+    
+    const vendorFrames = await response.json();
+    
+    // Transform VendorFrame to Frame format
+    return Array.isArray(vendorFrames) ? vendorFrames.map(frame => ({
+      id: frame.id,
+      name: frame.name,
+      manufacturer: frame.vendor,
+      material: frame.material,
+      width: frame.width,
+      depth: frame.depth,
+      price: frame.price,
+      catalogImage: frame.imageUrl || '',
+      color: frame.color,
+      edgeTexture: '',
+      corner: ''
+    })) : [];
   } catch (error) {
     console.error('Error fetching Larson-Juhl frames:', error);
     return [];
@@ -22,9 +41,27 @@ export async function fetchLarsonJuhlFrames(): Promise<Frame[]> {
  */
 export async function fetchNielsenFrames(): Promise<Frame[]> {
   try {
-    // Temporarily disabled to prevent application freezing
-    console.log('Using static frame data to prevent freezing');
-    return [];
+    const response = await apiRequest('GET', '/api/vendor-api/frames/bella');
+    
+    if (!response.ok) {
+      throw new Error(`Failed to fetch Nielsen frames: ${response.status}`);
+    }
+    
+    const vendorFrames = await response.json();
+    
+    return Array.isArray(vendorFrames) ? vendorFrames.map(frame => ({
+      id: frame.id,
+      name: frame.name,
+      manufacturer: frame.vendor,
+      material: frame.material,
+      width: frame.width,
+      depth: frame.depth,
+      price: frame.price,
+      catalogImage: frame.imageUrl || '',
+      color: frame.color,
+      edgeTexture: '',
+      corner: ''
+    })) : [];
   } catch (error) {
     console.error('Error fetching Nielsen frames:', error);
     return [];
@@ -37,9 +74,27 @@ export async function fetchNielsenFrames(): Promise<Frame[]> {
  */
 export async function fetchRomaFrames(): Promise<Frame[]> {
   try {
-    // Temporarily disabled to prevent application freezing
-    console.log('Using static frame data to prevent freezing');
-    return [];
+    const response = await apiRequest('GET', '/api/vendor-api/frames/roma');
+    
+    if (!response.ok) {
+      throw new Error(`Failed to fetch Roma frames: ${response.status}`);
+    }
+    
+    const vendorFrames = await response.json();
+    
+    return Array.isArray(vendorFrames) ? vendorFrames.map(frame => ({
+      id: frame.id,
+      name: frame.name,
+      manufacturer: frame.vendor,
+      material: frame.material,
+      width: frame.width,
+      depth: frame.depth,
+      price: frame.price,
+      catalogImage: frame.imageUrl || '',
+      color: frame.color,
+      edgeTexture: '',
+      corner: ''
+    })) : [];
   } catch (error) {
     console.error('Error fetching Roma frames:', error);
     return [];

@@ -308,34 +308,80 @@ class VendorApiService {
   async searchFrames(query: string, vendor?: string): Promise<VendorFrame[]> {
     console.log(`Searching for: "${query}" across vendor APIs`);
 
-    // For item number searches, create mock data if needed for testing
-    if (/^[0-9]{6}$/.test(query)) {
-      console.log(`Item number search detected: ${query}`);
+    let allFrames: VendorFrame[] = [];
 
-      // Check if this is one of the commonly searched item numbers
-      const commonItems = ['210285', '210286', '224941', '220941'];
-      if (commonItems.includes(query)) {
-        console.log(`Returning mock data for item ${query}`);
-        return [{
-          id: `larson-${query}`,
-          itemNumber: query,
-          name: `Larson Juhl Frame ${query}`,
-          price: '16.75',
-          material: 'Wood',
-          color: query === '210285' ? 'White' : query === '210286' ? 'Black' : 'Natural',
-          width: '2.25',
-          height: '0.75',
-          depth: '1.25',
-          collection: 'Academie',
-          description: `Professional quality wood frame, item ${query}`,
-          imageUrl: `https://www.larsonjuhl.com/images/products/${query}.jpg`,
-          inStock: true,
-          vendor: 'Larson Juhl'
-        }];
+    // First try regular API calls
+    try {
+      if (vendor) {
+        switch (vendor.toLowerCase()) {
+          case 'larson':
+            allFrames = await this.fetchLarsonCatalog();
+            break;
+          case 'roma':
+            allFrames = await this.fetchRomaCatalog();
+            break;
+          case 'bella':
+            allFrames = await this.fetchBellaCatalog();
+            break;
+          default:
+            allFrames = await this.fetchAllCatalogs();
+        }
+      } else {
+        allFrames = await this.fetchAllCatalogs();
+      }
+    } catch (apiError) {
+      console.log('API calls failed, trying fallback scraper:', apiError.message);
+      
+      // Use fallback scraper when APIs fail
+      const { vendorScraperService } = await import('./vendorScraperService');
+      
+      try {
+        if (/^[0-9]{5,6}$/.test(query)) {
+          // Item number search
+          console.log(`Using scraper for item number search: ${query}`);
+          allFrames = await vendorScraperService.searchByItemNumber(query);
+        } else {
+          // General search
+          console.log(`Using scraper for general search: ${query}`);
+          const [larsonFrames, romaFrames] = await Promise.all([
+            vendorScraperService.scrapeLarsonFrames(query),
+            vendorScraperService.scrapeRomaFrames(query)
+          ]);
+          allFrames = [...larsonFrames, ...romaFrames];
+        }
+        
+        if (allFrames.length > 0) {
+          console.log(`Scraper found ${allFrames.length} frames`);
+        }
+      } catch (scraperError) {
+        console.log('Scraper also failed, checking database:', scraperError.message);
+        
+        // Final fallback to database search
+        try {
+          const storage = await import('../storage');
+          const exactFrames = await storage.default.searchFramesByItemNumber(query);
+          if (exactFrames && exactFrames.length > 0) {
+            return exactFrames.map(frame => ({
+              id: frame.id,
+              itemNumber: frame.id.split('-')[1] || query,
+              name: frame.name,
+              price: frame.price,
+              material: frame.material || 'Wood',
+              color: frame.color || 'Natural',
+              width: '2.25',
+              height: '0.75',
+              depth: '1.25',
+              collection: 'Standard',
+              imageUrl: frame.thumbnailUrl || '',
+              inStock: true,
+              vendor: 'Larson Juhl'
+            }));
+          }
+        } catch (dbError) {
+          console.log('Database search also failed:', dbError.message);
+        }
       }
     }
-
-    let allFrames: VendorFrame[] = [];
 
     // Try to fetch from real APIs first, but catch errors gracefully
     try {
