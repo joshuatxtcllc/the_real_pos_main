@@ -1,102 +1,117 @@
+
 import { Router } from 'express';
 import { vendorApiService } from '../services/vendorApiService';
+import { studioMouldingService } from '../services/studioMouldingService';
 
 const router = Router();
 
-/**
- * @route GET /api/vendor-api/frames
- * @desc Get all frames from all vendor catalogs
- */
-router.get('/frames', async (req, res) => {
-  try {
-    const frames = await vendorApiService.fetchAllCatalogs();
-    res.json(frames);
-  } catch (error) {
-    console.error('Error fetching vendor frames:', error);
-    res.status(500).json({ 
-      message: 'Error fetching vendor frames', 
-      error: error.message 
-    });
-  }
-});
+// Existing vendor routes...
 
 /**
- * @route GET /api/vendor-api/frames/:vendor
- * @desc Get frames from a specific vendor catalog
+ * Get Studio Moulding frame with all pricing options
  */
-router.get('/frames/:vendor', async (req, res) => {
+router.get('/studio-moulding/:itemNumber', async (req, res) => {
   try {
-    const { vendor } = req.params;
-    let frames;
+    const { itemNumber } = req.params;
+    const result = await studioMouldingService.getFrameByItemNumber(itemNumber);
     
-    switch (vendor.toLowerCase()) {
-      case 'larson':
-        frames = await vendorApiService.fetchLarsonCatalog();
-        break;
-      case 'roma':
-        frames = await vendorApiService.fetchRomaCatalog();
-        break;
-      case 'bella':
-        frames = await vendorApiService.fetchBellaCatalog();
-        break;
-      default:
-        return res.status(400).json({ message: 'Invalid vendor specified' });
+    if (!result.frame) {
+      return res.status(404).json({
+        success: false,
+        message: 'Frame not found'
+      });
     }
-    
-    res.json(frames);
+
+    res.json({
+      success: true,
+      frame: result.frame,
+      pricingOptions: result.pricingOptions
+    });
   } catch (error) {
-    console.error(`Error fetching ${req.params.vendor} frames:`, error);
-    res.status(500).json({ 
-      message: `Error fetching ${req.params.vendor} frames`, 
-      error: error.message 
+    console.error('Error getting Studio Moulding frame:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to get frame details'
     });
   }
 });
 
 /**
- * @route GET /api/vendor-api/search
- * @desc Search frames across all vendor catalogs
+ * Calculate optimal pricing for Studio Moulding frame
  */
-router.get('/search', async (req, res) => {
+router.post('/studio-moulding/:itemNumber/optimize', async (req, res) => {
   try {
-    const { query, vendor } = req.query;
-    
-    if (!query) {
-      return res.status(400).json({ message: 'Search query is required' });
+    const { itemNumber } = req.params;
+    const { footageNeeded } = req.body;
+
+    if (!footageNeeded || footageNeeded <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Valid footageNeeded is required'
+      });
     }
+
+    const optimization = studioMouldingService.calculateOptimalPricing(itemNumber, footageNeeded);
     
-    const frames = await vendorApiService.searchFrames(
-      query as string, 
-      vendor as string | undefined
-    );
-    
-    res.json(frames);
+    if (!optimization.frame) {
+      return res.status(404).json({
+        success: false,
+        message: 'Frame not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      ...optimization
+    });
   } catch (error) {
-    console.error('Error searching frames:', error);
-    res.status(500).json({ 
-      message: 'Error searching frames', 
-      error: error.message 
+    console.error('Error calculating pricing optimization:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to calculate pricing optimization'
     });
   }
 });
 
 /**
- * @route POST /api/vendor-api/sync
- * @desc Sync all vendor catalogs to database
+ * Search Studio Moulding catalog
  */
-router.post('/sync', async (req, res) => {
+router.get('/studio-moulding/search/:query', async (req, res) => {
   try {
-    const result = await vendorApiService.syncCatalogsToDatabase();
-    res.json({ 
-      message: 'Frame database sync completed successfully',
-      added: result.added,
-      updated: result.updated
+    const { query } = req.params;
+    const frames = await studioMouldingService.searchFrames(query);
+
+    res.json({
+      success: true,
+      frames,
+      count: frames.length
     });
   } catch (error) {
-    console.error('Error syncing catalog to database:', error);
-    res.status(500).json({ 
-      message: 'Error syncing catalog to database', 
-      error: error.message 
+    console.error('Error searching Studio Moulding:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Search failed'
+    });
+  }
+});
+
+/**
+ * Get full Studio Moulding catalog
+ */
+router.get('/studio-moulding/catalog', async (req, res) => {
+  try {
+    const frames = await studioMouldingService.fetchCatalog();
+
+    res.json({
+      success: true,
+      frames,
+      count: frames.length
+    });
+  } catch (error) {
+    console.error('Error fetching Studio Moulding catalog:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch catalog'
     });
   }
 });
