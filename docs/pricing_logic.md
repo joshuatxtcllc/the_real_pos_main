@@ -20,10 +20,11 @@ The system uses a sliding scale markup that varies based on the size of the fram
 
 ### Frame Markup Scale
 ```
-Smaller frames (up to 20 united inches): 6× wholesale
-Medium frames (21-40 united inches): 5× wholesale
-Large frames (41-60 united inches): 4× wholesale
-Extra large frames (60+ united inches): 3× wholesale
+Low cost frames ($0.99-$1.99 per foot): 4.5× wholesale
+Medium cost frames ($2.00-$2.99 per foot): 4× wholesale
+Higher cost frames ($3.00-$3.99 per foot): 3.5× wholesale
+Premium frames ($4.00-$4.99 per foot): 3× wholesale
+Luxury frames ($5.00+ per foot): 2.5× wholesale
 ```
 
 ### Mat Markup Scale
