@@ -9,6 +9,6 @@ run = ["npx", "tsx", "server.ts"]
 [env]
 NODE_ENV = "production"
 
-[[ports]]
+[[ports]]  
 localPort = 5000
 externalPort = 80

@@ -12,7 +12,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const app = express();
-// Simplified PORT configuration for guaranteed deployment success
+// PORT configuration - use deployment PORT or fallback to 5000
 const PORT = parseInt(process.env.PORT || '5000', 10);
 
 // Notification service disabled for deployment stability

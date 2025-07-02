@@ -14,8 +14,14 @@ import fs from 'fs';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Force production environment
+// Set production environment
 process.env.NODE_ENV = 'production';
+
+// Ensure PORT is available for the server
+if (!process.env.PORT) {
+  process.env.PORT = '5000';
+}
+
 process.env.PORT = process.env.PORT || process.env.REPL_PORT || '5000';
 
 console.log('🚀 Starting production server (deployment mode)...');
