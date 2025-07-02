@@ -1,5 +1,7 @@
 import { Frame } from '@shared/schema';
+import { studioMouldingCatalog } from './studioMouldingCatalog';
 
+// Enhanced frame catalog data with additional manufacturers
 export const frameCatalog: Frame[] = [
   {
     id: "larson-4512",
@@ -143,7 +145,10 @@ export const frameCatalog: Frame[] = [
     edgeTexture: "https://images.unsplash.com/photo-1581814605484-050c5bb1196c?w=800&auto=format&fit=crop&q=60&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MzF8fHBpY3R1cmUlMjBmcmFtZXxlbnwwfHwwfHx8MA%3D%3D",
     corner: "https://images.unsplash.com/photo-1581814605484-050c5bb1196c?w=800&auto=format&fit=crop&q=60&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MzF8fHBpY3R1cmUlMjBmcmFtZXxlbnwwfHwwfHx8MA%3D%3D",
     color: "#D4AF37" // Gold color
-  }
+  },
+
+  // Include Studio Moulding frames
+  ...studioMouldingCatalog
 ];
 
 // Helper function to get frame by ID
@@ -219,17 +224,19 @@ export const filterFrames = (
     const matchesManufacturer = manufacturerFilter === 'all' || frame.manufacturer === manufacturerFilter;
     const frameWidth = parseFloat(frame.width);
     const framePrice = parseFloat(frame.price);
-    
+
     const matchesWidth = widthFilter === 'all' || 
       (widthFilter === 'narrow' && frameWidth <= 1.5) ||
       (widthFilter === 'medium' && frameWidth > 1.5 && frameWidth <= 2.5) ||
       (widthFilter === 'wide' && frameWidth > 2.5);
-    
+
     const matchesPrice = priceFilter === 'all' ||
       (priceFilter === 'economy' && framePrice >= 5 && framePrice <= 9) ||
       (priceFilter === 'standard' && framePrice > 9 && framePrice <= 14) ||
       (priceFilter === 'premium' && framePrice > 14);
-    
+
     return matchesMaterial && matchesManufacturer && matchesWidth && matchesPrice;
   });
 };
+
+export default frameCatalog;

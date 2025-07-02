@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { storage } from '../storage';
+import { StudioMouldingService } from './studioMouldingService';
 
 /**
  * VendorApiService
@@ -99,26 +100,23 @@ class VendorApiService {
   private larsonConfig: VendorApiConfig;
   private romaConfig: VendorApiConfig;
   private bellaConfig: VendorApiConfig;
+  private studioMouldingConfig = {
+    apiKey: process.env.STUDIO_MOULDING_API_KEY || ''
+  };
 
   constructor() {
-    // Initialize with environment variables
-    this.larsonConfig = {
-      baseUrl: process.env.LARSON_API_URL || 'https://api.larsonjuhl.com/v1',
-      apiKey: process.env.LARSON_API_KEY || '',
-      apiSecret: process.env.LARSON_API_SECRET || '',
-    };
+    // Initialize vendor services when credentials are available
+    this.initializeServices();
+  }
 
-    this.romaConfig = {
-      baseUrl: process.env.ROMA_API_URL || 'https://api.romamoulding.com/v2',
-      apiKey: process.env.ROMA_API_KEY || '',
-      apiSecret: process.env.ROMA_API_SECRET || '',
-    };
+  private studioMouldingService?: StudioMouldingService;
 
-    this.bellaConfig = {
-      baseUrl: process.env.BELLA_API_URL || 'https://api.bellamoulding.com/v1',
-      apiKey: process.env.BELLA_API_KEY || '',
-      apiSecret: process.env.BELLA_API_SECRET || '',
-    };
+  private initializeServices() {
+    // Initialize Studio Moulding service
+    if (this.studioMouldingConfig.apiKey) {
+      this.studioMouldingService = new StudioMouldingService(this.studioMouldingConfig.apiKey);
+    }
+    console.log('VendorApiService initialized');
   }
 
   /**
@@ -291,13 +289,42 @@ class VendorApiService {
    * Fetch all catalogs from all vendors
    */
   async fetchAllCatalogs(): Promise<VendorFrame[]> {
-    const [larsonFrames, romaFrames, bellaFrames] = await Promise.all([
-      this.fetchLarsonCatalog(),
-      this.fetchRomaCatalog(),
-      this.fetchBellaCatalog()
-    ]);
+    const allFrames: VendorFrame[] = [];
 
-    return [...larsonFrames, ...romaFrames, ...bellaFrames];
+    try {
+      // Fetch from all available vendors
+      const [larsonFrames, romaFrames, bellaFrames, studioFrames] = await Promise.allSettled([
+        this.fetchLarsonCatalog(),
+        this.fetchRomaCatalog(),
+        this.fetchBellaCatalog(),
+        this.fetchStudioMouldingCatalog()
+      ]);
+
+      if (larsonFrames.status === 'fulfilled') {
+        allFrames.push(...larsonFrames.value);
+        console.log(`Added ${larsonFrames.value.length} Larson Juhl frames`);
+      }
+
+      if (romaFrames.status === 'fulfilled') {
+        allFrames.push(...romaFrames.value);
+        console.log(`Added ${romaFrames.value.length} Roma Moulding frames`);
+      }
+
+      if (bellaFrames.status === 'fulfilled') {
+        allFrames.push(...bellaFrames.value);
+        console.log(`Added ${bellaFrames.value.length} Bella Moulding frames`);
+      }
+
+      if (studioFrames.status === 'fulfilled') {
+        allFrames.push(...studioFrames.value);
+        console.log(`Added ${studioFrames.value.length} Studio Moulding frames`);
+      }
+
+    } catch (error) {
+      console.error('Failed to fetch all catalogs:', error);
+    }
+
+    return allFrames;
   }
 
   /**
@@ -331,10 +358,10 @@ class VendorApiService {
       }
     } catch (apiError) {
       console.log('API calls failed, trying fallback scraper:', apiError.message);
-      
+
       // Use fallback scraper when APIs fail
       const { vendorScraperService } = await import('./vendorScraperService');
-      
+
       try {
         if (/^[0-9]{5,6}$/.test(query)) {
           // Item number search
@@ -349,13 +376,13 @@ class VendorApiService {
           ]);
           allFrames = [...larsonFrames, ...romaFrames];
         }
-        
+
         if (allFrames.length > 0) {
           console.log(`Scraper found ${allFrames.length} frames`);
         }
       } catch (scraperError) {
         console.log('Scraper also failed, checking database:', scraperError.message);
-        
+
         // Final fallback to database search
         try {
           const storage = await import('../storage');
@@ -692,6 +719,127 @@ class VendorApiService {
     }
   }
 
+  /**
+   * Fetch Bella Moulding catalog
+   */
+  private async fetchBellaMouldingCatalog(): Promise<VendorFrame[]> {
+    try {
+      console.log('Fetching Bella Moulding catalog...');
+      // Placeholder - implement actual Bella Moulding API integration
+      return [];
+    } catch (error) {
+      console.error('Error fetching Bella Moulding catalog:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Fetch Studio Moulding catalog
+   */
+  private async fetchStudioMouldingCatalog(): Promise<VendorFrame[]> {
+    try {
+      if (!this.studioMouldingService) {
+        this.studioMouldingService = new StudioMouldingService();
+      }
+      return await this.studioMouldingService.fetchCatalog();
+    } catch (error) {
+      console.error('Error fetching Studio Moulding catalog:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Search Larson Juhl frames
+   */
+  private async searchLarsonJuhlFrames(query: string): Promise<VendorFrame[]> {
+    try {
+      // Placeholder - implement actual Larson Juhl search
+      return [];
+    } catch (error) {
+      console.error('Error searching Larson Juhl:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Search Roma Moulding frames
+   */
+  private async searchRomaMouldingFrames(query: string): Promise<VendorFrame[]> {
+    try {
+      // Placeholder - implement actual Roma Moulding search
+      return [];
+    } catch (error) {
+      console.error('Error searching Roma Moulding:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Search Bella Moulding frames
+   */
+  private async searchBellaMouldingFrames(query: string): Promise<VendorFrame[]> {
+    try {
+      // Placeholder - implement actual Bella Moulding search
+      return [];
+    } catch (error) {
+      console.error('Error searching Bella Moulding:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Search Studio Moulding frames
+   */
+  private async searchStudioMouldingFrames(query: string): Promise<VendorFrame[]> {
+    try {
+      if (!this.studioMouldingService) {
+        this.studioMouldingService = new StudioMouldingService();
+      }
+      return await this.studioMouldingService.searchFrames(query);
+    } catch (error) {
+      console.error('Error searching Studio Moulding:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Search across all vendor APIs
+   * @param query Search query
+   */
+  async searchAllVendorFrames(query: string): Promise<VendorFrame[]> {
+    const allFrames: VendorFrame[] = [];
+
+    try {
+      // Search all vendor catalogs
+      const [larsonResults, romaResults, bellaResults, studioResults] = await Promise.allSettled([
+        this.searchLarsonJuhlFrames(query),
+        this.searchRomaMouldingFrames(query),
+        this.searchBellaMouldingFrames(query),
+        this.searchStudioMouldingFrames(query)
+      ]);
+
+      if (larsonResults.status === 'fulfilled') {
+        allFrames.push(...larsonResults.value);
+      }
+
+      if (romaResults.status === 'fulfilled') {
+        allFrames.push(...romaResults.value);
+      }
+
+      if (bellaResults.status === 'fulfilled') {
+        allFrames.push(...bellaResults.value);
+      }
+
+      if (studioResults.status === 'fulfilled') {
+        allFrames.push(...studioResults.value);
+      }
+
+    } catch (error) {
+      console.error('Failed to search all vendors:', error);
+    }
+
+    return allFrames;
+  }
 
 }
 
