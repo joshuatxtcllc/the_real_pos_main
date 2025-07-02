@@ -3861,17 +3861,32 @@ var init_vite_config = __esm({
           )
         ] : []
       ],
+      root: "client",
       resolve: {
         alias: {
-          "@": path.resolve(import.meta.dirname, "client", "src"),
-          "@shared": path.resolve(import.meta.dirname, "shared"),
-          "@assets": path.resolve(import.meta.dirname, "attached_assets")
+          "@": path.resolve(__dirname, "./client/src"),
+          "@shared": path.resolve(__dirname, "./shared"),
+          "@assets": path.resolve(__dirname, "attached_assets")
         }
       },
-      root: path.resolve(import.meta.dirname, "client"),
       build: {
-        outDir: path.resolve(import.meta.dirname, "dist/public"),
-        emptyOutDir: true
+        outDir: path.resolve(__dirname, "dist/public"),
+        emptyOutDir: true,
+        rollupOptions: {
+          input: path.resolve(__dirname, "client/index.html"),
+          output: {
+            manualChunks: {
+              // Split vendor libraries
+              vendor: ["react", "react-dom"],
+              ui: ["@radix-ui/react-dialog", "@radix-ui/react-dropdown-menu", "@radix-ui/react-toast"],
+              charts: ["recharts"],
+              utils: ["date-fns", "clsx", "tailwind-merge"],
+              icons: ["lucide-react", "react-icons"],
+              forms: ["react-hook-form", "@hookform/resolvers"],
+              query: ["@tanstack/react-query"]
+            }
+          }
+        }
       },
       server: {
         host: "0.0.0.0",
@@ -3947,8 +3962,8 @@ async function setupVite(app2, server) {
   });
 }
 function serveStatic(app2) {
-  const distPublicPath = path2.resolve(__dirname, "..", "dist", "public");
-  const clientDistPath = path2.resolve(__dirname, "..", "client", "dist");
+  const distPublicPath = path2.resolve(__dirname2, "..", "dist", "public");
+  const clientDistPath = path2.resolve(__dirname2, "..", "client", "dist");
   let staticPath = "";
   if (fs.existsSync(distPublicPath)) {
     staticPath = distPublicPath;
@@ -3981,14 +3996,14 @@ function serveStatic(app2) {
     }
   });
 }
-var viteLogger, __filename, __dirname;
+var viteLogger, __filename, __dirname2;
 var init_vite = __esm({
   "server/vite.ts"() {
     "use strict";
     init_vite_config();
     viteLogger = createLogger();
     __filename = fileURLToPath(import.meta.url);
-    __dirname = path2.dirname(__filename);
+    __dirname2 = path2.dirname(__filename);
   }
 });
 
@@ -8789,7 +8804,7 @@ import { fileURLToPath as fileURLToPath2 } from "url";
 import { dirname } from "path";
 import cors from "cors";
 var __filename2 = fileURLToPath2(import.meta.url);
-var __dirname2 = dirname(__filename2);
+var __dirname3 = dirname(__filename2);
 var app = express4();
 var PORT = parseInt(process.env.PORT || "5000", 10);
 app.use(cors({
