@@ -38,21 +38,8 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
 }));
 
-// Early health check registration - MUST be before any other middleware
-// These endpoints respond immediately without database dependencies
-app.get('/', (req, res) => {
-  res.set('Content-Type', 'application/json');
-  res.set('Cache-Control', 'no-cache');
-  res.status(200).json({ 
-    status: 'healthy', 
-    service: 'Jay\'s Frames POS System',
-    timestamp: new Date().toISOString(),
-    environment: process.env.NODE_ENV || 'development',
-    port: PORT,
-    uptime: process.uptime(),
-    version: '1.0.0'
-  });
-});
+// Health check endpoints for deployment - NOT at root path
+// Root path (/) will be handled by frontend in development mode
 
 // Additional health check endpoints for deployment systems
 app.get('/health', (req, res) => {
@@ -129,6 +116,23 @@ app.use((req, res, next) => {
     log(`Error: ${message} (${status})`, "error");
     console.error(err);
   });
+
+  // Production health check at root for deployment systems
+  if (process.env.NODE_ENV === "production") {
+    app.get('/', (req, res) => {
+      res.set('Content-Type', 'application/json');
+      res.set('Cache-Control', 'no-cache');
+      res.status(200).json({ 
+        status: 'healthy', 
+        service: 'Jay\'s Frames POS System',
+        timestamp: new Date().toISOString(),
+        environment: process.env.NODE_ENV || 'development',
+        port: PORT,
+        uptime: process.uptime(),
+        version: '1.0.0'
+      });
+    });
+  }
 
   // importantly only setup vite in development and after
   // setting up all the other routes so the catch-all route

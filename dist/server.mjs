@@ -3928,11 +3928,14 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import themePlugin from "@replit/vite-plugin-shadcn-theme-json";
 import path from "path";
+import { fileURLToPath } from "url";
 import runtimeErrorOverlay from "@replit/vite-plugin-runtime-error-modal";
-var vite_config_default;
+var __filename, __dirname, vite_config_default;
 var init_vite_config = __esm({
   "vite.config.ts"() {
     "use strict";
+    __filename = fileURLToPath(import.meta.url);
+    __dirname = path.dirname(__filename);
     vite_config_default = defineConfig({
       plugins: [
         react(),
@@ -3992,7 +3995,7 @@ import { createServer as createViteServer, createLogger } from "vite";
 import { nanoid } from "nanoid";
 import express3 from "express";
 import path2 from "path";
-import { fileURLToPath } from "url";
+import { fileURLToPath as fileURLToPath2 } from "url";
 function log2(message, source = "express") {
   const formattedTime = (/* @__PURE__ */ new Date()).toLocaleTimeString("en-US", {
     hour: "numeric",
@@ -4079,14 +4082,14 @@ function serveStatic(app2) {
     }
   });
 }
-var viteLogger, __filename, __dirname2;
+var viteLogger, __filename2, __dirname2;
 var init_vite = __esm({
   "server/vite.ts"() {
     "use strict";
     init_vite_config();
     viteLogger = createLogger();
-    __filename = fileURLToPath(import.meta.url);
-    __dirname2 = path2.dirname(__filename);
+    __filename2 = fileURLToPath2(import.meta.url);
+    __dirname2 = path2.dirname(__filename2);
   }
 });
 
@@ -8883,11 +8886,11 @@ async function registerRoutes(app2) {
 init_vite();
 import path3 from "path";
 import fs2 from "fs";
-import { fileURLToPath as fileURLToPath2 } from "url";
+import { fileURLToPath as fileURLToPath3 } from "url";
 import { dirname } from "path";
 import cors from "cors";
-var __filename2 = fileURLToPath2(import.meta.url);
-var __dirname3 = dirname(__filename2);
+var __filename3 = fileURLToPath3(import.meta.url);
+var __dirname3 = dirname(__filename3);
 var app = express4();
 var PORT = parseInt(process.env.PORT || process.env.REPL_PORT || "5000", 10);
 app.use(cors({
@@ -8907,19 +8910,6 @@ app.use(cors({
   methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"]
 }));
-app.get("/", (req, res) => {
-  res.set("Content-Type", "application/json");
-  res.set("Cache-Control", "no-cache");
-  res.status(200).json({
-    status: "healthy",
-    service: "Jay's Frames POS System",
-    timestamp: (/* @__PURE__ */ new Date()).toISOString(),
-    environment: "production",
-    port: PORT,
-    uptime: process.uptime(),
-    version: "1.0.0"
-  });
-});
 app.get("/health", (req, res) => {
   res.set("Content-Type", "application/json");
   res.set("Cache-Control", "no-cache");
@@ -8977,6 +8967,21 @@ app.use((req, res, next) => {
     log2(`Error: ${message} (${status})`, "error");
     console.error(err);
   });
+  if (true) {
+    app.get("/", (req, res) => {
+      res.set("Content-Type", "application/json");
+      res.set("Cache-Control", "no-cache");
+      res.status(200).json({
+        status: "healthy",
+        service: "Jay's Frames POS System",
+        timestamp: (/* @__PURE__ */ new Date()).toISOString(),
+        environment: "production",
+        port: PORT,
+        uptime: process.uptime(),
+        version: "1.0.0"
+      });
+    });
+  }
   if (app.get("env") === "development") {
     await setupVite(app, server);
   } else {
