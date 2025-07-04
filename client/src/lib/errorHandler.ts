@@ -90,7 +90,9 @@ function handleError(error: any, context?: string): ErrorDetails {
   }
 
   // Timeout errors
-  if (error.code === 'ECONNABORTED' || (error.message && error.message.includes('timeout'))) {
+  if (error.code === 'ECONNABORTED' || 
+      error.code === 'ETIMEDOUT' ||
+      (error.message && (error.message.includes('timeout') || error.message.includes('Network Error')))) {
     return {
       type: ErrorType.TIMEOUT,
       message: 'The request took too long to complete. Please try again.',

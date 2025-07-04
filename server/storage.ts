@@ -191,6 +191,15 @@ import { eq, desc, sql, asc, and, or } from "drizzle-orm";
 import { log } from "./utils/logger";
 import { materialOrders as materialOrdersTable } from "@shared/schema";
 
+function validateInput(input: any): boolean {
+  if (typeof input === 'string') {
+    // Basic SQL injection prevention
+    const dangerousPatterns = [';', '--', '/*', '*/', 'xp_', 'sp_'];
+    return !dangerousPatterns.some(pattern => input.toLowerCase().includes(pattern));
+  }
+  return true;
+}
+
 export class DatabaseStorage implements IStorage {
   /**
    * Update the physical artwork location for an order

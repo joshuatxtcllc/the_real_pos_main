@@ -1,4 +1,5 @@
 import express, { type Request, Response, NextFunction } from "express";
+import { validateRequiredEnvVars, validateOptionalEnvVars } from './utils/envValidator';
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import path from 'path';
@@ -13,7 +14,7 @@ const __dirname = dirname(__filename);
 
 const app = express();
 // PORT configuration - use deployment PORT or fallback to 5000
-const PORT = parseInt(process.env.PORT || '5000', 10);
+const PORT = parseInt(process.env.PORT || process.env.REPL_PORT || '5000', 10);
 const HOST = '0.0.0.0';
 
 // Notification service disabled for deployment stability

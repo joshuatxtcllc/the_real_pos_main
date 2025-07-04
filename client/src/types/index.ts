@@ -108,6 +108,21 @@ export interface OrderGroup {
 }
 
 // Order Type
+export interface ApiResponse<T = any> {
+  success: boolean;
+  data?: T;
+  error?: string;
+  message?: string;
+}
+
+export interface ErrorDetails {
+  type: string;
+  message: string;
+  code?: string;
+  path?: string;
+  originalError?: any;
+}
+
 export interface Order {
   id: number;
   customerId: number;
