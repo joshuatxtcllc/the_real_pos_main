@@ -14,6 +14,7 @@ const __dirname = dirname(__filename);
 const app = express();
 // PORT configuration - use deployment PORT or fallback to 5000
 const PORT = parseInt(process.env.PORT || '5000', 10);
+const HOST = '0.0.0.0';
 
 // Notification service disabled for deployment stability
 
@@ -146,7 +147,7 @@ app.use((req, res, next) => {
       console.log(`📍 Environment: ${process.env.NODE_ENV || 'development'}`);
       console.log(`🔌 Port: ${PORT}`);
       console.log(`🌐 Binding to: 0.0.0.0:${PORT}`);
-      
+
       // Use consistent PORT configuration - prioritize PORT env var for Cloud Run
       const serverInstance = server.listen(PORT, "0.0.0.0", () => {
         log(`serving on port ${PORT}`);
@@ -163,14 +164,14 @@ app.use((req, res, next) => {
         const errorMessage = `Server startup error: ${error.message}`;
         log(errorMessage, "error");
         console.error('❌ Server error:', error);
-        
+
         // Handle specific error cases for Cloud Run
         if (error.code === 'EADDRINUSE') {
           console.error(`❌ Port ${PORT} is already in use`);
         } else if (error.code === 'EACCES') {
           console.error(`❌ Permission denied to bind to port ${PORT}`);
         }
-        
+
         process.exit(1);
       });
 

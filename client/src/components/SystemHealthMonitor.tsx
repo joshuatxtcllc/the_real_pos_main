@@ -62,7 +62,7 @@ export default function SystemHealthMonitor() {
       const startTime = performance.now();
       const response = await fetch('/api/auth/status');
       const endTime = performance.now();
-      
+
       if (response.ok) {
         newHealthChecks.push({
           name: 'Database Connection',
@@ -93,7 +93,7 @@ export default function SystemHealthMonitor() {
       const startTime = performance.now();
       const response = await fetch('/api/vendor-catalog/larson');
       const endTime = performance.now();
-      
+
       if (response.ok) {
         const data = await response.json();
         if (data && data.length > 0) {
@@ -135,7 +135,7 @@ export default function SystemHealthMonitor() {
       const startTime = performance.now();
       const response = await fetch('/api/vendor-catalog/nielsen');
       const endTime = performance.now();
-      
+
       if (response.ok) {
         const data = await response.json();
         if (data && data.length > 0) {
@@ -177,7 +177,7 @@ export default function SystemHealthMonitor() {
       const startTime = performance.now();
       const response = await fetch('/api/vendor-catalog/roma');
       const endTime = performance.now();
-      
+
       if (response.ok) {
         const data = await response.json();
         if (data && data.length > 0) {
@@ -225,7 +225,7 @@ export default function SystemHealthMonitor() {
         ctx.fillStyle = '#000';
         ctx.fillRect(0, 0, 100, 100);
         const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
-        
+
         if (dataUrl && dataUrl.startsWith('data:image/')) {
           newHealthChecks.push({
             name: 'Frame Design Image System',
@@ -388,7 +388,7 @@ export default function SystemHealthMonitor() {
             </div>
           ))}
         </div>
-        
+
         <div className="mt-6 p-4 bg-muted rounded-lg">
           <p className="text-sm text-muted-foreground">
             This monitor continuously checks your framing business's critical systems to ensure smooth operation 
