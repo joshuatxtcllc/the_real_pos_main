@@ -1,6 +1,6 @@
 modules = ["nodejs-20"]
 
-run = "npx tsx server/index.ts"
+run = "npm run dev"
 
 [deployment]
 build = ["node", "final-deploy.mjs"]
