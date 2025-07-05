@@ -1,6 +1,6 @@
 modules = ["nodejs-20"]
 
-run = "npm run build && node server-daemon.js"
+run = "npm run build && node run-pos.mjs"
 
 [deployment]
 build = ["node", "final-deploy.mjs"]
