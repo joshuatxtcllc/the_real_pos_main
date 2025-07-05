@@ -1,0 +1,50 @@
+> rest-express@1.0.0 dev
+> node start-dev.mjs
+
+🚀 Starting development servers...
+🚀 Starting backend server on port 5000...
+✓ Backend server started
+Server: Successfully initialized Supabase client
+🚀 Starting frontend server on port 5173...
+✓ Frontend server started
+🚀 Starting Jay's Frames POS System
+📍 Environment: development
+🔌 Port: 5000
+🌐 Binding to: 0.0.0.0:5000
+9:20:19 PM [express] serving on port 5000
+✅ Server successfully started on port 5000
+✅ Health endpoints available at: [
+  'http://0.0.0.0:5000/',
+  'http://0.0.0.0:5000/health',
+  'http://0.0.0.0:5000/ready'
+]
+✅ Ready for incoming connections
+
+  VITE v5.4.14  ready in 328 ms
+
+  ➜  Local:   http://localhost:5173/
+  ➜  Network: http://172.31.128.40:5173/
+  ➜  press h + enter to show help
+9:21:30 PM [info] SIGTERM received, shutting down gracefully
+🛑 SIGTERM received, shutting down gracefully...
+9:21:30 PM [info] Server closed
+✅ Server closed gracefully
+9:23:22 PM [vite] page reload dist/public/index.html
+9:23:22 PM [vite] page reload dist/public/index.html (x3)
+9:23:57 PM [vite] page reload dist/public/index.html (x4)
+9:23:58 PM [vite] page reload dist/public/index.html (x6)
+9:24:47 PM [vite] page reload dist/public/index.html (x7)
+9:24:47 PM [vite] page reload dist/public/index.html (x8)
+9:25:17 PM [vite] page reload dist/public/index.html (x9)
+9:25:18 PM [vite] page reload dist/public/index.html (x10)
+9:25:43 PM [vite] page reload dist/public/index.html (x11)
+9:25:44 PM [vite] page reload dist/public/index.html (x13)
+9:26:24 PM [vite] page reload dist/public/index.html (x14)
+9:26:25 PM [vite] page reload dist/public/index.html (x15)
+9:26:25 PM [vite] page reload dist/public/index.html (x16)
+9:26:59 PM [vite] page reload dist/public/index.html (x17)
+9:27:00 PM [vite] page reload dist/public/index.html (x18)
+9:28:14 PM [vite] page reload dist/public/index.html (x19)
+9:28:15 PM [vite] page reload dist/public/index.html (x21)
+9:28:56 PM [vite] page reload dist/public/index.html (x22)
+9:28:57 PM [vite] page reload dist/public/index.html (x24)

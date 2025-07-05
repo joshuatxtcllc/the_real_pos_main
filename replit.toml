@@ -1,6 +1,6 @@
 modules = ["nodejs-20"]
 
-run = "node start-pos.mjs"
+run = "npm run build && node quick-start.js"
 
 [deployment]
 build = ["node", "final-deploy.mjs"]
