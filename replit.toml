@@ -1,6 +1,6 @@
 modules = ["nodejs-20"]
 
-run = "node dev-start.mjs"
+run = "node simple-server.js"
 
 [deployment]
 build = ["node", "final-deploy.mjs"]
@@ -10,7 +10,7 @@ run = ["npx", "tsx", "server.ts"]
 NODE_ENV = "production"
 
 [[ports]]  
-localPort = 3000
+localPort = 5000
 externalPort = 80
 
 [[ports]]

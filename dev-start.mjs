@@ -1,15 +1,15 @@
 #!/usr/bin/env node
 import { spawn } from 'child_process';
 
-console.log('Starting development server...');
+console.log('Starting POS system...');
 
-// Start the backend server with tsx
-const server = spawn('npx', ['tsx', 'server/index.ts'], {
+// Start the simple server
+const server = spawn('node', ['simple-server.js'], {
   stdio: 'inherit',
   env: { 
     ...process.env, 
-    NODE_ENV: 'development',
-    PORT: '5173'
+    NODE_ENV: 'production',
+    PORT: '5000'
   }
 });
 
