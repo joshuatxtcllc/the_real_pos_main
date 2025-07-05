@@ -8967,21 +8967,6 @@ app.use((req, res, next) => {
     log2(`Error: ${message} (${status})`, "error");
     console.error(err);
   });
-  if (true) {
-    app.get("/", (req, res) => {
-      res.set("Content-Type", "application/json");
-      res.set("Cache-Control", "no-cache");
-      res.status(200).json({
-        status: "healthy",
-        service: "Jay's Frames POS System",
-        timestamp: (/* @__PURE__ */ new Date()).toISOString(),
-        environment: "production",
-        port: PORT,
-        uptime: process.uptime(),
-        version: "1.0.0"
-      });
-    });
-  }
   if (app.get("env") === "development") {
     await setupVite(app, server);
   } else {
