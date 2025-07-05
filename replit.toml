@@ -1,6 +1,6 @@
 modules = ["nodejs-20"]
 
-run = "node simple-server.js"
+run = "npm run build && node simple-server.js"
 
 [deployment]
 build = ["node", "final-deploy.mjs"]
