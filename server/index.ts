@@ -117,22 +117,8 @@ app.use((req, res, next) => {
     console.error(err);
   });
 
-  // Production health check at root for deployment systems
-  if (process.env.NODE_ENV === "production") {
-    app.get('/', (req, res) => {
-      res.set('Content-Type', 'application/json');
-      res.set('Cache-Control', 'no-cache');
-      res.status(200).json({ 
-        status: 'healthy', 
-        service: 'Jay\'s Frames POS System',
-        timestamp: new Date().toISOString(),
-        environment: process.env.NODE_ENV || 'development',
-        port: PORT,
-        uptime: process.uptime(),
-        version: '1.0.0'
-      });
-    });
-  }
+  // Health check only at /health - NOT at root path
+  // Root path will serve the frontend application
 
   // importantly only setup vite in development and after
   // setting up all the other routes so the catch-all route
