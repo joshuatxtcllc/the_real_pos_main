@@ -1,18 +1,18 @@
 modules = ["nodejs-20"]
 
-run = "npm run build && node run-pos.mjs"
+run = "node start-dev.mjs"
 
 [deployment]
-build = ["node", "final-deploy.mjs"]
-run = ["npx", "tsx", "server.ts"]
+build = ["node", "simple-deploy.mjs"]
+run = ["node", "dist/server.mjs"]
 
 [env]
 NODE_ENV = "production"
 
 [[ports]]  
-localPort = 3000
+localPort = 5000
 externalPort = 80
 
 [[ports]]
-localPort = 5000
+localPort = 5173
 externalPort = 8080
