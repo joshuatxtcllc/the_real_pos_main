@@ -1,5 +1,6 @@
 import express from 'express';
 import path from 'path';
+import fs from 'fs';
 import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -28,6 +29,54 @@ app.use((req, res, next) => {
 // Health check
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
+// Frames catalog API
+app.get('/api/frames', (req, res) => {
+  try {
+    const csvPath = path.join(__dirname, 'data', 'studio-moulding-catalog.csv');
+    
+    if (fs.existsSync(csvPath)) {
+      const csvData = fs.readFileSync(csvPath, 'utf8');
+      const lines = csvData.split('\n').filter(line => line.trim());
+      
+      const frameData = lines.slice(1).map((line, index) => {
+        const values = line.split(',');
+        const itemNumber = values[0] || `frame-${index}`;
+        const description = values[1] || 'Custom Frame';
+        const lengthPrice = values[2] || '10.00';
+        const width = values[7] || '2';
+        const height = values[8] || '1';
+        
+        return {
+          id: `larson-${itemNumber}`,
+          name: description,
+          manufacturer: 'Larson-Juhl',
+          material: 'wood',
+          width: width.toString(),
+          depth: height.toString(),
+          color: description.includes('BROWN') ? '#8B4513' : 
+                 description.includes('WALNUT') ? '#654321' : 
+                 description.includes('HONEY') ? '#D4A574' : 
+                 description.includes('COFFEE') ? '#6F4E37' : '#8B4513',
+          price: lengthPrice,
+          imageUrl: `https://www.larsonjuhl.com/contentassets/products/mouldings/${itemNumber}_fab.jpg`,
+          description: description,
+          itemNumber: itemNumber,
+          inStock: true
+        };
+      });
+
+      console.log(`✅ Loaded ${frameData.length} frames from Larson catalog`);
+      res.json({ frames: frameData });
+    } else {
+      console.log('❌ No catalog file found at:', csvPath);
+      res.json({ frames: [] });
+    }
+  } catch (error) {
+    console.error('❌ Error loading frames catalog:', error);
+    res.json({ frames: [] });
+  }
 });
 
 // Serve static files with explicit MIME types to fix JavaScript loading

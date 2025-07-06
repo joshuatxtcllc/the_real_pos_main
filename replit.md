@@ -119,6 +119,15 @@ The application uses a streamlined deployment process optimized for Replit:
 - WebSocket connections for real-time features require sticky sessions
 
 ## Changelog
+- July 6, 2025: Frame Catalog API Integration Fixed
+  - Fixed critical issue where frame catalog API was returning empty arrays instead of real Larson Juhl data
+  - Updated /api/frames endpoint to load actual catalog data from studio-moulding-catalog.csv
+  - Resolved server deployment issues with simple-pos-server.mjs for reliable production serving
+  - Added proper color determination logic for frame descriptions based on material names
+  - Fixed JavaScript MIME type issues that were preventing proper frontend loading
+  - System now loads 120+ real frames from Larson Juhl catalog with accurate pricing and descriptions
+  - Replaced all mock/placeholder data with authentic catalog information
+  - Server successfully running at port 5000 with all endpoints operational
 - June 30, 2025: Final Deployment Issues Completely Resolved
   - Applied all suggested deployment fixes to resolve Cloud Run health check failures
   - Fixed run command: Now starts production server (node dist/start.mjs) instead of running build process

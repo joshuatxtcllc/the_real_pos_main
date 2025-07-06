@@ -3,6 +3,12 @@ var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
 var __getOwnPropNames = Object.getOwnPropertyNames;
 var __hasOwnProp = Object.prototype.hasOwnProperty;
 var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
+var __require = /* @__PURE__ */ ((x) => typeof require !== "undefined" ? require : typeof Proxy !== "undefined" ? new Proxy(x, {
+  get: (a, b) => (typeof require !== "undefined" ? require : a)[b]
+}) : x)(function(x) {
+  if (typeof require !== "undefined") return require.apply(this, arguments);
+  throw Error('Dynamic require of "' + x + '" is not supported');
+});
 var __esm = (fn, res) => function __init() {
   return fn && (res = (0, fn[__getOwnPropNames(fn)[0]])(fn = 0)), res;
 };
@@ -3930,12 +3936,12 @@ import themePlugin from "@replit/vite-plugin-shadcn-theme-json";
 import path from "path";
 import { fileURLToPath } from "url";
 import runtimeErrorOverlay from "@replit/vite-plugin-runtime-error-modal";
-var __filename, __dirname, vite_config_default;
+var __filename, __dirname2, vite_config_default;
 var init_vite_config = __esm({
   "vite.config.ts"() {
     "use strict";
     __filename = fileURLToPath(import.meta.url);
-    __dirname = path.dirname(__filename);
+    __dirname2 = path.dirname(__filename);
     vite_config_default = defineConfig({
       plugins: [
         react(),
@@ -3950,16 +3956,16 @@ var init_vite_config = __esm({
       root: "client",
       resolve: {
         alias: {
-          "@": path.resolve(__dirname, "./client/src"),
-          "@shared": path.resolve(__dirname, "./shared"),
-          "@assets": path.resolve(__dirname, "attached_assets")
+          "@": path.resolve(__dirname2, "./client/src"),
+          "@shared": path.resolve(__dirname2, "./shared"),
+          "@assets": path.resolve(__dirname2, "attached_assets")
         }
       },
       build: {
-        outDir: path.resolve(__dirname, "dist/public"),
+        outDir: path.resolve(__dirname2, "dist/public"),
         emptyOutDir: true,
         rollupOptions: {
-          input: path.resolve(__dirname, "client/index.html"),
+          input: path.resolve(__dirname2, "client/index.html"),
           output: {
             manualChunks: {
               // Split vendor libraries
@@ -4048,8 +4054,8 @@ async function setupVite(app2, server) {
   });
 }
 function serveStatic(app2) {
-  const distPublicPath = path2.resolve(__dirname2, "..", "dist", "public");
-  const clientDistPath = path2.resolve(__dirname2, "..", "client", "dist");
+  const distPublicPath = path2.resolve(__dirname3, "..", "dist", "public");
+  const clientDistPath = path2.resolve(__dirname3, "..", "client", "dist");
   let staticPath = "";
   if (fs.existsSync(distPublicPath)) {
     staticPath = distPublicPath;
@@ -4082,14 +4088,14 @@ function serveStatic(app2) {
     }
   });
 }
-var viteLogger, __filename2, __dirname2;
+var viteLogger, __filename2, __dirname3;
 var init_vite = __esm({
   "server/vite.ts"() {
     "use strict";
     init_vite_config();
     viteLogger = createLogger();
     __filename2 = fileURLToPath2(import.meta.url);
-    __dirname2 = path2.dirname(__filename2);
+    __dirname3 = path2.dirname(__filename2);
   }
 });
 
@@ -8286,8 +8292,52 @@ async function registerRoutes(app2) {
   app2.get("/api/larson-catalog/crescent", (req, res) => {
     res.json([]);
   });
-  app2.get("/api/frames", (req, res) => {
-    res.json([]);
+  app2.get("/api/frames", async (req, res) => {
+    try {
+      const frames2 = await storage.getAllFrames();
+      if (frames2 && frames2.length > 0) {
+        res.json({ frames: frames2 });
+        return;
+      }
+      const fs3 = __require("fs");
+      const path4 = __require("path");
+      const csvPath = path4.join(__dirname, "..", "data", "studio-moulding-catalog.csv");
+      if (fs3.existsSync(csvPath)) {
+        const csvData = fs3.readFileSync(csvPath, "utf8");
+        const lines = csvData.split("\n").filter((line) => line.trim());
+        const headers = lines[0].split(",");
+        const frameData = lines.slice(1).map((line, index) => {
+          const values = line.split(",");
+          const itemNumber = values[0] || `frame-${index}`;
+          const description = values[1] || "Custom Frame";
+          const lengthPrice = values[2] || "10.00";
+          const width = values[7] || "2";
+          const height = values[8] || "1";
+          return {
+            id: `larson-${itemNumber}`,
+            name: description,
+            manufacturer: "Larson-Juhl",
+            material: "wood",
+            width: width.toString(),
+            depth: height.toString(),
+            color: description.includes("BROWN") ? "#8B4513" : description.includes("WALNUT") ? "#654321" : description.includes("HONEY") ? "#D4A574" : description.includes("COFFEE") ? "#6F4E37" : "#8B4513",
+            price: lengthPrice,
+            imageUrl: `https://www.larsonjuhl.com/contentassets/products/mouldings/${itemNumber}_fab.jpg`,
+            description,
+            itemNumber,
+            inStock: true
+          };
+        });
+        console.log(`Loaded ${frameData.length} frames from Larson catalog`);
+        res.json({ frames: frameData });
+      } else {
+        console.log("No catalog file found, returning empty frames");
+        res.json({ frames: [] });
+      }
+    } catch (error) {
+      console.error("Error loading frames catalog:", error);
+      res.json({ frames: [] });
+    }
   });
   app2.get("/api/mat-colors", (req, res) => {
     res.json([]);
@@ -8880,7 +8930,7 @@ import { fileURLToPath as fileURLToPath3 } from "url";
 import { dirname } from "path";
 import cors from "cors";
 var __filename3 = fileURLToPath3(import.meta.url);
-var __dirname3 = dirname(__filename3);
+var __dirname4 = dirname(__filename3);
 var app = express4();
 var PORT = parseInt(process.env.PORT || process.env.REPL_PORT || "5000", 10);
 app.use(cors({
