@@ -26,13 +26,51 @@
     user-select: none;
   }
 
-  /* Ensure all text elements have dark colors */
-  h1, h2, h3, h4, h5, h6, p, span, div, label, a, button {
+  /* Ensure proper contrast: dark text on light backgrounds, light text on dark backgrounds */
+  h1, h2, h3, h4, h5, h6, p, span, div, label, a {
     color: #111827 !important;
   }
 
-  /* Input and form element text colors */
+  /* Force light backgrounds for dark cards and containers */
+  .bg-card, .bg-popover, .bg-background, [class*="bg-slate"], [class*="bg-gray"] {
+    background-color: #ffffff !important;
+    color: #111827 !important;
+  }
+
+  /* Ensure buttons have proper contrast */
+  button {
+    color: #111827 !important;
+    background-color: #ffffff !important;
+  }
+
+  button[class*="bg-primary"] {
+    background-color: #2563eb !important;
+    color: #ffffff !important;
+  }
+
+  /* Input and form element styling with proper backgrounds */
   input, select, textarea {
+    color: #111827 !important;
+    background-color: #ffffff !important;
+    border: 1px solid #d1d5db !important;
+  }
+
+  /* Quantity input specific styling */
+  input[type="number"] {
+    background-color: #ffffff !important;
+    color: #111827 !important;
+    border: 1px solid #d1d5db !important;
+  }
+
+  /* Card and dialog backgrounds */
+  .bg-card, .bg-popover, .bg-muted, [data-radix-popper-content-wrapper] {
+    background-color: #ffffff !important;
+    color: #111827 !important;
+  }
+
+  /* Dark themed components override */
+  [class*="dark"]:not(.dark-theme-intended) {
+    background-color: #ffffff !important;
     color: #111827 !important;
   }
 

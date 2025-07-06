@@ -276,8 +276,59 @@ app.get('/api/ai/seasonal-trends/:materialId', async (req, res) => {
   });
 
   // Frames catalog route
-  app.get('/api/frames', (req, res) => {
-    res.json([]);
+  app.get('/api/frames', async (req, res) => {
+    try {
+      // First try to get frames from database
+      const frames = await storage.getAllFrames();
+      if (frames && frames.length > 0) {
+        res.json({ frames });
+        return;
+      }
+
+      // If no frames in database, load from CSV catalog
+      const fs = require('fs');
+      const path = require('path');
+      const csvPath = path.join(__dirname, '..', 'data', 'studio-moulding-catalog.csv');
+      
+      if (fs.existsSync(csvPath)) {
+        const csvData = fs.readFileSync(csvPath, 'utf8');
+        const lines = csvData.split('\n').filter(line => line.trim());
+        const headers = lines[0].split(',');
+        
+        const frameData = lines.slice(1).map((line, index) => {
+          const values = line.split(',');
+          const itemNumber = values[0] || `frame-${index}`;
+          const description = values[1] || 'Custom Frame';
+          const lengthPrice = values[2] || '10.00';
+          const width = values[7] || '2';
+          const height = values[8] || '1';
+          
+          return {
+            id: `larson-${itemNumber}`,
+            name: description,
+            manufacturer: 'Larson-Juhl',
+            material: 'wood',
+            width: width.toString(),
+            depth: height.toString(),
+            color: determineColorFromName(description),
+            price: lengthPrice,
+            imageUrl: `https://www.larsonjuhl.com/contentassets/products/mouldings/${itemNumber}_fab.jpg`,
+            description: description,
+            itemNumber: itemNumber,
+            inStock: true
+          };
+        });
+
+        console.log(`Loaded ${frameData.length} frames from Larson catalog`);
+        res.json({ frames: frameData });
+      } else {
+        console.log('No catalog file found, returning empty frames');
+        res.json({ frames: [] });
+      }
+    } catch (error) {
+      console.error('Error loading frames catalog:', error);
+      res.json({ frames: [] });
+    }
   });
 
   // Mat colors endpoint
