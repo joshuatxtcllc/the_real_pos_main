@@ -9,10 +9,10 @@ run = ["node", "dist/server.mjs"]
 [env]
 NODE_ENV = "production"
 
-[[ports]]  
+[[ports]]
 localPort = 5000
 externalPort = 80
 
-[[ports]]
+[[ports]]  
 localPort = 5173
 externalPort = 8080
