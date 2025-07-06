@@ -31,7 +31,7 @@ if (!portAvailable) {
   // Start backend server
   try {
     backend = spawn('tsx', ['server/index.ts'], {
-      stdio: 'inherit',
+      stdio: ['pipe', 'inherit', 'inherit'],
       env: { 
         ...process.env, 
         NODE_ENV: 'development',
@@ -43,13 +43,20 @@ if (!portAvailable) {
       console.error('❌ Backend startup error:', error.message);
     });
 
-    backend.on('exit', (code) => {
-      if (code !== 0) {
-        console.error(`❌ Backend exited with code ${code}`);
+    backend.on('exit', (code, signal) => {
+      if (code !== 0 && signal !== 'SIGTERM') {
+        console.error(`❌ Backend exited with code ${code}, signal: ${signal}`);
+      } else if (signal === 'SIGTERM') {
+        console.log('✓ Backend shutdown gracefully');
+      } else {
+        console.log('✓ Backend server started successfully');
       }
     });
 
-    console.log('✓ Backend server started');
+    // Give backend time to start before reporting success
+    setTimeout(() => {
+      console.log('✓ Backend server started');
+    }, 2000);
   } catch (error) {
     console.error('❌ Failed to start backend:', error.message);
   }
@@ -87,16 +94,24 @@ setTimeout(() => {
 // Handle cleanup
 const cleanup = () => {
   console.log('\nShutting down development servers...');
-  if (backend) backend.kill('SIGTERM');
-  if (frontend) frontend.kill('SIGTERM');
+  if (backend && !backend.killed) {
+    backend.kill('SIGTERM');
+  }
+  if (frontend && !frontend.killed) {
+    frontend.kill('SIGTERM');
+  }
 
   setTimeout(() => {
-    if (backend) backend.kill('SIGKILL');
-    if (frontend) frontend.kill('SIGKILL');
+    if (backend && !backend.killed) backend.kill('SIGKILL');
+    if (frontend && !frontend.killed) frontend.kill('SIGKILL');
     process.exit(0);
   }, 5000);
 };
 
 process.on('SIGINT', cleanup);
 process.on('SIGTERM', cleanup);
-process.on('exit', cleanup);
+
+// Keep the process alive
+setInterval(() => {
+  // Keep script running
+}, 10000);
