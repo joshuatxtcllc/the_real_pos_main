@@ -48,6 +48,9 @@ import ErrorBoundary from '@/components/ErrorBoundary';
 
 function App() {
   const [darkMode, setDarkMode] = useState(false);
+  
+  // Emergency debugging
+  console.log('App component is rendering...', new Date().toISOString());
 
   // Initialize notification service and handle theme preference
   useEffect(() => {
