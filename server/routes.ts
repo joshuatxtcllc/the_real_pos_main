@@ -310,7 +310,10 @@ app.get('/api/ai/seasonal-trends/:materialId', async (req, res) => {
             material: 'wood',
             width: width.toString(),
             depth: height.toString(),
-            color: determineColorFromName(description),
+            color: description.includes('BROWN') ? '#8B4513' : 
+                   description.includes('WALNUT') ? '#654321' : 
+                   description.includes('HONEY') ? '#D4A574' : 
+                   description.includes('COFFEE') ? '#6F4E37' : '#8B4513',
             price: lengthPrice,
             imageUrl: `https://www.larsonjuhl.com/contentassets/products/mouldings/${itemNumber}_fab.jpg`,
             description: description,
