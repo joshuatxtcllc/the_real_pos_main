@@ -38,7 +38,7 @@ localPort = 8080
 externalPort = 8080
 
 [workflows]
-runButton = "Emergency App Server"
+runButton = "Development Server"
 
 [[workflows.workflow]]
 name = "Project"
@@ -124,7 +124,7 @@ mode = "sequential"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "npm run dev"
+args = "node simple-server.mjs"
 
 [[workflows.workflow]]
 name = "Clean Development Start"
@@ -229,12 +229,3 @@ args = "sleep 2"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "npm run build"
-
-[[workflows.workflow]]
-name = "Emergency App Server"
-author = 27546771
-mode = "sequential"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "node simple-server.mjs"
