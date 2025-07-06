@@ -8112,16 +8112,6 @@ async function registerRoutes(app2) {
       environment: "production"
     });
   });
-  app2.get("/", (req, res) => {
-    res.set("Content-Type", "application/json");
-    res.status(200).json({
-      status: "healthy",
-      service: "Jay's Frames POS System",
-      timestamp: (/* @__PURE__ */ new Date()).toISOString(),
-      environment: "production",
-      port: process.env.PORT || "5000"
-    });
-  });
   app2.get("/api/dashboard/config", (req, res) => {
     const dashboardApiUrl = process.env.DASHBOARD_API_URL;
     res.json({
