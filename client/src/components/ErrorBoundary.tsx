@@ -4,13 +4,19 @@ interface Props {
   children: React.ReactNode;
 }
 
+interface Props {
+  children: React.ReactNode;
+}
+
 interface State {
   hasError: boolean;
   error?: Error;
   errorInfo?: ErrorInfo;
 }
 
-class ErrorBoundary extends Component<Props, State> {
+import React, { Component, ErrorInfo } from 'react';
+
+export default class ErrorBoundary extends Component<Props, State> {
   constructor(props: Props) {
     super(props);
     this.state = { hasError: false };

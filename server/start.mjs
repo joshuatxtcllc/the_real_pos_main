@@ -1,40 +1,59 @@
+
 #!/usr/bin/env node
 
-/**
- * Production server startup script with ES module compatibility
- */
-
+import { spawn } from 'child_process';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
-import { createRequire } from 'module';
+import fs from 'fs';
 
-// ES module compatibility
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-const require = createRequire(import.meta.url);
 
-// Set production environment
-process.env.NODE_ENV = 'production';
+const startServer = async () => {
+  try {
+    // Check if server file exists
+    const serverPath = join(__dirname, 'server.mjs');
+    if (!fs.existsSync(serverPath)) {
+      console.error('❌ Server file not found:', serverPath);
+      process.exit(1);
+    }
+    
+    console.log('🚀 Starting Jay\'s Frames POS Server...');
+    
+    const server = spawn('node', [serverPath], {
+      stdio: 'inherit',
+      env: {
+        ...process.env,
+        NODE_ENV: 'production',
+        PORT: '5000'
+      }
+    });
+    
+    server.on('error', (error) => {
+      console.error('❌ Server startup error:', error.message);
+      process.exit(1);
+    });
+    
+    server.on('close', (code) => {
+      console.log(`Server exited with code ${code}`);
+      if (code !== 0) {
+        process.exit(1);
+      }
+    });
+    
+    // Handle graceful shutdown
+    ['SIGINT', 'SIGTERM'].forEach(signal => {
+      process.on(signal, () => {
+        console.log(`Received ${signal}, shutting down...`);
+        server.kill();
+        process.exit(0);
+      });
+    });
+    
+  } catch (error) {
+    console.error('❌ Failed to start server:', error);
+    process.exit(1);
+  }
+};
 
-// Error handling for uncaught exceptions
-process.on('uncaughtException', (error) => {
-  console.error('Uncaught Exception:', error);
-  process.exit(1);
-});
-
-process.on('unhandledRejection', (reason, promise) => {
-  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
-  process.exit(1);
-});
-
-// Import and start the server
-try {
-  console.log('Starting production server...');
-  
-  // Dynamic import for ES module compatibility
-  await import('./index.ts');
-  
-} catch (error) {
-  console.error('Failed to start server:', error);
-  process.exit(1);
-}
+startServer();
