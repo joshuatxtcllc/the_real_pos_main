@@ -1,41 +1,63 @@
 #!/usr/bin/env node
+import http from 'http';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
-// Emergency startup script for customer service
-import { spawn } from 'child_process';
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const PORT = 5000;
 
-console.log('🚨 Emergency POS startup for customer...');
+console.log('Emergency POS Server Starting...');
 
-// Kill any existing processes
+// Read the index.html file
+const indexPath = path.join(__dirname, 'dist', 'public', 'index.html');
+let indexHtml = '';
+
 try {
-  await new Promise(resolve => {
-    const killProcess = spawn('pkill', ['-f', 'tsx.*server'], { stdio: 'inherit' });
-    killProcess.on('close', () => resolve());
-  });
-  
-  // Wait for cleanup
-  await new Promise(resolve => setTimeout(resolve, 2000));
-} catch (e) {
-  console.log('No existing processes to kill');
+  indexHtml = fs.readFileSync(indexPath, 'utf8');
+  console.log('✅ Loaded index.html');
+} catch (err) {
+  console.error('❌ Cannot read index.html:', err.message);
+  process.exit(1);
 }
 
-// Start server on port 3000
-console.log('Starting POS server on port 3000...');
-const server = spawn('npx', ['tsx', 'server/index.ts'], {
-  stdio: 'inherit',
-  env: {
-    ...process.env,
-    NODE_ENV: 'development',
-    PORT: '3000'
+const server = http.createServer((req, res) => {
+  console.log('Request:', req.url);
+  
+  // Serve static files
+  if (req.url !== '/' && req.url.includes('.')) {
+    const filePath = path.join(__dirname, 'dist', 'public', req.url);
+    try {
+      const content = fs.readFileSync(filePath);
+      const ext = path.extname(filePath);
+      let contentType = 'text/plain';
+      
+      if (ext === '.html') contentType = 'text/html';
+      else if (ext === '.css') contentType = 'text/css';
+      else if (ext === '.js') contentType = 'application/javascript';
+      else if (ext === '.json') contentType = 'application/json';
+      
+      res.writeHead(200, { 'Content-Type': contentType });
+      res.end(content);
+      return;
+    } catch (err) {
+      console.log('File not found:', filePath);
+    }
   }
+  
+  // Serve index.html for all other requests
+  res.writeHead(200, { 'Content-Type': 'text/html' });
+  res.end(indexHtml);
+});
+
+server.listen(PORT, '0.0.0.0', () => {
+  console.log(`🚀 Emergency POS running on port ${PORT}`);
+  console.log('✅ Ready for business');
 });
 
 server.on('error', (err) => {
   console.error('Server error:', err);
-  process.exit(1);
 });
 
-process.on('SIGINT', () => {
-  console.log('\nShutting down server...');
-  server.kill();
-  process.exit(0);
-});
+process.on('SIGTERM', () => server.close());
+process.on('SIGINT', () => server.close());
