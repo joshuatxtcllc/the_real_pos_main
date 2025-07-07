@@ -84,11 +84,35 @@ async function startServer() {
 
   const port = 5000;
 
-  app.listen(port, '0.0.0.0', () => {
+  const server = app.listen(port, '0.0.0.0', () => {
     console.log(`🚀 Jay's Frames POS System running on http://0.0.0.0:${port}`);
     console.log(`📱 Access your app at: https://${port}-jayframes-rest-express.replit.dev`);
     console.log(`✅ Server is ready and serving both frontend and backend`);
     console.log(`🔧 Frontend assets are being served by Vite dev server`);
+  });
+
+  server.on('error', (error) => {
+    if (error.code === 'EADDRINUSE') {
+      console.log(`❌ Port ${port} is already in use. Another server may be running.`);
+      console.log(`🔄 Attempting to kill existing processes and restart...`);
+      
+      // Try to start on a different port
+      const fallbackPort = port + 1;
+      setTimeout(() => {
+        const fallbackServer = app.listen(fallbackPort, '0.0.0.0', () => {
+          console.log(`🚀 Jay's Frames POS System running on fallback port http://0.0.0.0:${fallbackPort}`);
+          console.log(`📱 Access your app at: https://${fallbackPort}-jayframes-rest-express.replit.dev`);
+        });
+        
+        fallbackServer.on('error', (fallbackError) => {
+          console.error(`❌ Failed to start on fallback port ${fallbackPort}:`, fallbackError.message);
+          process.exit(1);
+        });
+      }, 1000);
+    } else {
+      console.error(`❌ Server error:`, error);
+      process.exit(1);
+    }
   });
 }
 
