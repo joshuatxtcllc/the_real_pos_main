@@ -109,60 +109,28 @@ async function fetchOrdersFromKanban() {
 
 export async function getAllOrders(req: Request, res: Response) {
   try {
-    // Try to fetch from Kanban app first
-    const kanbanOrders = await fetchOrdersFromKanban();
-
-    if (kanbanOrders && kanbanOrders.length > 0) {
-      console.log(`Fetched ${kanbanOrders.length} orders from Kanban app`);
-
-      // Transform Kanban orders to our format
-      const transformedOrders = kanbanOrders.map((order: any) => ({
-        id: order.orderId || order.id,
-        customerName: order.customerName,
-        customerPhone: order.customerPhone || '',
-        customerEmail: order.customerEmail || '',
-        artworkTitle: order.artworkTitle,
-        artworkWidth: order.frameSize ? parseFloat(order.frameSize.split('x')[0]) : order.artworkWidth,
-        artworkHeight: order.frameSize ? parseFloat(order.frameSize.split('x')[1]) : order.artworkHeight,
-        frameId: order.materials?.frameType || order.frameId,
-        matId: order.materials?.matColor || order.matId,
-        glassType: order.materials?.glass || order.glassType || 'Museum Glass',
-        productionStatus: order.status || 'pending',
-        stage: order.stage || 'material_prep',
-        totalPrice: order.totalPrice || 0,
-        createdAt: order.createdAt,
-        scheduledDate: order.dueDate || order.scheduledDate,
-        estimatedCompletion: order.estimatedCompletion,
-        priority: order.priority || 'standard',
-        qrCode: order.qrCode || '',
-        notes: order.notes || ''
-      }));
-
-      res.json({ 
-        success: true, 
-        orders: transformedOrders,
-        source: 'kanban',
-        count: transformedOrders.length
-      });
-      return;
-    }
-
-    // Fallback to local storage
-    console.log('Falling back to local storage for orders');
+    console.log('Fetching all orders...');
+    
+    // Get orders from local storage
     const localOrders = await storage.getAllOrders();
-    console.log('Local orders found:', localOrders.length);
+    console.log('Local orders found:', localOrders?.length || 0);
+    
+    // Ensure we return a consistent structure
+    const orders = Array.isArray(localOrders) ? localOrders : [];
+    
     res.json({ 
       success: true, 
-      orders: localOrders,
+      orders: orders,
       source: 'local',
-      count: localOrders.length
+      count: orders.length
     });
 
   } catch (error: any) {
     console.error('Error fetching orders:', error);
     res.status(500).json({ 
       success: false, 
-      error: error.message || 'Failed to fetch orders' 
+      error: error.message || 'Failed to fetch orders',
+      orders: [] // Always provide an empty array as fallback
     });
   }
 }

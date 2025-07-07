@@ -766,7 +766,8 @@ export class DatabaseStorage implements IStorage {
     // First get glass options from database
     const dbGlassOptions = await db.select().from(glassOptions);
 
-    // If no glass options in database, initialize with catalog
+    // If no glass options in database, initialize with```text
+glass options in database, initialize with catalog
     if (dbGlassOptions.length === 0) {
       // Insert all catalog glass options
       await db.insert(glassOptions).values(glassOptionCatalog);
@@ -881,14 +882,26 @@ export class DatabaseStorage implements IStorage {
 
   async getAllOrders(): Promise<Order[]> {
     try {
-      console.log('Fetching orders from database...');
-      const dbOrders = await db.select().from(orders);
+      const result = await db
+        .select()
+        .from(orders)
+        .leftJoin(customers, eq(orders.customerId, customers.id))
+        .orderBy(desc(orders.createdAt));
 
-      console.log(`Found ${dbOrders?.length || 0} orders in database`);
-      return dbOrders || [];
+      console.log('Raw orders from database:', result.length);
+
+      return result.map(row => ({
+        ...row.orders,
+        customer: row.customers,
+        // Ensure required fields have defaults
+        status: row.orders.status || 'pending',
+        total: row.orders.total || '0.00',
+        artworkWidth: row.orders.artworkWidth || 0,
+        artworkHeight: row.orders.artworkHeight || 0
+      }));
     } catch (error) {
-      console.error('Error in getAllOrders:', error);
-      throw error;
+      console.error('Error fetching orders from database:', error);
+      return []; // Return empty array on error
     }
   }
 
@@ -1781,6 +1794,7 @@ export class DatabaseStorage implements IStorage {
     try {
       const [category] = await db
         .select()
+        ```text
         .from(inventoryCategories)
         .where(eq(inventoryCategories.id, id));
       return category;

@@ -601,18 +601,33 @@ const Orders = () => {
   });
 
   // Extract orders array from API response and filter based on search term and status
-  const ordersArray = Array.isArray(orders) ? orders : ((orders as any)?.orders || []);
+  const ordersArray = React.useMemo(() => {
+    if (!orders) return [];
+    if (Array.isArray(orders)) return orders;
+    if (orders && typeof orders === 'object' && orders.orders) return orders.orders;
+    return [];
+  }, [orders]);
 
   console.log('Orders response:', orders);
   console.log('Orders array:', ordersArray);
 
-  const filteredOrders = Array.isArray(ordersArray) ? ordersArray.filter((order: Order) => {
-    const matchesSearch = 
-      getCustomerName(order.customerId).toLowerCase().includes(searchTerm.toLowerCase()) ||
-      order.id.toString().includes(searchTerm);
-    const matchesStatus = statusFilter === 'all' || order.status === statusFilter;
-    return matchesSearch && matchesStatus;
-  }) : [];
+  const filteredOrders = React.useMemo(() => {
+    if (!Array.isArray(ordersArray)) return [];
+    
+    return ordersArray.filter((order: Order) => {
+      try {
+        const customerName = getCustomerName(order.customerId);
+        const matchesSearch = 
+          customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          order.id.toString().includes(searchTerm);
+        const matchesStatus = statusFilter === 'all' || order.status === statusFilter;
+        return matchesSearch && matchesStatus;
+      } catch (error) {
+        console.error('Error filtering order:', order, error);
+        return false;
+      }
+    });
+  }, [ordersArray, searchTerm, statusFilter]);
 
   const isLoading = ordersLoading || orderGroupsLoading;
   const isError = ordersError || orderGroupsError;
