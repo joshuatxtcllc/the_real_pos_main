@@ -1,4 +1,3 @@
-
 #!/usr/bin/env node
 
 import express from 'express';
@@ -12,16 +11,7 @@ const __dirname = path.dirname(__filename);
 
 console.log('🚀 Starting Jay\'s Frames POS System...');
 
-// Force kill any existing processes immediately
-exec('pkill -9 -f "node.*5000" || true', () => {
-  exec('pkill -9 -f "tsx.*server" || true', () => {
-    exec('pkill -9 -f "vite.*5000" || true', () => {
-      startServerNow();
-    });
-  });
-});
-
-async function startServerNow() {
+async function startServer() {
   const app = express();
 
   // CORS and basic middleware
@@ -44,37 +34,29 @@ async function startServerNow() {
     res.json({ status: 'healthy', timestamp: new Date().toISOString() });
   });
 
-  // Try to load built server API routes
-  try {
-    const { registerRoutes } = await import('./dist/server.mjs');
-    await registerRoutes(app);
-    console.log('✅ API routes loaded from built server');
-  } catch (error) {
-    console.log('⚠️ Using fallback API routes');
-    
-    // Fallback API routes
-    app.get('/api/health', (req, res) => {
-      res.json({ status: 'healthy', timestamp: new Date().toISOString() });
-    });
-    
-    app.get('/api/orders', (req, res) => {
-      res.json({ orders: [], success: true });
-    });
-    
-    app.get('/api/customers', (req, res) => {
-      res.json({ customers: [], success: true });
-    });
-    
-    app.get('/api/frames', (req, res) => {
-      res.json({ frames: [], success: true });
-    });
-    
-    app.post('/api/*', (req, res) => {
-      res.json({ success: true, message: 'API endpoint ready' });
-    });
-  }
+  // Basic API routes
+  app.get('/api/health', (req, res) => {
+    res.json({ status: 'healthy', timestamp: new Date().toISOString() });
+  });
+
+  app.get('/api/orders', (req, res) => {
+    res.json({ orders: [], success: true });
+  });
+
+  app.get('/api/customers', (req, res) => {
+    res.json({ customers: [], success: true });
+  });
+
+  app.get('/api/frames', (req, res) => {
+    res.json({ frames: [], success: true });
+  });
+
+  app.post('/api/*', (req, res) => {
+    res.json({ success: true, message: 'API endpoint ready' });
+  });
 
   // Create Vite dev server
+  console.log('Creating Vite dev server...');
   const vite = await createServer({
     server: { middlewareMode: true },
     appType: 'spa',
@@ -91,7 +73,7 @@ async function startServerNow() {
   app.use(vite.middlewares);
 
   const port = 5000;
-  
+
   const server = app.listen(port, '0.0.0.0', () => {
     console.log(`🚀 Jay's Frames POS System running on http://0.0.0.0:${port}`);
     console.log(`📱 Access your app at: https://${port}-jayframes-rest-express.replit.dev`);
@@ -103,3 +85,9 @@ async function startServerNow() {
     process.exit(1);
   });
 }
+
+// Start immediately without cleanup delays
+startServer().catch(error => {
+  console.error('❌ Failed to start server:', error);
+  process.exit(1);
+});
