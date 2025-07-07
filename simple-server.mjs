@@ -3,11 +3,28 @@ import { createServer } from 'vite';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs';
+import { exec } from 'child_process';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// Kill any existing processes on startup
+function cleanupExistingProcesses() {
+  return new Promise((resolve) => {
+    exec('pkill -f "node simple-server.mjs" || true', () => {
+      exec('pkill -f "tsx server/index.ts" || true', () => {
+        exec('pkill -f "vite.*5000" || true', () => {
+          setTimeout(resolve, 1000);
+        });
+      });
+    });
+  });
+}
+
 async function startServer() {
+  console.log('🧹 Cleaning up existing processes...');
+  await cleanupExistingProcesses();
+  
   const app = express();
 
   // Add CORS for all routes
@@ -93,22 +110,32 @@ async function startServer() {
 
   server.on('error', (error) => {
     if (error.code === 'EADDRINUSE') {
-      console.log(`❌ Port ${port} is already in use. Another server may be running.`);
-      console.log(`🔄 Attempting to kill existing processes and restart...`);
+      console.log(`❌ Port ${port} is still in use after cleanup.`);
+      console.log(`🔄 Force killing remaining processes and retrying...`);
       
-      // Try to start on a different port
-      const fallbackPort = port + 1;
-      setTimeout(() => {
-        const fallbackServer = app.listen(fallbackPort, '0.0.0.0', () => {
-          console.log(`🚀 Jay's Frames POS System running on fallback port http://0.0.0.0:${fallbackPort}`);
-          console.log(`📱 Access your app at: https://${fallbackPort}-jayframes-rest-express.replit.dev`);
+      exec('pkill -9 -f "node.*5000" || true', () => {
+        exec('pkill -9 -f "tsx.*5000" || true', () => {
+          setTimeout(() => {
+            console.log(`🔄 Retrying on port ${port}...`);
+            const retryServer = app.listen(port, '0.0.0.0', () => {
+              console.log(`🚀 Jay's Frames POS System running on http://0.0.0.0:${port}`);
+              console.log(`📱 Access your app at: https://${port}-jayframes-rest-express.replit.dev`);
+              console.log(`✅ Server is ready and serving both frontend and backend`);
+            });
+            
+            retryServer.on('error', (retryError) => {
+              console.error(`❌ Failed to start after cleanup:`, retryError.message);
+              console.log(`🆘 Trying emergency fallback port...`);
+              
+              const emergencyPort = 5001;
+              const emergencyServer = app.listen(emergencyPort, '0.0.0.0', () => {
+                console.log(`🚨 Emergency server running on port ${emergencyPort}`);
+                console.log(`📱 Access at: https://${emergencyPort}-jayframes-rest-express.replit.dev`);
+              });
+            });
+          }, 2000);
         });
-        
-        fallbackServer.on('error', (fallbackError) => {
-          console.error(`❌ Failed to start on fallback port ${fallbackPort}:`, fallbackError.message);
-          process.exit(1);
-        });
-      }, 1000);
+      });
     } else {
       console.error(`❌ Server error:`, error);
       process.exit(1);
