@@ -42,7 +42,7 @@ localPort = 8080
 externalPort = 8080
 
 [workflows]
-runButton = "Start Jay's Frames POS"
+runButton = "Development Server"
 
 [[workflows.workflow]]
 name = "Project"
@@ -233,12 +233,3 @@ args = "sleep 2"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "npm run build"
-
-[[workflows.workflow]]
-name = "Start Jay's Frames POS"
-author = 27546771
-mode = "sequential"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "node quick-start-server.mjs"
