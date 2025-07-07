@@ -4,9 +4,16 @@ import App from './App';
 import './index.css';
 import { ErrorBoundary } from './components/ErrorBoundary';
 
-// Global error handling
+// Global error handling with more debugging
 window.addEventListener('error', (event) => {
   console.error('Global error caught:', event.error);
+  console.error('Error details:', {
+    message: event.message,
+    filename: event.filename,
+    lineno: event.lineno,
+    colno: event.colno,
+    error: event.error
+  });
 });
 
 window.addEventListener('unhandledrejection', (event) => {
@@ -16,6 +23,30 @@ window.addEventListener('unhandledrejection', (event) => {
     event.preventDefault();
   }
 });
+
+// Add timeout to detect if app fails to load
+setTimeout(() => {
+  const loadingElement = document.querySelector('.loading-fallback');
+  if (loadingElement && loadingElement.style.display !== 'none') {
+    console.error('App failed to load within 10 seconds - likely JavaScript error');
+    loadingElement.innerHTML = `
+      <div style="text-align: center; padding: 20px; font-family: Arial, sans-serif;">
+        <h2 style="color: #dc3545;">App Loading Failed</h2>
+        <p>The application failed to load. This could be due to:</p>
+        <ul style="text-align: left; max-width: 400px; margin: 0 auto;">
+          <li>JavaScript execution error</li>
+          <li>Network connectivity issue</li>
+          <li>Browser compatibility problem</li>
+        </ul>
+        <button onclick="window.location.reload()" style="padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; margin: 10px;">
+          Reload Page
+        </button>
+        <br>
+        <small>Check the browser console for error details</small>
+      </div>
+    `;
+  }
+}, 10000);
 
 // Handle Vite HMR connection issues
 if (import.meta.hot) {
