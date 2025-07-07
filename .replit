@@ -128,7 +128,7 @@ mode = "sequential"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "node quick-start-server.mjs"
+args = "node instant-start.mjs"
 
 [[workflows.workflow]]
 name = "Clean Development Start"
