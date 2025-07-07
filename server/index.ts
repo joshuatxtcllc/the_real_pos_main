@@ -28,7 +28,14 @@ const PORT = process.env.PORT || 5000;
 app.use(cors({
   origin: process.env.NODE_ENV === 'production' 
     ? ['https://*.replit.app', 'https://*.replit.dev']
-    : ['http://localhost:3000', 'http://localhost:5173', 'http://0.0.0.0:5173'],
+    : [
+        'http://localhost:3000', 
+        'http://localhost:5173', 
+        'http://0.0.0.0:5173',
+        'https://5173-jayframes-rest-express.replit.dev',
+        /^https:\/\/.*\.replit\.dev$/,
+        /^https:\/\/.*\.replit\.app$/
+      ],
   credentials: true
 }));
 
@@ -49,7 +56,9 @@ app.use('/api', qrCodeRoutes);
 app.use('/api', webhookRoutes);
 
 // Serve static files from the client build
-const clientBuildPath = path.join(__dirname, '../dist/public');
+const clientBuildPath = process.env.NODE_ENV === 'production' 
+  ? path.join(process.cwd(), 'dist/public')        // When running from dist/server.mjs, use cwd + dist/public
+  : path.join(__dirname, '../dist/public');       // When running from server/index.ts in development
 app.use(express.static(clientBuildPath));
 
 // Handle client-side routing

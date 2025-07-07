@@ -1,25 +1,71 @@
 #!/usr/bin/env node
 
-// Production application startup
-process.env.NODE_ENV = 'production';
-process.env.PORT = process.env.PORT || process.env.REPL_PORT || '5000';
+/**
+ * Production Server Starter
+ * This script starts the production server after ensuring the build is ready
+ */
 
-import { exec } from 'child_process';
+import { spawn } from 'child_process';
 import fs from 'fs';
+import path from 'path';
 
-console.log('Starting production server...');
+console.log('🚀 Starting Jay\'s Frames POS Production Server...');
 
-// Check for optimized build
-const builtServer = fs.existsSync('./dist/server.mjs');
-
-if (builtServer) {
-  console.log('Using production build');
-  exec('node ./dist/server.mjs', { 
-    env: { ...process.env, NODE_ENV: 'production' } 
+// Check if build exists
+if (!fs.existsSync('dist/server.mjs')) {
+  console.log('📦 Build not found, running build first...');
+  const buildProcess = spawn('npm', ['run', 'build'], {
+    stdio: 'inherit',
+    env: { ...process.env, NODE_ENV: 'production' }
+  });
+  
+  buildProcess.on('exit', (code) => {
+    if (code === 0) {
+      console.log('✅ Build completed successfully');
+      startServer();
+    } else {
+      console.error('❌ Build failed');
+      process.exit(1);
+    }
   });
 } else {
-  console.log('Starting TypeScript server');
-  exec('npx tsx server/index.ts', { 
-    env: { ...process.env, NODE_ENV: 'production' } 
+  console.log('✅ Build found, starting server...');
+  startServer();
+}
+
+function startServer() {
+  // Start the production server
+  const server = spawn('node', ['dist/server.mjs'], {
+    stdio: 'inherit',
+    env: {
+      ...process.env,
+      NODE_ENV: 'production',
+      PORT: '5000'
+    }
   });
+
+  server.on('error', (error) => {
+    console.error('❌ Server startup error:', error.message);
+    process.exit(1);
+  });
+
+  server.on('exit', (code) => {
+    if (code !== 0) {
+      console.error(`❌ Server exited with code ${code}`);
+      process.exit(code);
+    }
+  });
+
+  // Handle graceful shutdown
+  const cleanup = () => {
+    console.log('\n🛑 Shutting down server...');
+    server.kill('SIGTERM');
+    setTimeout(() => {
+      server.kill('SIGKILL');
+      process.exit(0);
+    }, 5000);
+  };
+
+  process.on('SIGINT', cleanup);
+  process.on('SIGTERM', cleanup);
 }

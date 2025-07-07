@@ -5599,7 +5599,14 @@ var __dirname2 = path3.dirname(__filename2);
 var app = express2();
 var PORT = process.env.PORT || 5e3;
 app.use(cors({
-  origin: true ? ["https://*.replit.app", "https://*.replit.dev"] : ["http://localhost:3000", "http://localhost:5173", "http://0.0.0.0:5173"],
+  origin: true ? ["https://*.replit.app", "https://*.replit.dev"] : [
+    "http://localhost:3000",
+    "http://localhost:5173",
+    "http://0.0.0.0:5173",
+    "https://5173-jayframes-rest-express.replit.dev",
+    /^https:\/\/.*\.replit\.dev$/,
+    /^https:\/\/.*\.replit\.app$/
+  ],
   credentials: true
 }));
 app.use(express2.json({ limit: "50mb" }));
@@ -5613,7 +5620,7 @@ app.use("/api", invoiceRoutes_default);
 app.use("/api", fileRoutes_default);
 app.use("/api", qrCodeRoutes_default);
 app.use("/api", webhookRoutes_default);
-var clientBuildPath = path3.join(__dirname2, "../dist/public");
+var clientBuildPath = true ? path3.join(process.cwd(), "dist/public") : path3.join(__dirname2, "../dist/public");
 app.use(express2.static(clientBuildPath));
 app.get("*", (req, res) => {
   if (req.path.startsWith("/api/")) {

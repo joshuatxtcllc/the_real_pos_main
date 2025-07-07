@@ -1,6 +1,6 @@
 modules = ["nodejs-20"]
 
-run = "node fix-and-start.mjs"
+run = "node start-production.mjs"
 
 [deployment]
 build = ["node", "simple-deploy.mjs"]
@@ -8,6 +8,7 @@ run = ["node", "dist/server.mjs"]
 
 [env]
 NODE_ENV = "production"
+PORT = "5000"
 
 [[ports]]
 localPort = 5000
