@@ -247,7 +247,7 @@ export class DatabaseStorage implements IStorage {
 
       return enhancedMats;
     } catch (error) {
-      console.error(`Error getting order mats for order ${orderId}:`, error);
+      console.error('Error getting order mats for order ' + orderId + ':', error);
       return [];
     }
   }
@@ -274,7 +274,7 @@ export class DatabaseStorage implements IStorage {
 
       return enhancedFrames;
     } catch (error) {
-      console.error(`Error getting order frames for order ${orderId}:`, error);
+      console.error('Error getting order frames for order ' + orderId + ':', error);
       return [];
     }
   }
@@ -366,14 +366,14 @@ export class DatabaseStorage implements IStorage {
 
   // Frame methods
   async getFrame(id: string): Promise<Frame | undefined> {
-    console.log(`Storage: Getting frame with ID: ${id}`);
+    console.log('Storage: Getting frame with ID: ' + id);
     try {
       // First try to get from the database
       const [frame] = await db.select().from(frames).where(eq(frames.id, id));
 
       // If found in database, enhance it with real images and color
       if (frame) {
-        console.log(`Storage: Found frame in database: ${frame.name}`);
+        console.log('Storage: Found frame in database: ' + frame.name);
 
         // Determine color based on the frame's material and name
         let frameColor = determineFrameColor(frame);
@@ -418,10 +418,10 @@ export class DatabaseStorage implements IStorage {
       }
 
       // If not found in database, check catalog
-      console.log(`Storage: Frame not found in database, checking catalog`);
+      console.log('Storage: Frame not found in database, checking catalog');
       const catalogFrame = frameCatalog.find(f => f.id === id);
       if (catalogFrame) {
-        console.log(`Storage: Found frame in catalog: ${catalogFrame.name}`);
+        console.log('Storage: Found frame in catalog: ' + catalogFrame.name);
 
         // Enhance the frame with real wholesaler images
         let enhancedImage = catalogFrame.catalogImage;
@@ -465,12 +465,12 @@ export class DatabaseStorage implements IStorage {
         };
 
         // Try to insert the database-safe frame
-        console.log(`Storage: Inserting enhanced frame into database: ${dbSafeFrame.name}`);
+        console.log('Storage: Inserting enhanced frame into database: ' + dbSafeFrame.name);
         try {
           await db.insert(frames).values(dbSafeFrame);
-          console.log(`Storage: Successfully inserted frame into database`);
+          console.log('Storage: Successfully inserted frame into database');
         } catch (error) {
-          console.error(`Storage: Error inserting frame into database:`, error);
+          console.error('Storage: Error inserting frame into database:', error);
           // Continue anyway, we'll return the enhanced frame
         }
 
@@ -766,8 +766,7 @@ export class DatabaseStorage implements IStorage {
     // First get glass options from database
     const dbGlassOptions = await db.select().from(glassOptions);
 
-    // If no glass options in database, initialize with```text
-glass options in database, initialize with catalog
+    // If no glass options in database, initialize with catalog
     if (dbGlassOptions.length === 0) {
       // Insert all catalog glass options
       await db.insert(glassOptions).values(glassOptionCatalog);
@@ -1109,8 +1108,8 @@ glass options in database, initialize with catalog
             orderId: order.id,
             notificationType: 'status_update',
             channel: 'email',
-            subject: `Order #${order.id} Status Update: ${status}`,
-            message: `Your order is now ${status.split('_').join(' ')}. Check your email for details.`,
+            subject: 'Order #' + order.id + ' Status Update: ' + status,
+            message: 'Your order is now ' + status.split('_').join(' ') + '. Check your email for details.',
             successful: emailSent,
             previousStatus,
             newStatus: status,
@@ -1128,8 +1127,8 @@ glass options in database, initialize with catalog
             orderId: order.id,
             notificationType: 'status_update',
             channel: 'email',
-            subject: `Order #${order.id} Status Update: ${status}`,
-            message: `Your order is now ${status.split('_').join(' ')}.`,
+            subject: 'Order #' + order.id + ' Status Update: ' + status,
+            message: 'Your order is now ' + status.split('_').join(' ') + '.',
             successful: false,
             previousStatus,
             newStatus: status,
@@ -1199,8 +1198,8 @@ glass options in database, initialize with catalog
           orderId: order.id,
           notificationType: 'estimated_completion',
           channel: 'email',
-          subject: `Your Custom Framing Order #${order.id} Has Been Scheduled`,
-          message: `Your custom framing order #${order.id} has been scheduled for production. The estimated completion date is ${estimatedCompletionDate.toLocaleDateString()}.`,
+          subject: 'Your Custom Framing Order #' + order.id + ' Has Been Scheduled',
+          message: 'Your custom framing order #' + order.id + ' has been scheduled for production. The estimated completion date is ' + estimatedCompletionDate.toLocaleDateString() + '.',
           successful: true,
           previousStatus: order.productionStatus,
           newStatus: 'scheduled'
@@ -1410,7 +1409,7 @@ glass options in database, initialize with catalog
     try {
       // Generate SKU if not provided
       if (!inventoryItem.sku) {
-        inventoryItem.sku = `INV-${Date.now().toString(36).toUpperCase()}`;
+        inventoryItem.sku = 'INV-' + Date.now().toString(36).toUpperCase();
       }
 
       // Extract initialQuantity before inserting since it's not part of the schema
@@ -1692,7 +1691,7 @@ glass options in database, initialize with catalog
   ): Promise<PurchaseOrder> {
     try {
       // Generate a PO number
-      const poNumber = `PO-${Date.now().toString(36).toUpperCase()}`;
+      const poNumber = 'PO-' + Date.now().toString(36).toUpperCase();
 
       // Calculate totals
       let subtotal = 0;
@@ -1794,7 +1793,6 @@ glass options in database, initialize with catalog
     try {
       const [category] = await db
         .select()
-        ```text
         .from(inventoryCategories)
         .where(eq(inventoryCategories.id, id));
       return category;
@@ -2001,7 +1999,7 @@ glass options in database, initialize with catalog
 
       return transformedList;
     } catch (error) {
-      log(`Error in getMaterialsPickList: ${error}`, 'storage');
+      console.error('Error in getMaterialsPickList:', error);
       throw error;
     }
   }
@@ -2014,7 +2012,7 @@ glass options in database, initialize with catalog
         .where(eq(materialOrders.sourceOrderId, orderId));
       return materials;
     } catch (error) {
-      log(`Error in getMaterialsForOrder: ${error}`, 'storage');
+      console.error('Error in getMaterialsForOrder:', error);
       throw error;
     }
   }
@@ -2030,7 +2028,7 @@ glass options in database, initialize with catalog
       const selectedMaterials = await db
         .select()
         .from(materialOrders)
-        .where(sql`${materialOrders.id} IN (${numericIds.join(',')})`);
+        .where(or(...numericIds.map(id => eq(materialOrders.id, id))));
 
       if (selectedMaterials.length === 0) {
         throw new Error('No valid materials found for purchase order');
@@ -2042,7 +2040,7 @@ glass options in database, initialize with catalog
       );
 
       if (alreadyOrdered.length > 0) {
-        throw new Error(`Materials already ordered: ${alreadyOrdered.map(m => m.materialName).join(', ')}`);
+        throw new Error('Materials already ordered: ' + alreadyOrdered.map(m => m.materialName).join(', '));
       }
 
       // Update material orders to 'ordered' status with order date
@@ -2052,7 +2050,7 @@ glass options in database, initialize with catalog
           status: 'ordered',
           orderDate: new Date()
         })
-        .where(sql`${materialOrders.id} IN (${numericIds.join(',')})`);
+        .where(or(...numericIds.map(id => eq(materialOrders.id, id))));
 
       const totalAmount = selectedMaterials.reduce((sum, material) => {
         return sum + (Number(material.totalCost) || 0);
@@ -2060,7 +2058,7 @@ glass options in database, initialize with catalog
 
       const purchaseOrder = {
         id: 'po-' + Date.now(),
-        orderNumber: `PO-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 1000)).padStart(3, '0')}`,
+        orderNumber: 'PO-' + new Date().getFullYear() + '-' + String(Math.floor(Math.random() * 1000)).padStart(3, '0'),
         materialIds,
         totalAmount,
         status: 'sent',
@@ -2071,7 +2069,7 @@ glass options in database, initialize with catalog
 
       return purchaseOrder;
     } catch (error) {
-      log(`Error in createPurchaseOrder: ${error}`, 'storage');
+      console.error('Error in createPurchaseOrder:', error);
       throw error;
     }
   }
@@ -2096,7 +2094,7 @@ glass options in database, initialize with catalog
 
       return existing.length > 0;
     } catch (error) {
-      log(`Error checking duplicate material order: ${error}`, 'storage');
+      console.error('Error checking duplicate material order:', error);
       return false;
     }
   }
@@ -2129,7 +2127,7 @@ glass options in database, initialize with catalog
               totalCost: (Number(frame.price) * frameLength).toString(),
               priority: 'medium',
               unitMeasurement: 'united_inch',
-              notes: `Frame for order #${order.id}`
+              notes: 'Frame for order #' + order.id
             });
           }
         }
@@ -2158,7 +2156,7 @@ glass options in database, initialize with catalog
               totalCost: (Number(mat.price) * matArea).toString(),
               priority: 'medium',
               unitMeasurement: 'sheet',
-              notes: `Mat board for order #${order.id} - ${matWidth}"x${matHeight}"`
+              notes: 'Mat board for order #' + order.id + ' - ' + matWidth + '"x' + matHeight + '"'
             });
           }
         }
@@ -2187,14 +2185,14 @@ glass options in database, initialize with catalog
               totalCost: (Number(glass.price) * glassArea).toString(),
               priority: 'medium',
               unitMeasurement: 'square_inch',
-              notes: `Glass for order #${order.id} - ${glassWidth}"x${glassHeight}"`
+              notes: 'Glass for order #' + order.id + ' - ' + glassWidth + '"x' + glassHeight + '"'
             });
           }
         }
       }
 
       // Save all material orders to the database
-      console.log(`Attempting to save ${materialOrders.length} material orders`);
+      console.log('Attempting to save ' + materialOrders.length + ' material orders');
       const createdOrders: MaterialOrder[] = [];
 
       for (const materialOrder of materialOrders) {
@@ -2209,10 +2207,10 @@ glass options in database, initialize with catalog
         }
       }
 
-      console.log(`Successfully created ${createdOrders.length} material orders for order ${order.id}`);
+      console.log('Successfully created ' + createdOrders.length + ' material orders for order ' + order.id);
       return createdOrders;
     } catch (error) {
-      log(`Error creating material orders from order: ${error}`, 'storage');
+      console.error('Error creating material orders from order:', error);
       throw error;
     }
   }
