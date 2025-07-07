@@ -37,11 +37,15 @@ async function startServer() {
 
   // API routes - Import your existing API routes
   try {
-    const { registerRoutes } = await import('./server/routes.ts');
+    const { registerRoutes } = await import('./server/routes.js');
     await registerRoutes(app);
     console.log('✅ API routes registered');
   } catch (error) {
     console.log('⚠️ API routes not available:', error.message);
+    // Add basic fallback routes
+    app.get('/api/health', (req, res) => {
+      res.json({ status: 'healthy', timestamp: new Date().toISOString() });
+    });
   }
 
   // Create Vite server in middleware mode

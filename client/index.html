@@ -46,5 +46,25 @@
       </div>
     </div>
     <script type="module" src="/src/main.tsx"></script>
+    <script>
+      // Add timeout to detect infinite loading
+      setTimeout(() => {
+        const loadingElement = document.querySelector('.loading-fallback');
+        if (loadingElement && loadingElement.style.display !== 'none') {
+          console.error('Application failed to load within 30 seconds');
+          loadingElement.innerHTML = `
+            <div>
+              <h2>Loading Issue Detected</h2>
+              <p>The app is taking longer than expected to load.</p>
+              <p>Server URL: ${window.location.href}</p>
+              <p>Please check the console for errors.</p>
+              <button onclick="window.location.reload()" style="padding: 10px 20px; background: #dc3545; color: white; border: none; border-radius: 4px; cursor: pointer; margin: 10px;">
+                Force Reload
+              </button>
+            </div>
+          `;
+        }
+      }, 30000);
+    </script>
   </body>
 </html>
