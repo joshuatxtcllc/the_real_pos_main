@@ -20,14 +20,14 @@ try {
   writeFileSync('./package.json', fixedContent);
   console.log('✅ Fixed package.json syntax error');
   
-  // Now start the server
-  console.log('🚀 Starting server on port 5000...');
+  // Now start the development server
+  console.log('🚀 Starting development server...');
   
-  const server = spawn('node', ['dist/server.mjs'], {
+  const server = spawn('npm', ['run', 'dev'], {
     stdio: 'inherit',
     env: {
       ...process.env,
-      NODE_ENV: 'production',
+      NODE_ENV: 'development',
       PORT: '5000'
     }
   });
