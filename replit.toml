@@ -1,6 +1,6 @@
 modules = ["nodejs-20"]
 
-run = "node start-production.mjs"
+run = "node quick-server.mjs"
 
 [deployment]
 build = ["node", "simple-deploy.mjs"]
