@@ -3826,14 +3826,11 @@ async function getAllOrders(req, res) {
     });
   } catch (error) {
     console.error("OrdersController: Error fetching orders:", error);
-    res.status(500).json({
+    res.status(200).json({
       success: false,
       error: error.message || "Failed to fetch orders",
       orders: [],
-      debug: {
-        errorMessage: error.message,
-        timestamp: (/* @__PURE__ */ new Date()).toISOString()
-      }
+      count: 0
     });
   }
 }
@@ -3882,6 +3879,7 @@ async function createOrder(req, res) {
     if (!orderData.matWidth) {
       orderData.matWidth = "2";
     }
+    orderData.status = orderData.status || "pending";
     console.log("Processing order creation...");
     const order = await storage.createOrder(orderData);
     console.log("Order created successfully:", order);
@@ -3909,7 +3907,7 @@ async function createOrder(req, res) {
     res.status(201).json({
       success: true,
       order,
-      message: "Order created successfully",
+      message: "Order saved successfully without payment requirement",
       orderId: order.id
     });
   } catch (error) {

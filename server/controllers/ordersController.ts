@@ -155,14 +155,12 @@ export async function getAllOrders(req: Request, res: Response) {
 
   } catch (error: any) {
     console.error('OrdersController: Error fetching orders:', error);
-    res.status(500).json({ 
+    // Still return the structure the frontend expects
+    res.status(200).json({ 
       success: false, 
       error: error.message || 'Failed to fetch orders',
       orders: [],
-      debug: {
-        errorMessage: error.message,
-        timestamp: new Date().toISOString()
-      }
+      count: 0
     });
   }
 }
@@ -224,6 +222,9 @@ export async function createOrder(req: Request, res: Response) {
       orderData.matWidth = '2'; // Default mat width
     }
 
+    // Set status to pending by default (no payment required)
+    orderData.status = orderData.status || 'pending';
+
     console.log('Processing order creation...');
     const order = await storage.createOrder(orderData);
     console.log('Order created successfully:', order);
@@ -257,7 +258,7 @@ export async function createOrder(req: Request, res: Response) {
     res.status(201).json({ 
       success: true, 
       order,
-      message: 'Order created successfully',
+      message: 'Order saved successfully without payment requirement',
       orderId: order.id
     });
   } catch (error: any) {

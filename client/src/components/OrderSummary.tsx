@@ -416,7 +416,7 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({
             <button 
               className={`w-full py-4 text-base ${frames.length === 0 || mats.length === 0 || !glassOption ? 'bg-gray-400 cursor-not-allowed' : 'bg-primary hover:bg-primary/90'} text-white rounded-lg font-medium transition-colors flex items-center justify-center touch-manipulation`}
               onClick={async () => {
-                console.log('Create Order button clicked in OrderSummary');
+                console.log('Save Order button clicked in OrderSummary');
                 console.log('Button disabled state:', (frames.length === 0 || mats.length === 0 || !glassOption));
                 console.log('Add to wholesale order:', effectiveAddToWholesaleOrder);
 
@@ -433,10 +433,8 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({
               }}
               disabled={frames.length === 0 || mats.length === 0 || !glassOption}
             >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
-              </svg>
-              Create Order
+              <ShoppingCart className="h-5 w-5 mr-2" />
+              Save Order (No Payment Required)
             </button>
 
             <button 
