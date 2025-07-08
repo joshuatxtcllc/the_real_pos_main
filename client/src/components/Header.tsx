@@ -56,6 +56,7 @@ const menuStructure = [
     path: "/",
     subItems: [
       { title: "New Order", path: "/" },
+      { title: "Cost Estimator", path: "/cost-estimator" },
       { title: "Mat Options", path: "/mat-test" },
       { title: "Mat Border Demo", path: "/mat-border-demo" },
       { title: "Pricing", path: "/pricing" },

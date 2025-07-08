@@ -40,6 +40,7 @@ import MobileNavMenu from './components/MobileNavMenu';
 import { lazy } from 'react';
 import PricingMonitorPage from './pages/PricingMonitorPage';
 import LarsonOptimizerPage from './pages/LarsonOptimizerPage';
+import CostEstimatorPage from './pages/CostEstimatorPage';
 import { notificationService } from '@/lib/notificationService';
 import NotFound from '@/pages/not-found';
 import { AppHealthCheck } from './components/AppHealthCheck';
@@ -155,6 +156,7 @@ function App() {
                   <Route path="/inventory-tracking" component={InventoryTrackingPage} />
                   <Route path="/hub" component={HubIntegrationPage} />
                   <Route path="/pricing" component={PricingPage} />
+                  <Route path="/cost-estimator" component={CostEstimatorPage} />
                   <Route path="/vendor-settings" component={VendorSettings} />
                   <Route path="/mat-test" component={MatOptionPage} />
                   <Route path="/checkout/:orderGroupId" component={Checkout} />
