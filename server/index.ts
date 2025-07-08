@@ -59,7 +59,14 @@ app.use('/api', webhookRoutes);
 const clientBuildPath = process.env.NODE_ENV === 'production' 
   ? path.join(process.cwd(), 'dist/public')        // When running from dist/server.mjs, use cwd + dist/public
   : path.join(__dirname, '../dist/public');       // When running from server/index.ts in development
-app.use(express.static(clientBuildPath));
+
+console.log(`📁 Serving static files from: ${clientBuildPath}`);
+console.log(`📂 Directory exists: ${require('fs').existsSync(clientBuildPath)}`);
+
+app.use(express.static(clientBuildPath, {
+  index: 'index.html',
+  redirect: false
+}));
 
 // Handle client-side routing
 app.get('*', (req, res) => {
