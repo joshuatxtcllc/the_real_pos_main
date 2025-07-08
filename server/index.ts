@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import path from 'path';
+import fs from 'fs';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
 
@@ -61,7 +62,7 @@ const clientBuildPath = process.env.NODE_ENV === 'production'
   : path.join(__dirname, '../dist/public');       // When running from server/index.ts in development
 
 console.log(`📁 Serving static files from: ${clientBuildPath}`);
-console.log(`📂 Directory exists: ${require('fs').existsSync(clientBuildPath)}`);
+console.log(`📂 Directory exists: ${fs.existsSync(clientBuildPath)}`);
 
 app.use(express.static(clientBuildPath, {
   index: 'index.html',

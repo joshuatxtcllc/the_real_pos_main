@@ -2,12 +2,6 @@ var __defProp = Object.defineProperty;
 var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
 var __getOwnPropNames = Object.getOwnPropertyNames;
 var __hasOwnProp = Object.prototype.hasOwnProperty;
-var __require = /* @__PURE__ */ ((x) => typeof require !== "undefined" ? require : typeof Proxy !== "undefined" ? new Proxy(x, {
-  get: (a, b) => (typeof require !== "undefined" ? require : a)[b]
-}) : x)(function(x) {
-  if (typeof require !== "undefined") return require.apply(this, arguments);
-  throw Error('Dynamic require of "' + x + '" is not supported');
-});
 var __esm = (fn, res) => function __init() {
   return fn && (res = (0, fn[__getOwnPropNames(fn)[0]])(fn = 0)), res;
 };
@@ -3486,6 +3480,7 @@ var init_storage = __esm({
 import express2 from "express";
 import cors from "cors";
 import path3 from "path";
+import fs3 from "fs";
 import { fileURLToPath as fileURLToPath2 } from "url";
 import dotenv from "dotenv";
 
@@ -5685,7 +5680,7 @@ app.use("/api", qrCodeRoutes_default);
 app.use("/api", webhookRoutes_default);
 var clientBuildPath = true ? path3.join(process.cwd(), "dist/public") : path3.join(__dirname2, "../dist/public");
 console.log(`\u{1F4C1} Serving static files from: ${clientBuildPath}`);
-console.log(`\u{1F4C2} Directory exists: ${__require("fs").existsSync(clientBuildPath)}`);
+console.log(`\u{1F4C2} Directory exists: ${fs3.existsSync(clientBuildPath)}`);
 app.use(express2.static(clientBuildPath, {
   index: "index.html",
   redirect: false
