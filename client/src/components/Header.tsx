@@ -49,6 +49,7 @@ const menuStructure = [
       { title: "Kanban Board", path: "/production" },
       { title: "Materials Orders", path: "/materials" },
       { title: "Materials Pick List", path: "/materials-pick-list" },
+      { title: "Kanban Test", path: "/kanban-test" },
     ]
   },
   {
@@ -60,6 +61,9 @@ const menuStructure = [
       { title: "Mat Options", path: "/mat-test" },
       { title: "Mat Border Demo", path: "/mat-border-demo" },
       { title: "Pricing", path: "/pricing" },
+      { title: "Pricing Monitor", path: "/pricing-monitor" },
+      { title: "Larson Optimizer", path: "/larson-optimizer" },
+      { title: "Frame Education", path: "/frame-education" },
     ]
   },
   {
@@ -77,8 +81,10 @@ const menuStructure = [
     path: "/voice-calls",
     subItems: [
       { title: "Voice Calls", path: "/voice-calls" },
+      { title: "Automated Notifications", path: "/automated-notifications" },
       { title: "Notifications", path: "/notifications" },
       { title: "Customers", path: "/customers" },
+      { title: "Customer Portal", path: "/customer-portal" },
     ]
   }
 ];
