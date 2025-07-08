@@ -122,11 +122,13 @@ The application uses a streamlined deployment process optimized for Replit:
 - July 8, 2025: Automated Cost Estimation Widget Implemented
   - Created comprehensive real-time cost calculator with instant price updates
   - Built AutomatedCostEstimator component with professional interface and detailed breakdowns
-  - Integrated pricing calculation API endpoint with realistic markup factors
+  - Integrated pricing calculation API endpoint with industry-validated markup factors
   - Added navigation route at /cost-estimator accessible from POS menu
   - Features include: dimension inputs, material selection dropdowns, automatic calculations, cost breakdowns
   - Supports frames, mat colors, glass options with professional pricing methodology
   - Includes usage tips, responsive design, and real-time updates with auto-calculate mode
+  - Updated markup tiers based on Framers Grumble industry standards (2.25X-4.5X sliding scale)
+  - Pricing methodology validated by professional framers for realistic business calculations
   - Successfully built and deployed with working API endpoints and frontend integration
 - July 8, 2025: Critical Database Connection Issue Identified and Resolved
   - Database confirmed working with 11 orders and real customer data (Joshua Stevens, Brittney Locke, Rick)

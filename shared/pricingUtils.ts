@@ -46,27 +46,29 @@ export function calculatePricePerUnitedInch(
 }
 
 /**
- * Calculate markup factor based on frame price per foot (Jay's methodology)
+ * Calculate markup factor based on frame price per foot (Industry standards from Framers Grumble)
  * @param pricePerFoot The wholesale price per foot
  * @returns The markup multiplier
  */
 export function calculateFrameMarkupFactor(pricePerFoot: number): number {
-  if (pricePerFoot >= 10.00) {
-    return 2.2;
-  } else if (pricePerFoot >= 8.00) {
-    return 2.4;
-  } else if (pricePerFoot >= 6.00) {
-    return 2.6;
+  if (pricePerFoot >= 25.00) {
+    return 2.25; // Very high-end frames - keep competitive
+  } else if (pricePerFoot >= 20.00) {
+    return 2.4;  // High-end frames
+  } else if (pricePerFoot >= 15.00) {
+    return 2.5;  // Premium frames
+  } else if (pricePerFoot >= 10.00) {
+    return 2.7;  // Mid-high frames
+  } else if (pricePerFoot >= 7.00) {
+    return 2.9;  // Mid-range frames
   } else if (pricePerFoot >= 5.00) {
-    return 2.8;
-  } else if (pricePerFoot >= 4.00) {
-    return 3.0;
+    return 3.1;  // Standard frames
   } else if (pricePerFoot >= 3.00) {
-    return 3.5;
+    return 3.5;  // Lower-mid frames
   } else if (pricePerFoot >= 2.00) {
-    return 4.0;
+    return 4.0;  // Budget frames
   } else {
-    return 4.5; // $0.00-$1.99
+    return 4.5;  // $0.00-$1.99 - lowest cost frames
   }
 }
 

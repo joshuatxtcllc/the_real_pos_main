@@ -159,16 +159,17 @@ app.get('/api/orders', async (req, res) => {
   }
 });
 
-// Frame pricing markup function - per your sliding scale
+// Frame pricing markup function - industry standard sliding scale from Framers Grumble
 function calculateFrameMarkup(pricePerFoot) {
-  if (pricePerFoot >= 10.00) return 2.2;
-  if (pricePerFoot >= 8.00) return 2.4;
-  if (pricePerFoot >= 6.00) return 2.6;
-  if (pricePerFoot >= 5.00) return 2.8;
-  if (pricePerFoot >= 4.00) return 3.0;
-  if (pricePerFoot >= 3.00) return 3.5;
-  if (pricePerFoot >= 2.00) return 4.0;
-  return 4.5; // $0.00-$1.99
+  if (pricePerFoot >= 25.00) return 2.25; // Very high-end frames
+  if (pricePerFoot >= 20.00) return 2.4;  // High-end frames  
+  if (pricePerFoot >= 15.00) return 2.5;  // Premium frames
+  if (pricePerFoot >= 10.00) return 2.7;  // Mid-high frames
+  if (pricePerFoot >= 7.00) return 2.9;   // Mid-range frames
+  if (pricePerFoot >= 5.00) return 3.1;   // Standard frames
+  if (pricePerFoot >= 3.00) return 3.5;   // Lower-mid frames
+  if (pricePerFoot >= 2.00) return 4.0;   // Budget frames
+  return 4.5; // $0.00-$1.99 - lowest cost frames
 }
 
 // Pricing calculation endpoint
