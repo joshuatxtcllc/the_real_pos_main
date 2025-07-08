@@ -109,28 +109,60 @@ async function fetchOrdersFromKanban() {
 
 export async function getAllOrders(req: Request, res: Response) {
   try {
-    console.log('Fetching all orders...');
+    console.log('OrdersController: Fetching all orders from database...');
     
-    // Get orders from local storage
-    const localOrders = await storage.getAllOrders();
-    console.log('Local orders found:', localOrders?.length || 0);
+    // Import db directly to use raw SQL 
+    const { pool } = await import('../db');
     
-    // Ensure we return a consistent structure
-    const orders = Array.isArray(localOrders) ? localOrders : [];
+    // Use raw SQL query to bypass ORM issues
+    const ordersResult = await pool.query(`
+      SELECT 
+        o.*,
+        c.name as customer_name,
+        c.email as customer_email,
+        c.phone as customer_phone
+      FROM orders o
+      LEFT JOIN customers c ON o.customer_id = c.id
+      ORDER BY o.created_at DESC
+    `);
     
+    console.log('OrdersController: Raw SQL query found', ordersResult.rows.length, 'orders');
+    
+    // Transform the raw results to match the expected format
+    const orders = ordersResult.rows.map(row => ({
+      ...row,
+      customer: row.customer_name ? {
+        id: row.customer_id,
+        name: row.customer_name,
+        email: row.customer_email,
+        phone: row.customer_phone
+      } : null,
+      // Ensure numeric fields are properly typed
+      id: parseInt(row.id),
+      customerId: parseInt(row.customer_id),
+      artworkWidth: parseFloat(row.artwork_width) || 0,
+      artworkHeight: parseFloat(row.artwork_height) || 0,
+      total: row.total || '0.00'
+    }));
+    
+    console.log('OrdersController: Returning', orders.length, 'orders to frontend');
     res.json({ 
       success: true, 
       orders: orders,
-      source: 'local',
+      source: 'raw_sql',
       count: orders.length
     });
 
   } catch (error: any) {
-    console.error('Error fetching orders:', error);
+    console.error('OrdersController: Error fetching orders:', error);
     res.status(500).json({ 
       success: false, 
       error: error.message || 'Failed to fetch orders',
-      orders: [] // Always provide an empty array as fallback
+      orders: [],
+      debug: {
+        errorMessage: error.message,
+        timestamp: new Date().toISOString()
+      }
     });
   }
 }

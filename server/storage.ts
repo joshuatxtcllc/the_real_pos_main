@@ -881,25 +881,37 @@ export class DatabaseStorage implements IStorage {
 
   async getAllOrders(): Promise<Order[]> {
     try {
+      console.log('DatabaseStorage: Starting getAllOrders query...');
       const result = await db
         .select()
         .from(orders)
         .leftJoin(customers, eq(orders.customerId, customers.id))
         .orderBy(desc(orders.createdAt));
 
-      console.log('Raw orders from database:', result.length);
+      console.log('DatabaseStorage: Raw orders from database:', result.length);
 
-      return result.map(row => ({
-        ...row.orders,
-        customer: row.customers,
-        // Ensure required fields have defaults
-        status: row.orders.status || 'pending',
-        total: row.orders.total || '0.00',
-        artworkWidth: row.orders.artworkWidth || 0,
-        artworkHeight: row.orders.artworkHeight || 0
-      }));
+      if (result.length === 0) {
+        console.log('DatabaseStorage: No orders found in database');
+        return [];
+      }
+
+      const mappedOrders = result.map(row => {
+        console.log('DatabaseStorage: Processing order ID:', row.orders?.id);
+        return {
+          ...row.orders,
+          customer: row.customers,
+          // Ensure required fields have defaults
+          status: row.orders.status || 'pending',
+          total: row.orders.total || '0.00',
+          artworkWidth: row.orders.artworkWidth || 0,
+          artworkHeight: row.orders.artworkHeight || 0
+        };
+      });
+
+      console.log('DatabaseStorage: Returning', mappedOrders.length, 'orders');
+      return mappedOrders;
     } catch (error) {
-      console.error('Error fetching orders from database:', error);
+      console.error('DatabaseStorage: Error fetching orders from database:', error);
       return []; // Return empty array on error
     }
   }

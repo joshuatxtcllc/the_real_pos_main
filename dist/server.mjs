@@ -2,6 +2,12 @@ var __defProp = Object.defineProperty;
 var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
 var __getOwnPropNames = Object.getOwnPropertyNames;
 var __hasOwnProp = Object.prototype.hasOwnProperty;
+var __require = /* @__PURE__ */ ((x) => typeof require !== "undefined" ? require : typeof Proxy !== "undefined" ? new Proxy(x, {
+  get: (a, b) => (typeof require !== "undefined" ? require : a)[b]
+}) : x)(function(x) {
+  if (typeof require !== "undefined") return require.apply(this, arguments);
+  throw Error('Dynamic require of "' + x + '" is not supported');
+});
 var __esm = (fn, res) => function __init() {
   return fn && (res = (0, fn[__getOwnPropNames(fn)[0]])(fn = 0)), res;
 };
@@ -1437,6 +1443,12 @@ var init_supabase = __esm({
 });
 
 // server/db.ts
+var db_exports = {};
+__export(db_exports, {
+  db: () => db,
+  pool: () => pool,
+  supabase: () => supabase
+});
 import { Pool, neonConfig } from "@neondatabase/serverless";
 import { drizzle } from "drizzle-orm/neon-serverless";
 import ws from "ws";
@@ -2549,19 +2561,29 @@ var init_storage = __esm({
       }
       async getAllOrders() {
         try {
+          console.log("DatabaseStorage: Starting getAllOrders query...");
           const result = await db.select().from(orders).leftJoin(customers, eq(orders.customerId, customers.id)).orderBy(desc(orders.createdAt));
-          console.log("Raw orders from database:", result.length);
-          return result.map((row) => ({
-            ...row.orders,
-            customer: row.customers,
-            // Ensure required fields have defaults
-            status: row.orders.status || "pending",
-            total: row.orders.total || "0.00",
-            artworkWidth: row.orders.artworkWidth || 0,
-            artworkHeight: row.orders.artworkHeight || 0
-          }));
+          console.log("DatabaseStorage: Raw orders from database:", result.length);
+          if (result.length === 0) {
+            console.log("DatabaseStorage: No orders found in database");
+            return [];
+          }
+          const mappedOrders = result.map((row) => {
+            console.log("DatabaseStorage: Processing order ID:", row.orders?.id);
+            return {
+              ...row.orders,
+              customer: row.customers,
+              // Ensure required fields have defaults
+              status: row.orders.status || "pending",
+              total: row.orders.total || "0.00",
+              artworkWidth: row.orders.artworkWidth || 0,
+              artworkHeight: row.orders.artworkHeight || 0
+            };
+          });
+          console.log("DatabaseStorage: Returning", mappedOrders.length, "orders");
+          return mappedOrders;
         } catch (error) {
-          console.error("Error fetching orders from database:", error);
+          console.error("DatabaseStorage: Error fetching orders from database:", error);
           return [];
         }
       }
@@ -3767,23 +3789,51 @@ async function updateKanbanOrderStatus(orderId, status, notes) {
 }
 async function getAllOrders(req, res) {
   try {
-    console.log("Fetching all orders...");
-    const localOrders = await storage.getAllOrders();
-    console.log("Local orders found:", localOrders?.length || 0);
-    const orders2 = Array.isArray(localOrders) ? localOrders : [];
+    console.log("OrdersController: Fetching all orders from database...");
+    const { pool: pool2 } = await Promise.resolve().then(() => (init_db(), db_exports));
+    const ordersResult = await pool2.query(`
+      SELECT 
+        o.*,
+        c.name as customer_name,
+        c.email as customer_email,
+        c.phone as customer_phone
+      FROM orders o
+      LEFT JOIN customers c ON o.customer_id = c.id
+      ORDER BY o.created_at DESC
+    `);
+    console.log("OrdersController: Raw SQL query found", ordersResult.rows.length, "orders");
+    const orders2 = ordersResult.rows.map((row) => ({
+      ...row,
+      customer: row.customer_name ? {
+        id: row.customer_id,
+        name: row.customer_name,
+        email: row.customer_email,
+        phone: row.customer_phone
+      } : null,
+      // Ensure numeric fields are properly typed
+      id: parseInt(row.id),
+      customerId: parseInt(row.customer_id),
+      artworkWidth: parseFloat(row.artwork_width) || 0,
+      artworkHeight: parseFloat(row.artwork_height) || 0,
+      total: row.total || "0.00"
+    }));
+    console.log("OrdersController: Returning", orders2.length, "orders to frontend");
     res.json({
       success: true,
       orders: orders2,
-      source: "local",
+      source: "raw_sql",
       count: orders2.length
     });
   } catch (error) {
-    console.error("Error fetching orders:", error);
+    console.error("OrdersController: Error fetching orders:", error);
     res.status(500).json({
       success: false,
       error: error.message || "Failed to fetch orders",
-      orders: []
-      // Always provide an empty array as fallback
+      orders: [],
+      debug: {
+        errorMessage: error.message,
+        timestamp: (/* @__PURE__ */ new Date()).toISOString()
+      }
     });
   }
 }
@@ -5621,7 +5671,12 @@ app.use("/api", fileRoutes_default);
 app.use("/api", qrCodeRoutes_default);
 app.use("/api", webhookRoutes_default);
 var clientBuildPath = true ? path3.join(process.cwd(), "dist/public") : path3.join(__dirname2, "../dist/public");
-app.use(express2.static(clientBuildPath));
+console.log(`\u{1F4C1} Serving static files from: ${clientBuildPath}`);
+console.log(`\u{1F4C2} Directory exists: ${__require("fs").existsSync(clientBuildPath)}`);
+app.use(express2.static(clientBuildPath, {
+  index: "index.html",
+  redirect: false
+}));
 app.get("*", (req, res) => {
   if (req.path.startsWith("/api/")) {
     return res.status(404).json({ error: "API endpoint not found" });
