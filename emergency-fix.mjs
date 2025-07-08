@@ -1,82 +1,59 @@
-#!/usr/bin/env node
+// Emergency fix for database connection issues
+import { Pool, neonConfig } from '@neondatabase/serverless';
+import ws from "ws";
+import dotenv from 'dotenv';
 
-import express from 'express';
-import path from 'path';
-import { fileURLToPath } from 'url';
-import { dirname } from 'path';
-import fs from 'fs';
+dotenv.config();
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+neonConfig.webSocketConstructor = ws;
 
-const app = express();
-const PORT = process.env.PORT || 5001;
+console.log('Emergency database connection test...');
+console.log('DATABASE_URL exists:', !!process.env.DATABASE_URL);
 
-// Simple health check
-app.get('/health', (req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
-});
-
-// Serve static files from client/dist/public where the built app actually is
-let staticPath = path.join(__dirname, 'client', 'dist', 'public');
-
-console.log(`🔍 Looking for static files in: ${staticPath}`);
-console.log(`📁 Directory exists: ${fs.existsSync(staticPath)}`);
-
-if (fs.existsSync(staticPath)) {
-  const files = fs.readdirSync(staticPath);
-  console.log(`📄 Files found: ${files.join(', ')}`);
+if (!process.env.DATABASE_URL) {
+  console.error('DATABASE_URL is not set!');
+  process.exit(1);
 }
 
-app.use(express.static(staticPath));
+const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 
-// API routes - simple frame data
-app.get('/api/frames', (req, res) => {
-  const sampleFrames = [
-    {
-      id: '1',
-      name: 'Classic Wood Frame',
-      material: 'Wood',
-      color: 'Brown',
-      width: 1.5,
-      price: 25.00,
-      description: 'Traditional wooden frame'
-    },
-    {
-      id: '2', 
-      name: 'Modern Metal Frame',
-      material: 'Metal',
-      color: 'Silver',
-      width: 1.0,
-      price: 35.00,
-      description: 'Contemporary metal frame'
-    }
-  ];
-  res.json(sampleFrames);
-});
-
-// Catch all - serve index.html for client-side routing
-app.get('*', (req, res) => {
-  const indexPath = path.join(staticPath, 'index.html');
-  if (fs.existsSync(indexPath)) {
-    res.sendFile(indexPath);
-  } else {
-    res.status(404).send(`
-      <html>
-        <head><title>Jay's Frames POS</title></head>
-        <body>
-          <h1>Jay's Frames POS System</h1>
-          <p>Application starting...</p>
-          <p>Static path: ${staticPath}</p>
-          <p>Index exists: ${fs.existsSync(indexPath)}</p>
-        </body>
-      </html>
-    `);
-  }
-});
-
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`🚀 Emergency server running on port ${PORT}`);
-  console.log(`📁 Serving from: ${staticPath}`);
-  console.log(`🌐 Access at: http://localhost:${PORT}`);
-});
+try {
+  // Test basic connection
+  console.log('Testing basic connection...');
+  const testResult = await pool.query('SELECT 1 as test');
+  console.log('Connection test result:', testResult.rows);
+  
+  // Test orders query
+  console.log('Testing orders query...');
+  const ordersResult = await pool.query(`
+    SELECT 
+      o.id, o.customer_id, o.status, o.total, o.artwork_width, o.artwork_height,
+      c.name as customer_name
+    FROM orders o
+    LEFT JOIN customers c ON o.customer_id = c.id
+    ORDER BY o.created_at DESC
+    LIMIT 5
+  `);
+  
+  console.log('Orders query result:', ordersResult.rows.length, 'orders found');
+  ordersResult.rows.forEach((order, idx) => {
+    console.log(`Order ${idx + 1}:`, {
+      id: order.id,
+      customer: order.customer_name,
+      status: order.status,
+      total: order.total,
+      dimensions: `${order.artwork_width}x${order.artwork_height}`
+    });
+  });
+  
+  // Test customers query
+  console.log('Testing customers query...');
+  const customersResult = await pool.query('SELECT id, name, email FROM customers LIMIT 5');
+  console.log('Customers query result:', customersResult.rows.length, 'customers found');
+  
+} catch (error) {
+  console.error('Database connection error:', error);
+  console.error('Error stack:', error.stack);
+} finally {
+  await pool.end();
+}

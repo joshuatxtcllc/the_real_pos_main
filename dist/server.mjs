@@ -1464,7 +1464,17 @@ var init_db = __esm({
         "DATABASE_URL must be set. Did you forget to provision a database?"
       );
     }
-    pool = new Pool({ connectionString: process.env.DATABASE_URL });
+    pool = new Pool({
+      connectionString: process.env.DATABASE_URL,
+      max: 10,
+      idleTimeoutMillis: 3e4,
+      connectionTimeoutMillis: 2e3
+    });
+    pool.query("SELECT 1 as test").then(() => {
+      console.log("\u2713 Database connection successful");
+    }).catch((err) => {
+      console.error("\u2717 Database connection failed:", err);
+    });
     db = drizzle({ client: pool, schema: schema_exports });
   }
 });
@@ -3790,7 +3800,11 @@ async function updateKanbanOrderStatus(orderId, status, notes) {
 async function getAllOrders(req, res) {
   try {
     console.log("OrdersController: Fetching all orders from database...");
+    console.log("DATABASE_URL exists:", !!process.env.DATABASE_URL);
+    console.log("NODE_ENV:", "production");
     const { pool: pool2 } = await Promise.resolve().then(() => (init_db(), db_exports));
+    const connectionTest = await pool2.query("SELECT 1 as test");
+    console.log("Database connection test:", connectionTest.rows);
     const ordersResult = await pool2.query(`
       SELECT 
         o.*,
@@ -3826,6 +3840,7 @@ async function getAllOrders(req, res) {
     });
   } catch (error) {
     console.error("OrdersController: Error fetching orders:", error);
+    console.error("Error stack:", error.stack);
     res.status(200).json({
       success: false,
       error: error.message || "Failed to fetch orders",

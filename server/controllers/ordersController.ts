@@ -111,8 +111,16 @@ export async function getAllOrders(req: Request, res: Response) {
   try {
     console.log('OrdersController: Fetching all orders from database...');
     
+    // Log environment check
+    console.log('DATABASE_URL exists:', !!process.env.DATABASE_URL);
+    console.log('NODE_ENV:', process.env.NODE_ENV);
+    
     // Import db directly to use raw SQL 
     const { pool } = await import('../db');
+    
+    // Test basic connection first
+    const connectionTest = await pool.query('SELECT 1 as test');
+    console.log('Database connection test:', connectionTest.rows);
     
     // Use raw SQL query to bypass ORM issues
     const ordersResult = await pool.query(`
@@ -155,6 +163,7 @@ export async function getAllOrders(req: Request, res: Response) {
 
   } catch (error: any) {
     console.error('OrdersController: Error fetching orders:', error);
+    console.error('Error stack:', error.stack);
     // Still return the structure the frontend expects
     res.status(200).json({ 
       success: false, 
