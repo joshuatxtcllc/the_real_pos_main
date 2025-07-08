@@ -46,7 +46,32 @@ export function calculatePricePerUnitedInch(
 }
 
 /**
- * Calculate markup factor based on wholesale dollar amount
+ * Calculate markup factor based on frame price per foot (Jay's methodology)
+ * @param pricePerFoot The wholesale price per foot
+ * @returns The markup multiplier
+ */
+export function calculateFrameMarkupFactor(pricePerFoot: number): number {
+  if (pricePerFoot >= 10.00) {
+    return 2.2;
+  } else if (pricePerFoot >= 8.00) {
+    return 2.4;
+  } else if (pricePerFoot >= 6.00) {
+    return 2.6;
+  } else if (pricePerFoot >= 5.00) {
+    return 2.8;
+  } else if (pricePerFoot >= 4.00) {
+    return 3.0;
+  } else if (pricePerFoot >= 3.00) {
+    return 3.5;
+  } else if (pricePerFoot >= 2.00) {
+    return 4.0;
+  } else {
+    return 4.5; // $0.00-$1.99
+  }
+}
+
+/**
+ * Calculate markup factor based on wholesale dollar amount (for mats/glass)
  * @param wholesaleCost The wholesale cost in dollars
  * @returns The markup multiplier
  */

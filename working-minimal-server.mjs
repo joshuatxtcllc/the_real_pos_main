@@ -159,6 +159,18 @@ app.get('/api/orders', async (req, res) => {
   }
 });
 
+// Frame pricing markup function - per your sliding scale
+function calculateFrameMarkup(pricePerFoot) {
+  if (pricePerFoot >= 10.00) return 2.2;
+  if (pricePerFoot >= 8.00) return 2.4;
+  if (pricePerFoot >= 6.00) return 2.6;
+  if (pricePerFoot >= 5.00) return 2.8;
+  if (pricePerFoot >= 4.00) return 3.0;
+  if (pricePerFoot >= 3.00) return 3.5;
+  if (pricePerFoot >= 2.00) return 4.0;
+  return 4.5; // $0.00-$1.99
+}
+
 // Pricing calculation endpoint
 app.post('/api/pricing/calculate', async (req, res) => {
   try {
@@ -174,14 +186,28 @@ app.post('/api/pricing/calculate', async (req, res) => {
     const finishedHeight = artworkHeight + (matWidth * 2);
     const unitedInches = finishedWidth + finishedHeight;
     const frameLinearFeet = unitedInches / 12;
-    const matArea = finishedWidth * finishedHeight;
-    const glassArea = finishedWidth * finishedHeight;
+    const matArea = finishedWidth * finishedHeight / 144; // Convert to square feet
+    const glassArea = finishedWidth * finishedHeight / 144; // Convert to square feet
     
-    // Calculate costs
-    const framePrice = frameLinearFeet * parseFloat(frame.price) * 2.5; // Markup factor
-    const matPrice = matArea * parseFloat(mat.price) * 1.8; // Markup factor  
-    const glassPrice = glassArea * parseFloat(glass.price) * 1.5; // Markup factor
-    const laborCost = 25.00; // Base labor
+    // Frame pricing: per-foot price × linear feet needed × markup based on per-foot price
+    const pricePerFoot = parseFloat(frame.price);
+    const frameWholesaleCost = frameLinearFeet * pricePerFoot;
+    const frameMarkup = calculateFrameMarkup(pricePerFoot);
+    const framePrice = frameWholesaleCost * frameMarkup;
+    
+    // Mat pricing: wholesale cost per sq ft × area × markup
+    const matWholesaleCost = matArea * parseFloat(mat.price);
+    const matPrice = matWholesaleCost * 2.8; // Standard mat markup
+    
+    // Glass pricing: wholesale cost per sq ft × area × markup
+    const glassWholesaleCost = glassArea * parseFloat(glass.price);
+    const glassPrice = glassWholesaleCost * 2.5; // Standard glass markup
+    
+    // Labor cost based on size
+    let laborCost = 25.00;
+    if (unitedInches > 60) laborCost = 35.00;
+    if (unitedInches > 80) laborCost = 45.00;
+    if (unitedInches > 100) laborCost = 55.00;
     
     const materialCost = framePrice + matPrice + glassPrice;
     const subtotal = materialCost + laborCost;
@@ -200,7 +226,10 @@ app.post('/api/pricing/calculate', async (req, res) => {
         frameLinearFeet: frameLinearFeet.toFixed(2),
         matArea: matArea.toFixed(2),
         glassArea: glassArea.toFixed(2),
-        unitedInches: unitedInches
+        unitedInches: unitedInches,
+        frameWholesaleCost: frameWholesaleCost.toFixed(2),
+        frameMarkup: frameMarkup.toFixed(1) + 'x',
+        pricePerFoot: pricePerFoot.toFixed(2)
       }
     });
     
