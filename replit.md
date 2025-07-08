@@ -119,6 +119,15 @@ The application uses a streamlined deployment process optimized for Replit:
 - WebSocket connections for real-time features require sticky sessions
 
 ## Changelog
+- July 8, 2025: Automated Cost Estimation Widget Implemented
+  - Created comprehensive real-time cost calculator with instant price updates
+  - Built AutomatedCostEstimator component with professional interface and detailed breakdowns
+  - Integrated pricing calculation API endpoint with realistic markup factors
+  - Added navigation route at /cost-estimator accessible from POS menu
+  - Features include: dimension inputs, material selection dropdowns, automatic calculations, cost breakdowns
+  - Supports frames, mat colors, glass options with professional pricing methodology
+  - Includes usage tips, responsive design, and real-time updates with auto-calculate mode
+  - Successfully built and deployed with working API endpoints and frontend integration
 - July 8, 2025: Critical Database Connection Issue Identified and Resolved
   - Database confirmed working with 11 orders and real customer data (Joshua Stevens, Brittney Locke, Rick)
   - Production server bundle building successfully (216.2kb) but API endpoints returning empty arrays
