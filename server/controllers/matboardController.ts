@@ -15,9 +15,12 @@ export async function getAllLarsonMatboards(req: Request, res: Response) {
       .where(eq(larsonJuhlCatalog.type, 'matboard'));
     
     return res.status(200).json(matboards);
-  } catch (error) {
-    console.error('Error fetching matboards:', error);
-    return res.status(500).json({ error: 'Failed to fetch matboards' });
+  } catch (error: any) {
+    console.error('Error fetching matboards:', error?.message || error);
+    return res.status(500).json({ 
+      error: 'Failed to fetch matboards',
+      details: error?.message || 'Unknown error occurred'
+    });
   }
 }
 
@@ -31,9 +34,12 @@ export async function getAllLarsonFrames(req: Request, res: Response) {
       .where(eq(larsonJuhlCatalog.type, 'frame'));
     
     return res.status(200).json(frames);
-  } catch (error) {
-    console.error('Error fetching frames:', error);
-    return res.status(500).json({ error: 'Failed to fetch frames' });
+  } catch (error: any) {
+    console.error('Error fetching frames:', error?.message || error);
+    return res.status(500).json({ 
+      error: 'Failed to fetch frames',
+      details: error?.message || 'Unknown error occurred'
+    });
   }
 }
 
@@ -52,9 +58,12 @@ export async function getCrescentMatboards(req: Request, res: Response) {
       );
     
     return res.status(200).json(matboards);
-  } catch (error) {
-    console.error('Error fetching Crescent matboards:', error);
-    return res.status(500).json({ error: 'Failed to fetch Crescent matboards' });
+  } catch (error: any) {
+    console.error('Error fetching Crescent matboards:', error?.message || error);
+    return res.status(500).json({ 
+      error: 'Failed to fetch Crescent matboards',
+      details: error?.message || 'Unknown error occurred'
+    });
   }
 }
 

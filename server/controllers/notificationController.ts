@@ -100,9 +100,12 @@ class NotificationController {
         success: true, 
         notification: sentNotification 
       });
-    } catch (error) {
-      console.error('[Notifications] Error creating notification:', error);
-      return res.status(500).json({ error: 'Failed to create notification' });
+    } catch (error: any) {
+      console.error('[Notifications] Error creating notification:', error?.message || error);
+      return res.status(500).json({ 
+        error: 'Failed to create notification',
+        details: error?.message || 'Unknown error occurred'
+      });
     }
   }
 
@@ -115,8 +118,8 @@ class NotificationController {
       } else {
         console.log('[Notifications] No storage.createNotification method available');
       }
-    } catch (error) {
-      console.error('[Notifications] Error storing notification:', error);
+    } catch (error: any) {
+      console.error('[Notifications] Error storing notification:', error?.message || error);
     }
   }
 
@@ -126,8 +129,8 @@ class NotificationController {
       // This would use Twilio or another SMS provider
       // This method is a stub - implement actual SMS sending when needed
       console.log(`[Notifications] SMS would be sent to ${notification.smsRecipient}: ${notification.title}`);
-    } catch (error) {
-      console.error('[Notifications] Error sending SMS notification:', error);
+    } catch (error: any) {
+      console.error('[Notifications] Error sending SMS notification:', error?.message || error);
     }
   }
 }
