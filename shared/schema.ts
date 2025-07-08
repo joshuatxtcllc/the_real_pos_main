@@ -758,3 +758,48 @@ export interface OrderGroup {
   createdAt: Date;
   
 }
+
+// Frame Configuration Bookmarks - Save favorite frame, mat, and glass combinations
+export const frameConfigurationBookmarks = pgTable("frame_configuration_bookmarks", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(), // User-given name for the bookmark
+  description: text("description"), // Optional description
+  
+  // Frame configuration
+  frames: jsonb("frames").notNull(), // Array of frame configurations: [{ frameId, position, distance }]
+  mats: jsonb("mats").notNull(), // Array of mat configurations: [{ matColorId, position, width, offset }]
+  glassOptionId: text("glass_option_id").references(() => glassOptions.id),
+  
+  // Configuration settings
+  useMultipleMats: boolean("use_multiple_mats").default(false),
+  useMultipleFrames: boolean("use_multiple_frames").default(false),
+  
+  // Optional default dimensions (can be overridden when applying bookmark)
+  defaultArtworkWidth: numeric("default_artwork_width"),
+  defaultArtworkHeight: numeric("default_artwork_height"),
+  defaultMatWidth: numeric("default_mat_width"),
+  
+  // Tags for organization
+  tags: text("tags").array(),
+  
+  // Usage tracking
+  usageCount: integer("usage_count").default(0),
+  lastUsed: timestamp("last_used"),
+  
+  // Metadata
+  isFavorite: boolean("is_favorite").default(false),
+  isPublic: boolean("is_public").default(false), // Allow sharing with other users
+  createdBy: integer("created_by").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow()
+});
+
+export const insertFrameConfigurationBookmarkSchema = createInsertSchema(frameConfigurationBookmarks).omit({ 
+  id: true, 
+  createdAt: true, 
+  updatedAt: true,
+  usageCount: true,
+  lastUsed: true
+});
+export type InsertFrameConfigurationBookmark = z.infer<typeof insertFrameConfigurationBookmarkSchema>;
+export type FrameConfigurationBookmark = typeof frameConfigurationBookmarks.$inferSelect;

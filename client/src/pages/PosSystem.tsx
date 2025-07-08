@@ -32,6 +32,9 @@ import { DualPreviewSystem } from '@/components/DualPreviewSystem';
 import { ArtworkSizeDetector } from '@/components/ArtworkSizeDetector';
 import { ArtworkDimensions } from '@/lib/artworkSizeDetector';
 import { IntuitivePerformanceMonitor } from '@/components/IntuitivePerformanceMonitor';
+import BookmarkManager from '@/components/BookmarkManager';
+import { FrameConfigurationBookmark } from '@shared/schema';
+import { Bookmark } from 'lucide-react';
 
 const PosSystem = () => {
   const { toast } = useToast();
@@ -155,6 +158,9 @@ const PosSystem = () => {
 
   const [currentFrameDesign, setCurrentFrameDesign] = useState<FrameDesignData | undefined>(undefined);
   const [savedFrameDesign, setSavedFrameDesign] = useState<FrameDesignData | undefined>(undefined);
+
+  // Bookmark functionality
+  const [showBookmarkManager, setShowBookmarkManager] = useState<boolean>(false);
 
   // Update current frame design when selections change
   React.useEffect(() => {
@@ -1119,6 +1125,90 @@ const PosSystem = () => {
     setSelectedFrames(updatedFrames);
   };
 
+  // Handle applying a bookmark configuration
+  const handleApplyBookmark = (bookmark: FrameConfigurationBookmark) => {
+    try {
+      // Apply frame configurations
+      if (bookmark.frames && Array.isArray(bookmark.frames)) {
+        const frameConfigs = bookmark.frames.map((frameConfig: any) => {
+          const frame = frames?.find(f => f.id === frameConfig.frameId);
+          if (frame) {
+            return {
+              frame,
+              position: frameConfig.position || 1,
+              distance: frameConfig.distance || 0
+            };
+          }
+          return null;
+        }).filter(Boolean);
+
+        if (frameConfigs.length > 0) {
+          setSelectedFrames(frameConfigs);
+        }
+      }
+
+      // Apply mat configurations
+      if (bookmark.mats && Array.isArray(bookmark.mats)) {
+        const matConfigs = bookmark.mats.map((matConfig: any) => {
+          const mat = getMatboardById(matConfig.matColorId);
+          if (mat) {
+            return {
+              matboard: mat,
+              position: matConfig.position || 1,
+              width: matConfig.width || 2,
+              offset: matConfig.offset || 0
+            };
+          }
+          return null;
+        }).filter(Boolean);
+
+        if (matConfigs.length > 0) {
+          setSelectedMatboards(matConfigs);
+          // Set primary mat width from first mat
+          if (matConfigs[0]) {
+            setPrimaryMatWidth(matConfigs[0].width);
+          }
+        }
+      }
+
+      // Apply glass option
+      if (bookmark.glassOptionId) {
+        const glassOption = getGlassOptionById(bookmark.glassOptionId);
+        if (glassOption) {
+          setSelectedGlassOption(glassOption);
+        }
+      }
+
+      // Apply configuration settings
+      if (bookmark.useMultipleMats !== undefined) {
+        setUseMultipleMats(bookmark.useMultipleMats);
+      }
+      if (bookmark.useMultipleFrames !== undefined) {
+        setUseMultipleFrames(bookmark.useMultipleFrames);
+      }
+
+      // Apply default dimensions if provided and current dimensions are default
+      if (bookmark.defaultArtworkWidth && artworkWidth === 16) {
+        setArtworkWidth(Number(bookmark.defaultArtworkWidth));
+      }
+      if (bookmark.defaultArtworkHeight && artworkHeight === 20) {
+        setArtworkHeight(Number(bookmark.defaultArtworkHeight));
+      }
+
+      toast({
+        title: "Configuration Applied",
+        description: `Applied "${bookmark.name}" bookmark configuration successfully.`
+      });
+    } catch (error) {
+      console.error('Error applying bookmark:', error);
+      toast({
+        title: "Error Applying Bookmark",
+        description: "There was a problem applying the bookmark configuration. Please try again.",
+        variant: "destructive"
+      });
+    }
+  };
+
   return (
     <div className="w-full max-w-none">
       <div className="grid grid-cols-1 lg:grid-cols-7 gap-4 lg:gap-6">
@@ -1126,7 +1216,17 @@ const PosSystem = () => {
         <div className="lg:col-span-3 space-y-4 lg:space-y-6">
         {/* Order Information Section */}
         <div className="bg-white dark:bg-dark-cardBg rounded-lg shadow-md p-4 lg:p-6">
-          <h2 className="text-lg lg:text-xl font-semibold mb-3 lg:mb-4 header-underline">Order Information</h2>
+          <div className="flex items-center justify-between mb-3 lg:mb-4">
+            <h2 className="text-lg lg:text-xl font-semibold header-underline">Order Information</h2>
+            <button
+              type="button"
+              onClick={() => setShowBookmarkManager(true)}
+              className="px-3 py-1 text-sm bg-blue-500 hover:bg-blue-600 text-white rounded-md flex items-center gap-2 transition-colors"
+            >
+              <Bookmark className="h-4 w-4" />
+              Bookmarks
+            </button>
+          </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 lg:gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-800 mb-1">
@@ -1947,6 +2047,23 @@ const PosSystem = () => {
 
       {/* Intuitive Performance Monitor Overlay */}
       <IntuitivePerformanceMonitor compact={true} updateInterval={3000} />
+
+      {/* Bookmark Manager */}
+      <BookmarkManager
+        isOpen={showBookmarkManager}
+        onClose={() => setShowBookmarkManager(false)}
+        onApplyBookmark={handleApplyBookmark}
+        currentConfiguration={selectedFrames.length > 0 && selectedMatboards.length > 0 ? {
+          frames: selectedFrames,
+          mats: selectedMatboards,
+          glassOption: selectedGlassOption,
+          useMultipleMats,
+          useMultipleFrames,
+          artworkWidth,
+          artworkHeight,
+          matWidth: primaryMatWidth
+        } : undefined}
+      />
     </div>
   );
 };

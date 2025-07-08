@@ -9,11 +9,11 @@ var __export = (target, all) => {
   for (var name in all)
     __defProp(target, name, { get: all[name], enumerable: true });
 };
-var __copyProps = (to, from, except, desc3) => {
+var __copyProps = (to, from, except, desc4) => {
   if (from && typeof from === "object" || typeof from === "function") {
     for (let key of __getOwnPropNames(from))
       if (!__hasOwnProp.call(to, key) && key !== except)
-        __defProp(to, key, { get: () => from[key], enumerable: !(desc3 = __getOwnPropDesc(from, key)) || desc3.enumerable });
+        __defProp(to, key, { get: () => from[key], enumerable: !(desc4 = __getOwnPropDesc(from, key)) || desc4.enumerable });
   }
   return to;
 };
@@ -24,10 +24,12 @@ var schema_exports = {};
 __export(schema_exports, {
   customerNotifications: () => customerNotifications,
   customers: () => customers,
+  frameConfigurationBookmarks: () => frameConfigurationBookmarks,
   frames: () => frames,
   glassOptions: () => glassOptions,
   insertCustomerNotificationSchema: () => insertCustomerNotificationSchema,
   insertCustomerSchema: () => insertCustomerSchema,
+  insertFrameConfigurationBookmarkSchema: () => insertFrameConfigurationBookmarkSchema,
   insertFrameSchema: () => insertFrameSchema,
   insertGlassOptionSchema: () => insertGlassOptionSchema,
   insertInventoryCategorySchema: () => insertInventoryCategorySchema,
@@ -92,7 +94,7 @@ __export(schema_exports, {
 });
 import { pgTable, text, serial, integer, boolean, numeric, timestamp, jsonb, primaryKey } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
-var customers, insertCustomerSchema, frames, insertFrameSchema, matColors, insertMatColorSchema, glassOptions, insertGlassOptionSchema, specialServices, insertSpecialServiceSchema, orderGroups, insertOrderGroupSchema, productionStatuses, orders, insertOrderSchema, orderSpecialServices, insertOrderSpecialServiceSchema, orderMats, insertOrderMatSchema, orderFrames, insertOrderFrameSchema, wholesaleOrders, insertWholesaleOrderSchema, users, insertUserSchema, larsonJuhlCatalog, insertLarsonJuhlCatalogSchema, notificationTypes, notificationChannels, customerNotifications, insertCustomerNotificationSchema, materialTypes, materialOrderStatuses, materialOrders, insertMaterialOrderSchema, suppliers, insertSupplierSchema, inventoryCategories, insertInventoryCategorySchema, inventoryLocations, insertInventoryLocationSchema, measurementUnits, inventoryItems, insertInventoryItemSchema, transactionTypes, inventoryTransactions, insertInventoryTransactionSchema, purchaseOrderStatuses, purchaseOrders, insertPurchaseOrderSchema, purchaseOrderLines, insertPurchaseOrderLineSchema, inventoryCounts, insertInventoryCountSchema, inventoryCountItems, insertInventoryCountItemSchema, paymentLinks, insertPaymentLinkSchema, qrCodeTypes, qrCodes, insertQrCodeSchema, qrCodeScans, insertQrCodeScanSchema, materialLocations, insertMaterialLocationSchema, notifications, insertNotificationSchema;
+var customers, insertCustomerSchema, frames, insertFrameSchema, matColors, insertMatColorSchema, glassOptions, insertGlassOptionSchema, specialServices, insertSpecialServiceSchema, orderGroups, insertOrderGroupSchema, productionStatuses, orders, insertOrderSchema, orderSpecialServices, insertOrderSpecialServiceSchema, orderMats, insertOrderMatSchema, orderFrames, insertOrderFrameSchema, wholesaleOrders, insertWholesaleOrderSchema, users, insertUserSchema, larsonJuhlCatalog, insertLarsonJuhlCatalogSchema, notificationTypes, notificationChannels, customerNotifications, insertCustomerNotificationSchema, materialTypes, materialOrderStatuses, materialOrders, insertMaterialOrderSchema, suppliers, insertSupplierSchema, inventoryCategories, insertInventoryCategorySchema, inventoryLocations, insertInventoryLocationSchema, measurementUnits, inventoryItems, insertInventoryItemSchema, transactionTypes, inventoryTransactions, insertInventoryTransactionSchema, purchaseOrderStatuses, purchaseOrders, insertPurchaseOrderSchema, purchaseOrderLines, insertPurchaseOrderLineSchema, inventoryCounts, insertInventoryCountSchema, inventoryCountItems, insertInventoryCountItemSchema, paymentLinks, insertPaymentLinkSchema, qrCodeTypes, qrCodes, insertQrCodeSchema, qrCodeScans, insertQrCodeScanSchema, materialLocations, insertMaterialLocationSchema, notifications, insertNotificationSchema, frameConfigurationBookmarks, insertFrameConfigurationBookmarkSchema;
 var init_schema = __esm({
   "shared/schema.ts"() {
     "use strict";
@@ -718,6 +720,45 @@ var init_schema = __esm({
     insertNotificationSchema = createInsertSchema(notifications).omit({
       id: true,
       createdAt: true
+    });
+    frameConfigurationBookmarks = pgTable("frame_configuration_bookmarks", {
+      id: serial("id").primaryKey(),
+      name: text("name").notNull(),
+      // User-given name for the bookmark
+      description: text("description"),
+      // Optional description
+      // Frame configuration
+      frames: jsonb("frames").notNull(),
+      // Array of frame configurations: [{ frameId, position, distance }]
+      mats: jsonb("mats").notNull(),
+      // Array of mat configurations: [{ matColorId, position, width, offset }]
+      glassOptionId: text("glass_option_id").references(() => glassOptions.id),
+      // Configuration settings
+      useMultipleMats: boolean("use_multiple_mats").default(false),
+      useMultipleFrames: boolean("use_multiple_frames").default(false),
+      // Optional default dimensions (can be overridden when applying bookmark)
+      defaultArtworkWidth: numeric("default_artwork_width"),
+      defaultArtworkHeight: numeric("default_artwork_height"),
+      defaultMatWidth: numeric("default_mat_width"),
+      // Tags for organization
+      tags: text("tags").array(),
+      // Usage tracking
+      usageCount: integer("usage_count").default(0),
+      lastUsed: timestamp("last_used"),
+      // Metadata
+      isFavorite: boolean("is_favorite").default(false),
+      isPublic: boolean("is_public").default(false),
+      // Allow sharing with other users
+      createdBy: integer("created_by").references(() => users.id),
+      createdAt: timestamp("created_at").defaultNow(),
+      updatedAt: timestamp("updated_at").defaultNow()
+    });
+    insertFrameConfigurationBookmarkSchema = createInsertSchema(frameConfigurationBookmarks).omit({
+      id: true,
+      createdAt: true,
+      updatedAt: true,
+      usageCount: true,
+      lastUsed: true
     });
   }
 });
@@ -5639,6 +5680,118 @@ router8.post("/order-update", handleOrderUpdateWebhook);
 router8.get("/health", webhookHealthCheck);
 var webhookRoutes_default = router8;
 
+// server/routes/bookmarkRoutes.ts
+init_db();
+init_schema();
+import { Router as Router9 } from "express";
+import { eq as eq6, desc as desc3, sql as sql2 } from "drizzle-orm";
+var router9 = Router9();
+router9.get("/bookmarks", async (req, res) => {
+  try {
+    const bookmarks = await db.select().from(frameConfigurationBookmarks).orderBy(desc3(frameConfigurationBookmarks.isFavorite), desc3(frameConfigurationBookmarks.lastUsed), desc3(frameConfigurationBookmarks.createdAt));
+    res.json(bookmarks);
+  } catch (error) {
+    console.error("Error fetching bookmarks:", error);
+    res.status(500).json({ error: "Failed to fetch bookmarks" });
+  }
+});
+router9.get("/bookmarks/:id", async (req, res) => {
+  try {
+    const bookmark = await db.select().from(frameConfigurationBookmarks).where(eq6(frameConfigurationBookmarks.id, parseInt(req.params.id))).limit(1);
+    if (bookmark.length === 0) {
+      return res.status(404).json({ error: "Bookmark not found" });
+    }
+    res.json(bookmark[0]);
+  } catch (error) {
+    console.error("Error fetching bookmark:", error);
+    res.status(500).json({ error: "Failed to fetch bookmark" });
+  }
+});
+router9.post("/bookmarks", async (req, res) => {
+  try {
+    const bookmarkData = insertFrameConfigurationBookmarkSchema.parse(req.body);
+    const newBookmark = await db.insert(frameConfigurationBookmarks).values(bookmarkData).returning();
+    res.status(201).json(newBookmark[0]);
+  } catch (error) {
+    console.error("Error creating bookmark:", error);
+    res.status(500).json({ error: "Failed to create bookmark" });
+  }
+});
+router9.put("/bookmarks/:id", async (req, res) => {
+  try {
+    const bookmarkData = insertFrameConfigurationBookmarkSchema.parse(req.body);
+    const updatedBookmark = await db.update(frameConfigurationBookmarks).set({
+      ...bookmarkData,
+      updatedAt: /* @__PURE__ */ new Date()
+    }).where(eq6(frameConfigurationBookmarks.id, parseInt(req.params.id))).returning();
+    if (updatedBookmark.length === 0) {
+      return res.status(404).json({ error: "Bookmark not found" });
+    }
+    res.json(updatedBookmark[0]);
+  } catch (error) {
+    console.error("Error updating bookmark:", error);
+    res.status(500).json({ error: "Failed to update bookmark" });
+  }
+});
+router9.delete("/bookmarks/:id", async (req, res) => {
+  try {
+    const deletedBookmark = await db.delete(frameConfigurationBookmarks).where(eq6(frameConfigurationBookmarks.id, parseInt(req.params.id))).returning();
+    if (deletedBookmark.length === 0) {
+      return res.status(404).json({ error: "Bookmark not found" });
+    }
+    res.json({ message: "Bookmark deleted successfully" });
+  } catch (error) {
+    console.error("Error deleting bookmark:", error);
+    res.status(500).json({ error: "Failed to delete bookmark" });
+  }
+});
+router9.post("/bookmarks/:id/apply", async (req, res) => {
+  try {
+    const updatedBookmark = await db.update(frameConfigurationBookmarks).set({
+      usageCount: sql2`${frameConfigurationBookmarks.usageCount} + 1`,
+      lastUsed: /* @__PURE__ */ new Date()
+    }).where(eq6(frameConfigurationBookmarks.id, parseInt(req.params.id))).returning();
+    if (updatedBookmark.length === 0) {
+      return res.status(404).json({ error: "Bookmark not found" });
+    }
+    res.json(updatedBookmark[0]);
+  } catch (error) {
+    console.error("Error applying bookmark:", error);
+    res.status(500).json({ error: "Failed to apply bookmark" });
+  }
+});
+router9.post("/bookmarks/:id/favorite", async (req, res) => {
+  try {
+    const bookmark = await db.select().from(frameConfigurationBookmarks).where(eq6(frameConfigurationBookmarks.id, parseInt(req.params.id))).limit(1);
+    if (bookmark.length === 0) {
+      return res.status(404).json({ error: "Bookmark not found" });
+    }
+    const updatedBookmark = await db.update(frameConfigurationBookmarks).set({
+      isFavorite: !bookmark[0].isFavorite,
+      updatedAt: /* @__PURE__ */ new Date()
+    }).where(eq6(frameConfigurationBookmarks.id, parseInt(req.params.id))).returning();
+    res.json(updatedBookmark[0]);
+  } catch (error) {
+    console.error("Error toggling favorite:", error);
+    res.status(500).json({ error: "Failed to toggle favorite" });
+  }
+});
+router9.get("/bookmarks/search/:query", async (req, res) => {
+  try {
+    const query = req.params.query;
+    const bookmarks = await db.select().from(frameConfigurationBookmarks).where(
+      sql2`${frameConfigurationBookmarks.name} ILIKE ${"%" + query + "%"} OR 
+            ${frameConfigurationBookmarks.description} ILIKE ${"%" + query + "%"} OR 
+            array_to_string(${frameConfigurationBookmarks.tags}, ' ') ILIKE ${"%" + query + "%"}`
+    ).orderBy(desc3(frameConfigurationBookmarks.isFavorite), desc3(frameConfigurationBookmarks.lastUsed));
+    res.json(bookmarks);
+  } catch (error) {
+    console.error("Error searching bookmarks:", error);
+    res.status(500).json({ error: "Failed to search bookmarks" });
+  }
+});
+var bookmarkRoutes_default = router9;
+
 // server/controllers/healthController.ts
 var getHealth = (req, res) => {
   res.json({
@@ -5678,6 +5831,7 @@ app.use("/api", invoiceRoutes_default);
 app.use("/api", fileRoutes_default);
 app.use("/api", qrCodeRoutes_default);
 app.use("/api", webhookRoutes_default);
+app.use("/api", bookmarkRoutes_default);
 var clientBuildPath = true ? path3.join(process.cwd(), "dist/public") : path3.join(__dirname2, "../dist/public");
 console.log(`\u{1F4C1} Serving static files from: ${clientBuildPath}`);
 console.log(`\u{1F4C2} Directory exists: ${fs3.existsSync(clientBuildPath)}`);

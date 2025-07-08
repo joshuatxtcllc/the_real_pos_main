@@ -17,6 +17,7 @@ import invoiceRoutes from './routes/invoiceRoutes';
 import fileRoutes from './routes/fileRoutes';
 import qrCodeRoutes from './routes/qrCodeRoutes';
 import webhookRoutes from './routes/webhookRoutes';
+import bookmarkRoutes from './routes/bookmarkRoutes';
 import healthController from './controllers/healthController';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -55,6 +56,7 @@ app.use('/api', invoiceRoutes);
 app.use('/api', fileRoutes);
 app.use('/api', qrCodeRoutes);
 app.use('/api', webhookRoutes);
+app.use('/api', bookmarkRoutes);
 
 // Serve static files from the client build
 const clientBuildPath = process.env.NODE_ENV === 'production' 
