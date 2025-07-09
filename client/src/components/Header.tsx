@@ -210,8 +210,8 @@ export default function Header({ darkMode, toggleTheme }: HeaderProps) {
 
           {/* Mobile menu button */}
           <Button 
-            className="md:hidden text-foreground hover:text-foreground hover:bg-accent" 
-            variant="ghost" 
+            className="md:hidden text-foreground hover:text-foreground hover:bg-accent border border-border/50" 
+            variant="outline" 
             size="icon" 
             onClick={toggleMobileMenu}
             aria-label="Toggle menu"
