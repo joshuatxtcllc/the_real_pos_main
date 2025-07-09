@@ -35,7 +35,7 @@ async function deployBuild() {
 
     // Build backend server (optimized for deployment with ESM format)
     console.log('🔧 Building server for deployment...');
-    await execAsync('npx esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outfile=dist/server.mjs --define:process.env.NODE_ENV=\\"production\\" --minify --target=es2020');
+    await execAsync('npx esbuild server/index.ts --platform=node --external:express --external:cors --external:@neondatabase/serverless --external:ws --external:dotenv --external:winston --bundle --format=esm --outfile=dist/server.mjs --define:process.env.NODE_ENV=\\"production\\" --minify --target=es2020');
     console.log('✓ Server build completed');
 
     // Copy package.json essentials for deployment
@@ -50,8 +50,12 @@ async function deployBuild() {
       },
       dependencies: {
         // Only include production dependencies that are actually external
-        "pg": packageJson.dependencies?.pg || "latest",
-        "dotenv": packageJson.dependencies?.dotenv || "latest"
+        "express": packageJson.dependencies?.express || "latest",
+        "cors": packageJson.dependencies?.cors || "latest", 
+        "@neondatabase/serverless": packageJson.dependencies?.["@neondatabase/serverless"] || "latest",
+        "ws": packageJson.dependencies?.ws || "latest",
+        "dotenv": packageJson.dependencies?.dotenv || "latest",
+        "winston": packageJson.dependencies?.winston || "latest"
       }
     };
 
