@@ -24,7 +24,28 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+
+// Immediate health check endpoint (must be first)
+app.get('/', (req, res) => {
+  res.status(200).json({
+    status: 'healthy',
+    service: "Jay's Frames POS System",
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || 'development'
+  });
+});
+
+app.get('/health', (req, res) => {
+  res.status(200).json({ status: 'healthy' });
+});
+
+app.get('/ready', (req, res) => {
+  res.status(200).json({ status: 'ready' });
+});
+
+// Trust proxy for accurate client IPs
+app.set('trust proxy', true);
+const PORT = parseInt(process.env.PORT || process.env.REPL_PORT || '5000', 10);
 
 // Middleware
 app.use(cors({
@@ -96,10 +117,11 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
   });
 });
 
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`🚀 Server running on http://0.0.0.0:${PORT}`);
-  console.log(`📁 Serving static files from: ${clientBuildPath}`);
-  console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
+const server = app.listen(PORT, "0.0.0.0", () => {
+  console.log(`Server running on port ${PORT}`);
+  console.log(`Environment: ${process.env.NODE_ENV}`);
+  console.log(`Server bound to 0.0.0.0:${PORT}`);
+  console.log('Health check endpoints: /, /health, /ready');
 });
 
 export default app;

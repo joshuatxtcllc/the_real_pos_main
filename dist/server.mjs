@@ -6116,7 +6116,22 @@ dotenv.config();
 var __filename2 = fileURLToPath2(import.meta.url);
 var __dirname2 = path3.dirname(__filename2);
 var app = express2();
-var PORT = process.env.PORT || 5e3;
+app.get("/", (req, res) => {
+  res.status(200).json({
+    status: "healthy",
+    service: "Jay's Frames POS System",
+    timestamp: (/* @__PURE__ */ new Date()).toISOString(),
+    environment: "production"
+  });
+});
+app.get("/health", (req, res) => {
+  res.status(200).json({ status: "healthy" });
+});
+app.get("/ready", (req, res) => {
+  res.status(200).json({ status: "ready" });
+});
+app.set("trust proxy", true);
+var PORT = parseInt(process.env.PORT || process.env.REPL_PORT || "5000", 10);
 app.use(cors({
   origin: true ? ["https://*.replit.app", "https://*.replit.dev"] : [
     "http://localhost:3000",
@@ -6166,10 +6181,11 @@ app.use((err, req, res, next) => {
     message: err.message
   });
 });
-app.listen(PORT, "0.0.0.0", () => {
-  console.log(`\u{1F680} Server running on http://0.0.0.0:${PORT}`);
-  console.log(`\u{1F4C1} Serving static files from: ${clientBuildPath}`);
-  console.log(`\u{1F30D} Environment: ${"production"}`);
+var server = app.listen(PORT, "0.0.0.0", () => {
+  console.log(`Server running on port ${PORT}`);
+  console.log(`Environment: ${"production"}`);
+  console.log(`Server bound to 0.0.0.0:${PORT}`);
+  console.log("Health check endpoints: /, /health, /ready");
 });
 var index_default = app;
 export {
