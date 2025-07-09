@@ -125,6 +125,8 @@ The application uses a streamlined deployment process optimized for Replit:
   - Removed problematic shebang line that was causing "shebang line in ESM module context" error
   - Updated all CommonJS require() statements to ESM import statements
   - Added proper ESM syntax for __dirname using fileURLToPath(import.meta.url)
+  - Created scripts/pre-deploy-check.js with correct ESM syntax to match build command expectations
+  - Fixed "Cannot find module" error by ensuring the referenced file exists with proper syntax
   - Validated all fixes with comprehensive test script confirming syntax errors resolved
   - Deployment should now proceed without the pre-deploy script syntax blocking the build process
 - July 8, 2025: Complete Bookmark System for Frame Configurations Implemented
