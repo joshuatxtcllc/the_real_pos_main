@@ -223,7 +223,7 @@ export default function Header({ darkMode, toggleTheme }: HeaderProps) {
 
       {/* Mobile menu */}
       {isMobileMenuOpen && (
-        <div className="md:hidden absolute top-14 lg:top-16 left-0 w-full bg-background dark:bg-background border-b border-border shadow-lg z-40">
+        <div className="md:hidden absolute top-14 lg:top-16 left-0 w-full bg-background border-b border-border shadow-lg z-40">
           <nav className="container mx-auto px-4 py-4 max-h-[calc(100vh-4rem)] overflow-y-auto">
             {menuStructure.map((menuItem, idx) => (
               <div key={idx} className="mb-4">
