@@ -210,7 +210,7 @@ export default function Header({ darkMode, toggleTheme }: HeaderProps) {
 
           {/* Mobile menu button */}
           <Button 
-            className="md:hidden text-foreground hover:text-foreground hover:bg-accent border border-border/50" 
+            className="md:hidden text-foreground hover:text-foreground hover:bg-accent border-2 border-primary/30 bg-background shadow-sm" 
             variant="outline" 
             size="icon" 
             onClick={toggleMobileMenu}
