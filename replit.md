@@ -119,6 +119,14 @@ The application uses a streamlined deployment process optimized for Replit:
 - WebSocket connections for real-time features require sticky sessions
 
 ## Changelog
+- July 9, 2025: Deployment Syntax Error Fixed
+  - Resolved critical pre-deploy check script syntax error that was blocking deployment
+  - Converted scripts/pre-deploy-check.js to ESM format (scripts/pre-deploy-check.mjs)
+  - Removed problematic shebang line that was causing "shebang line in ESM module context" error
+  - Updated all CommonJS require() statements to ESM import statements
+  - Added proper ESM syntax for __dirname using fileURLToPath(import.meta.url)
+  - Validated all fixes with comprehensive test script confirming syntax errors resolved
+  - Deployment should now proceed without the pre-deploy script syntax blocking the build process
 - July 8, 2025: Complete Bookmark System for Frame Configurations Implemented
   - Created comprehensive frame configuration bookmark system with database storage and UI integration
   - Added frameConfigurationBookmarks table with support for frames, mats, glass options, and configuration settings

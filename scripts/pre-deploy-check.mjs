@@ -1,5 +1,8 @@
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
-#!/usr/bin/env node
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 console.log('🔍 Running pre-deployment checks...\n');
 
@@ -18,9 +21,6 @@ if (missingEnvVars.length > 0) {
 }
 
 // Check if build artifacts exist
-const fs = require('fs');
-const path = require('path');
-
 const buildArtifacts = [
   'dist/public/index.html',
   'dist/server.mjs'
