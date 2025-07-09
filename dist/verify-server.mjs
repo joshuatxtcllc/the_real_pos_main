@@ -2,7 +2,6 @@ var __defProp = Object.defineProperty;
 var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
 var __getOwnPropNames = Object.getOwnPropertyNames;
 var __hasOwnProp = Object.prototype.hasOwnProperty;
-var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
 var __esm = (fn, res) => function __init() {
   return fn && (res = (0, fn[__getOwnPropNames(fn)[0]])(fn = 0)), res;
 };
@@ -19,7 +18,6 @@ var __copyProps = (to, from, except, desc4) => {
   return to;
 };
 var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
-var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "symbol" ? key + "" : key, value);
 
 // shared/schema.ts
 var schema_exports = {};
@@ -1636,11 +1634,8 @@ var init_cachingService = __esm({
   "server/services/cachingService.ts"() {
     "use strict";
     MemoryCache = class {
-      constructor() {
-        __publicField(this, "cache", /* @__PURE__ */ new Map());
-        __publicField(this, "defaultTTL", 3e5);
-        setInterval(() => this.cleanup(), 3e5);
-      }
+      cache = /* @__PURE__ */ new Map();
+      defaultTTL = 3e5;
       // 5 minutes
       async get(key) {
         const item = this.cache.get(key);
@@ -1678,6 +1673,9 @@ var init_cachingService = __esm({
           }
         }
       }
+      constructor() {
+        setInterval(() => this.cleanup(), 3e5);
+      }
     };
     cache = new MemoryCache();
   }
@@ -1701,9 +1699,7 @@ var init_logger = __esm({
       ]
     });
     StructuredLogger = class {
-      constructor() {
-        __publicField(this, "winston", logger);
-      }
+      winston = logger;
       info(message, context) {
         this.winston.info(message, { ...context, timestamp: (/* @__PURE__ */ new Date()).toISOString() });
       }
@@ -1758,10 +1754,6 @@ var init_circuitBreaker = __esm({
     CircuitBreaker = class {
       constructor(name, failureThreshold = 5, resetTimeout = 6e4, successThreshold = 3) {
         this.name = name;
-        __publicField(this, "state");
-        __publicField(this, "failureThreshold");
-        __publicField(this, "resetTimeout");
-        __publicField(this, "successThreshold");
         this.state = {
           state: "CLOSED",
           failureCount: 0,
@@ -1772,6 +1764,10 @@ var init_circuitBreaker = __esm({
         this.resetTimeout = resetTimeout;
         this.successThreshold = successThreshold;
       }
+      state;
+      failureThreshold;
+      resetTimeout;
+      successThreshold;
       async execute(operation) {
         if (this.state.state === "OPEN") {
           if (Date.now() - this.state.lastFailureTime > this.resetTimeout) {

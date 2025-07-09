@@ -149,7 +149,7 @@ export const BookmarkManager = ({
       tags: bookmarkTags ? bookmarkTags.split(',').map(tag => tag.trim()) : [],
       isFavorite: false,
       isPublic: false,
-      createdBy: 1 // TODO: Replace with actual user ID when auth is implemented
+      createdBy: 1 // Default user until authentication system is implemented
     };
 
     createBookmarkMutation.mutate(bookmarkData);

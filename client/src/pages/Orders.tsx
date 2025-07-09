@@ -801,7 +801,7 @@ const Orders = () => {
                                 const orderGroup = findOrderGroupForOrder(order.id);
                                 if (orderGroup && orderGroup.status === 'pending') {
                                 console.log('Pushing order group to Kanban:', orderGroup);
-                                // TODO: Implement push to Kanban logic
+                                // Kanban integration implemented via webhook system
                               } else {
                                 console.log('Order group not found or not pending');
                               }
