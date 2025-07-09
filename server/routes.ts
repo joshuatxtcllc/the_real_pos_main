@@ -31,6 +31,7 @@ import voiceCallRoutes from './routes/voiceCallRoutes.js';
 import twimlRoutes from './routes/twimlRoutes.js';
 import orderNotificationRoutes from './routes/orderNotificationRoutes';
 import paymentStatusRoutes from './routes/paymentStatusRoutes';
+import { getIntegrationHealth } from './controllers/integrationHealthController';
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Art Location routes
@@ -55,6 +56,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       environment: process.env.NODE_ENV || 'development'
     });
   });
+
+  app.get('/api/health/integrations', getIntegrationHealth);
 
   // Root health check removed to allow frontend serving
   // Health checks available at /api/health instead
@@ -289,12 +292,12 @@ app.get('/api/ai/seasonal-trends/:materialId', async (req, res) => {
       const fs = require('fs');
       const path = require('path');
       const csvPath = path.join(__dirname, '..', 'data', 'studio-moulding-catalog.csv');
-      
+
       if (fs.existsSync(csvPath)) {
         const csvData = fs.readFileSync(csvPath, 'utf8');
         const lines = csvData.split('\n').filter(line => line.trim());
         const headers = lines[0].split(',');
-        
+
         const frameData = lines.slice(1).map((line, index) => {
           const values = line.split(',');
           const itemNumber = values[0] || `frame-${index}`;
@@ -302,7 +305,7 @@ app.get('/api/ai/seasonal-trends/:materialId', async (req, res) => {
           const lengthPrice = values[2] || '10.00';
           const width = values[7] || '2';
           const height = values[8] || '1';
-          
+
           return {
             id: `larson-${itemNumber}`,
             name: description,
@@ -842,8 +845,7 @@ app.get('/api/ai/seasonal-trends/:materialId', async (req, res) => {
       const updatedMaterials = [];
       for (const materialId of materialIds) {
         try {
-          const updated = await storage.updateMaterialOrder(parseInt(materialId), { 
-            status,
+          const updated = await storage.updateMaterialOrder(parseInt(materialId), {             status,
             notes: adminApproval ? "Admin approved override for duplicate order" : undefined
           });
           updatedMaterials.push(updated);
