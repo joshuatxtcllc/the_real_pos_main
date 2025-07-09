@@ -5,6 +5,9 @@ import {
   calculateGlassPrice as calculateGlassPriceCorrect, 
   calculatePricePerUnitedInch 
 } from '@shared/pricingUtils';
+import { getCachedPricing, setCachedPricing } from './cachingService';
+import { structuredLogger } from '../utils/logger';
+import { circuitBreakers } from '../middleware/circuitBreaker';
 
 /**
  * Houston Heights custom pricing service
@@ -256,9 +259,132 @@ const SPECIAL_SERVICES = {
 };
 
 /**
- * Main pricing calculation function for custom frames
+ * Main pricing calculation function with caching and fallbacks
  */
 export async function calculateFramingPrice(params: FramePricingParams): Promise<PricingResult> {
+  const {
+    frameId,
+    matColorId,
+    glassOptionId,
+    artworkWidth,
+    artworkHeight,
+    matWidth,
+    quantity,
+    includeWholesalePrices = false
+  } = params;
+
+  // Try to get cached pricing first
+  try {
+    const cachedResult = await getCachedPricing(
+      frameId || 'none',
+      matColorId || 'none', 
+      glassOptionId || 'none',
+      { width: artworkWidth, height: artworkHeight, matWidth }
+    );
+    
+    if (cachedResult) {
+      structuredLogger.info('Pricing served from cache', {
+        operation: 'calculateFramingPrice',
+        frameId,
+        cached: true
+      });
+      return cachedResult;
+    }
+  } catch (error) {
+    structuredLogger.warn('Cache retrieval failed, proceeding with calculation', {
+      error: error as Error,
+      operation: 'calculateFramingPrice'
+    });
+  }
+
+  try {
+    const result = await circuitBreakers.database.execute(async () => {
+      return await calculatePricingWithFallbacks(params);
+    });
+
+    // Cache successful result
+    try {
+      await setCachedPricing(
+        frameId || 'none',
+        matColorId || 'none',
+        glassOptionId || 'none',
+        { width: artworkWidth, height: artworkHeight, matWidth },
+        result
+      );
+    } catch (cacheError) {
+      structuredLogger.warn('Failed to cache pricing result', {
+        error: cacheError as Error,
+        operation: 'calculateFramingPrice'
+      });
+    }
+
+    return result;
+  } catch (error) {
+    structuredLogger.error('Pricing calculation failed, using fallback', {
+      error: error as Error,
+      severity: 'high',
+      operation: 'calculateFramingPrice',
+      frameId,
+      matColorId,
+      glassOptionId
+    });
+    
+    return calculateFallbackPricing(params);
+  }
+}
+
+/**
+ * Fallback pricing calculation using basic estimates
+ */
+function calculateFallbackPricing(params: FramePricingParams): PricingResult {
+  const { artworkWidth, artworkHeight, matWidth, quantity } = params;
+  
+  // Basic fallback pricing using industry averages
+  const unitedInches = (artworkWidth + matWidth * 2) + (artworkHeight + matWidth * 2);
+  
+  const framePrice = unitedInches * 2.5; // $2.50 per united inch average
+  const matPrice = unitedInches * 1.8; // $1.80 per united inch average  
+  const glassPrice = unitedInches * 1.2; // $1.20 per united inch average
+  const backingPrice = 15.00; // Flat rate
+  const laborCost = Math.max(unitedInches * 0.8, 25.00); // Minimum $25
+  
+  const materialCost = framePrice + matPrice + glassPrice + backingPrice;
+  const subtotal = materialCost + laborCost;
+  const totalPrice = subtotal * quantity;
+
+  structuredLogger.info('Fallback pricing applied', {
+    operation: 'calculateFallbackPricing',
+    unitedInches,
+    totalPrice
+  });
+
+  return {
+    framePrice,
+    matPrice,
+    glassPrice,
+    backingPrice,
+    laborCost,
+    materialCost,
+    subtotal,
+    totalPrice,
+    laborRates: {
+      baseRate: BASE_LABOR_RATE,
+      regionalFactor: HOUSTON_REGIONAL_FACTOR,
+      estimates: {
+        frameAssembly: 0.5,
+        matCutting: 0.5,
+        glassCutting: 0.3,
+        fitting: 0.3,
+        finishing: 0.2
+      }
+    }
+  };
+}
+
+/**
+ * Main pricing calculation with database fallbacks
+ */
+async function calculatePricingWithFallbacks(params: FramePricingParams): Promise<PricingResult> {
   const {
     frameId,
     matColorId,

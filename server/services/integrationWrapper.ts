@@ -2,6 +2,53 @@
 import { circuitBreakers } from '../middleware/circuitBreaker';
 import { structuredLogger } from '../utils/logger';
 
+interface RetryOptions {
+  maxRetries: number;
+  baseDelay: number;
+  maxDelay: number;
+}
+
+async function withRetry<T>(
+  operation: () => Promise<T>,
+  options: RetryOptions,
+  context: string
+): Promise<T> {
+  let lastError: Error;
+  
+  for (let attempt = 0; attempt <= options.maxRetries; attempt++) {
+    try {
+      return await operation();
+    } catch (error) {
+      lastError = error as Error;
+      
+      if (attempt === options.maxRetries) {
+        structuredLogger.error(`Operation failed after ${options.maxRetries} retries`, {
+          error: lastError,
+          severity: 'high',
+          operation: context,
+          attempts: attempt + 1
+        });
+        throw lastError;
+      }
+      
+      const delay = Math.min(
+        options.baseDelay * Math.pow(2, attempt),
+        options.maxDelay
+      );
+      
+      structuredLogger.warn(`Retry attempt ${attempt + 1} for ${context}`, {
+        error: lastError.message,
+        nextRetryIn: delay,
+        operation: context
+      });
+      
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+  }
+  
+  throw lastError!;
+}
+
 interface RetryConfig {
   maxRetries: number;
   baseDelay: number;

@@ -1,7 +1,11 @@
 import React, { Component, ErrorInfo } from 'react';
+import { AlertTriangle } from 'lucide-react';
+import { Button } from './ui/button';
 
 interface Props {
   children: React.ReactNode;
+  fallback?: (error?: Error, resetError?: () => void) => React.ReactNode;
+  context?: string;
 }
 
 interface State {

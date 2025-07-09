@@ -32,6 +32,7 @@ import twimlRoutes from './routes/twimlRoutes.js';
 import orderNotificationRoutes from './routes/orderNotificationRoutes';
 import paymentStatusRoutes from './routes/paymentStatusRoutes';
 import { getIntegrationHealth } from './controllers/integrationHealthController';
+import * as systemHealthController from './controllers/systemHealthController';
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Art Location routes
@@ -58,6 +59,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.get('/api/health/integrations', getIntegrationHealth);
+  app.get('/api/system-health', systemHealthController.getSystemHealth);
+  app.get('/api/ping', systemHealthController.getQuickHealth);
 
   // Root health check removed to allow frontend serving
   // Health checks available at /api/health instead
@@ -1035,35 +1038,6 @@ app.get('/api/ai/seasonal-trends/:materialId', async (req, res) => {
     }
   });
 
-  // Payment link routes
-  // const {
-  //   createNewPaymentLink,
-  //   getAllPaymentLinks,
-  //   getPaymentLinkById,
-  //   sendPaymentLinkNotification,
-  //   validatePaymentLinkByToken,
-  //   completePaymentForLink,
-  //   verifyPaymentCompletion
-  // } = await import('./controllers/paymentLinkController');
-
-  // Payment link routes
-  // app.post('/api/payment-links', createNewPaymentLink);
-  // app.get('/api/payment-links', getAllPaymentLinks);
-  // app.get('/api/payment-links/:id', getPaymentLinkById);
-  // app.post('/api/payment-links/:id/send', sendPaymentLinkNotification);
-  // app.get('/api/payment/:token/validate', validatePaymentLinkByToken);
-  // app.post('/api/payment/:token/complete', completePaymentForLink);
-  // app.post('/api/payment/:token/verify', verifyPaymentCompletion);
-  // Payment link routes
-  // const {
-  //   createNewPaymentLink,
-  //   getAllPaymentLinks,
-  //   getPaymentLinkById,
-  //   sendPaymentLinkNotification,
-  //   validatePaymentLinkByToken,
-  //   completePaymentForLink,
-  //   verifyPaymentCompletion
-  // } = await import('./controllers/paymentLinkController');
   const {
     createNewPaymentLink,
     getAllPaymentLinks,
